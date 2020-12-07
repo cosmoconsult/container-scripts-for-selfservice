@@ -42,9 +42,9 @@ if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
 Write-Host ""
 Write-Host "=== Additional Setup ==="
 
-if (Test-Path "c:\run\my\PPIArtifactUtils.psd1") {
-    Write-Host "Import PPI Setup Utils from c:\run\my\PPIArtifactUtils.psd1"
-    Import-Module "c:\run\my\PPIArtifactUtils.psd1" -DisableNameChecking -Force
+if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
+    Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
+    Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
 }
 
 if (Test-Path "$serviceTierFolder") {
@@ -104,7 +104,7 @@ finally {
     Write-Host "Import Artifacts done."
 }
 
-$artifactSettings = "c:\run\my\ArtifactSettings.ps1"
+$artifactSettings = "c:\run\ArtifactSettings.ps1"
 Set-Content $artifactSettings -Value ("# Container Settings from Additional setup")
 Add-Content $artifactSettings -Value ('$NavServiceName   = "' + "$NavServiceName" + '"')
 Add-Content $artifactSettings -Value ('$ServerInstance   = "' + "$ServerInstance" + '"')
