@@ -4,7 +4,9 @@ function Get-AppFilesSortedByDependencies {
         [string] $Path,
         [string] $Filter  = "*.app",
         [string[]] $Exclude = @("*Test_*","*Tests_*"),        
-        [bool] $Distinct = $true
+        [bool] $Distinct = $true,
+        [Parameter(Mandatory=$false)]
+        $Depth
     )
     
     begin {
@@ -52,7 +54,11 @@ function Get-AppFilesSortedByDependencies {
         if ($Path -eq "") {
             $Path = "C:\ProgramData\NavContainerHelper\DependencyApps"
         }
-        $AllAppFiles = Get-ChildItem -LiteralPath $Path -Filter $Filter -Exclude $Exclude -Recurse
+        $optionalParameters = @{}
+        if ($Depth) {
+            $optionalParameters["Depth"] = $Depth
+        }
+        $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Exclude $Exclude -Recurse $optionalParameters
 
         $AllApps = [System.Collections.ArrayList]@()
         foreach ($AppFile in $AllAppFiles) {

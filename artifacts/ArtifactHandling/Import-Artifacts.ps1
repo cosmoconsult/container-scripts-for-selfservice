@@ -33,9 +33,12 @@ function Import-Artifacts {
     }
     
     process {
-
+        $maxDepth = 4 # max recurse folder depth for searching Apps, FOBs, RIMs, ...
         # Import Fonts
-        $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -ErrorAction SilentlyContinue)
+        $items = @()
+        if (Test-Path -LiteralPath "c:/fonts") {
+            $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
+        }
         if ($items) {
             try {
                 Write-Host "Import $($items.Length) Fonts..."
@@ -56,7 +59,10 @@ function Import-Artifacts {
         }
 
         # Import FOBs
-        $items = @() + (Get-ChildItem -LiteralPath $Path -Filter "*.fob" -Recurse -ErrorAction SilentlyContinue)
+        $items = @()
+        if (Test-Path -LiteralPath "$Path") {
+            $items = @() + (Get-ChildItem -LiteralPath "$Path" -Filter "*.fob" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
+        }
         if ($items) {
             try {
                 $started   = Get-Date -Format "o"
@@ -79,7 +85,10 @@ function Import-Artifacts {
         }
 
         # Publish apps
-        $items = @() + (Get-AppFilesSortedByDependencies -Path $Path -Filter "*.app" -ErrorAction SilentlyContinue)
+        $items = @()
+        if (Test-Path -LiteralPath "$Path") {
+            $items = @() + (Get-AppFilesSortedByDependencies -Path "$Path" -Depth $maxDepth -Filter "*.app" -ErrorAction SilentlyContinue)
+        }
         if ($items) {
             try {
                 $started   = Get-Date -Format "o"
@@ -113,7 +122,10 @@ function Import-Artifacts {
         }
 
         # Import RIM packages
-        $items = @() + (Get-ChildItem -LiteralPath $Path -Filter "*.rapidstart" -Recurse -ErrorAction SilentlyContinue)
+        $items = @()
+        if (Test-Path -LiteralPath "$Path") {
+            $items = @() + (Get-ChildItem -LiteralPath "$Path" -Depth $maxDepth -Filter "*.rapidstart" -Recurse -ErrorAction SilentlyContinue)
+        }
         if ($items) {
             try {
                 $started   = Get-Date -Format "o"
