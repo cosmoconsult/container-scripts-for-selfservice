@@ -121,28 +121,36 @@ function Invoke-DownloadArtifact {
             try {
                 $started = Get-Date -Format "o"
                 if ($downlodUrl.StartsWith("http")) {
+                    $actionMessage = "downloaded"
                     try {
                         Invoke-WebRequest -Method Get -uri $downlodUrl -OutFile "$archive" -Headers $headers
                     } catch {
                         Invoke-WebRequest -Method Get -uri $downlodUrl -OutFile "$archive"
                     }
                 } else {
-                    Copy-Item -Path $downlodUrl -Destination "$archive"
+                    $actionMessage = "copied"
+                    if (! (Test-Path -Path $downlodUrl)) {
+                        Add-ArtifactsLog -message "Artifact '$downlodUrl' does not exist" -severity Warn -success skip
+                    } else {
+                        Copy-Item -Path $downlodUrl -Destination "$archive"
+                    }                    
                 }
 
                 if (Test-Path $archive) {
                     # Setup correct folder
                     $folderIdx = $folderIdx + 1
                     if ("$targetFolder" -eq "") {
-                        $targetFolder = "$($folderIdx.ToString().PadLeft(3, '0'))"
+                        $folderSuffix = "$($folderIdx.ToString().PadLeft(3, '0'))"                        
+                    } else {
+                        $folderSuffix = "$targetFolder"
                     }
-                    $folder    = Join-Path $rootFolder "$targetFolder"
+                    $folder    = Join-Path $rootFolder "$folderSuffix"
 
                     # Overrule the Target Folder, when a special target (app, dll, font) is set
 
                     switch ("$target".ToLower()) {
-                        "dll"     { $folder = "$serviceTierFolder/Add-Ins/$targetFolder" }
-                        "add-ins" { $folder = "$serviceTierFolder/Add-Ins/$targetFolder" }
+                        "dll"     { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
+                        "add-ins" { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
                         #"app"     { $folder = "c:/apps" }
                         "font"    { $folder = "c:/fonts" }
                         "fonts"   { $folder = "c:/fonts" }
@@ -169,7 +177,7 @@ function Invoke-DownloadArtifact {
 
                     $success = $true
                 } else {
-                    Add-ArtifactsLog -message "No content downloaded from '$downlodUrl'" -severity Warn -success skip
+                    Add-ArtifactsLog -message "No content $actionMessage from '$downlodUrl' to '$archive'" -severity Warn -success skip
                     $success = $false
                 }
 
