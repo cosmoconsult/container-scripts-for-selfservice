@@ -58,7 +58,7 @@ function Get-AppFilesSortedByDependencies {
         if ($Depth) {
             $optionalParameters["Depth"] = $Depth
         }
-        $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Exclude $Exclude -Recurse $optionalParameters
+        $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Exclude $Exclude -Recurse @optionalParameters
 
         $AllApps = [System.Collections.ArrayList]@()
         foreach ($AppFile in $AllAppFiles) {
