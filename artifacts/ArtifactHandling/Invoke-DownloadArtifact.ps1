@@ -39,8 +39,11 @@ function Invoke-DownloadArtifact {
     begin {
         $folderIdx         = 0
         $rootFolder        = $destination
-        $archive           = "$([System.IO.Path]::GetTempFileName()).zip"
-        $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+        $tempArchive       = "$([System.IO.Path]::GetTempFileName()).zip"
+        $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName
+        if (! $serviceTierFolder) {
+            Add-ArtifactsLog -message "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'" -severity Warn
+        }
         if (! $telemetryClient) {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
@@ -75,10 +78,10 @@ function Invoke-DownloadArtifact {
     
     process {
         # Download from given URL
-        if (Test-Path "$archive" -ErrorAction SilentlyContinue) { Remove-Item "$archive" -Force -ErrorAction SilentlyContinue }
+        if (Test-Path "$tempArchive" -ErrorAction SilentlyContinue) { Remove-Item "$tempArchive" -Force -ErrorAction SilentlyContinue }
 
-        $downlodUrl = $url
-        if ("$downlodUrl" -eq "") {
+        $sourceUri = $url
+        if ("$sourceUri" -eq "") {
             Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
             $version = Get-PackageVersion `
                 -organization    $organization `
@@ -102,41 +105,49 @@ function Invoke-DownloadArtifact {
                 if ("$scope" -eq "") { $scope = "project"}
                 $project    = $project
                 if ("$scope" -ne "project" -and "" -eq "$project") { $project = "dummy" }
-                $downlodUrl = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($version)?scope=$($scope)&pat=$($accessToken)"
+                $sourceUri  = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($version)?scope=$($scope)&pat=$($accessToken)"
             }
         }
 
-        if ("$downlodUrl" -ne "") {
-            if ($downlodUrl.StartsWith("http")) {
-                $url_output = "$downlodUrl".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
+        $isDownload = "$sourceUri".StartsWith("http")
+        $isArchive  = $isDownload -or "$sourceUri".EndsWith(".zip")
+        if ("$sourceUri" -ne "") {
+            if ($isDownload) {
+                $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
                 if ($url_output.Length -gt 1) {
                     Add-ArtifactsLog -message "Download Artifact from $($url_output[0])&pat=***"
                 } else {
-                    Add-ArtifactsLog -message "Download Artifact from $($downlodUrl)" 
+                    Add-ArtifactsLog -message "Download Artifact from $($sourceUri)"
                 }
             } else {
-                Add-ArtifactsLog -message "Get Artifact from $downlodUrl"
+                Add-ArtifactsLog -message "Get Artifact from $sourceUri"
             }
 
             try {
                 $started = Get-Date -Format "o"
-                if ($downlodUrl.StartsWith("http")) {
-                    $actionMessage = "downloaded"
+                if ("$sourceUri".StartsWith("http")) {  
                     try {
-                        Invoke-WebRequest -Method Get -uri $downlodUrl -OutFile "$archive" -Headers $headers
+                        Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
                     } catch {
-                        Invoke-WebRequest -Method Get -uri $downlodUrl -OutFile "$archive"
+                        Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive"
                     }
                 } else {
-                    $actionMessage = "copied"
-                    if (! (Test-Path -Path $downlodUrl)) {
-                        Add-ArtifactsLog -message "Artifact '$downlodUrl' does not exist" -severity Warn -success skip
+                    if (Test-Path $sourceUri) {
+                        Add-ArtifactsLog -message "Get Artifact from $sourceUri"
                     } else {
-                        Copy-Item -Path $downlodUrl -Destination "$archive"
+                        Add-ArtifactsLog -message "No Artifact found at $sourceUri"
                     }                    
                 }
 
-                if (Test-Path $archive) {
+                if ($isDownload) {
+                    $archive = $tempArchive
+                } elseif ($isArchive) {
+                    $archive = $sourceUri
+                } else {
+                    $archive = ""
+                }
+
+                if (($archive -and (Test-Path $archive)) -or ($sourceUri -and (Test-Path $sourceUri))) {
                     # Setup correct folder
                     $folderIdx = $folderIdx + 1
                     if ("$targetFolder" -eq "") {
@@ -147,7 +158,6 @@ function Invoke-DownloadArtifact {
                     $folder    = Join-Path $rootFolder "$folderSuffix"
 
                     # Overrule the Target Folder, when a special target (app, dll, font) is set
-
                     switch ("$target".ToLower()) {
                         "dll"     { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
                         "add-ins" { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
@@ -156,13 +166,13 @@ function Invoke-DownloadArtifact {
                         "fonts"   { $folder = "c:/fonts" }
                     }
 
-                    if ($downlodUrl.StartsWith("http") -or "$downlodUrl".EndsWith(".zip")) {
+                    if ($isArchive) {
                         Add-ArtifactsLog -message "Extract Artifact $name v $version to $($folder)..."
-                        Expand-Archive -Path $archive -DestinationPath "$folder" -Force
+                        Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force
                     } else {
-                        Add-ArtifactsLog -message "Copy Artifact '$downlodUrl' ($name v $version) to $($folder)..."
+                        Add-ArtifactsLog -message "Copy Artifact '$sourceUri' ($name v $version) to $($folder)..."
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force
-                        Copy-Item -Path "$downlodUrl" -Destination "$folder" -Force
+                        Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
                     }
                     if ($appImportScope) {
                         # Store the Artifact Specific Import Scope Information
@@ -173,11 +183,11 @@ function Invoke-DownloadArtifact {
                         $artifactJson | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue | Set-Content -LiteralPath "$folder/artifact.json" -ErrorAction SilentlyContinue
                     }
                     Add-ArtifactsLog -message "  Downloaded Files ($folder):"
-                    Add-ArtifactsLog -message "$((Get-ChildItem $folder -Recurse) | Select FullName, Length | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)"
+                    Add-ArtifactsLog -message "$((Get-ChildItem $folder -Recurse) | Select-Object FullName, Length | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)"
 
                     $success = $true
                 } else {
-                    Add-ArtifactsLog -message "No content $actionMessage from '$downlodUrl' to '$archive'" -severity Warn -success skip
+                    Add-ArtifactsLog -message "No content available from source: '$sourceUri'" -severity Warn -success skip
                     $success = $false
                 }
 
@@ -186,8 +196,10 @@ function Invoke-DownloadArtifact {
             } catch { 
                 Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -operation "Download Artifact"
             } finally {
-                Remove-Item -Path $archive -Force -ErrorAction SilentlyContinue
-                $downlodUrl = ""
+                if (Test-Path $tempArchive) {
+                    Remove-Item -Path $tempArchive -Force -ErrorAction SilentlyContinue
+                }
+                $sourceUri = ""
             }
         } else {
             Add-ArtifactsLog -message "Artifact $name skipped - no Url found." -severity Warn -success skip
