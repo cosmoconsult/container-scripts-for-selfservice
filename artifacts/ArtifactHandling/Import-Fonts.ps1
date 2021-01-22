@@ -13,6 +13,7 @@ function Import-Fonts {
         }
 
         $importFiles = $false
+        $started     = Get-Date -Format "o"
     }
     
     process {
@@ -124,7 +125,7 @@ namespace FontResource
     
     end {
         if ($importFiles) {
-            Add-ArtifactsLog "Import Fonts done."
+            Add-ArtifactsLog "Import Fonts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
         }
     }
 }
