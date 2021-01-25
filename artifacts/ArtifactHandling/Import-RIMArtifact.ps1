@@ -20,6 +20,7 @@ function Import-RIMArtifact {
         }
 
         $importFiles = $false
+        $started     = Get-Date -Format "o"
     }
     
     process {
@@ -66,7 +67,7 @@ function Import-RIMArtifact {
     
     end {
         if ($importFiles) {
-            Add-ArtifactsLog -message "Import RapidStart files done."
+            Add-ArtifactsLog -message "Import RapidStart files done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
         }
     }
 }

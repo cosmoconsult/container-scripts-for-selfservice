@@ -24,6 +24,7 @@ function Import-FobArtifact {
         }
 
         $importFiles = $false
+        $started     = Get-Date -Format "o"
     }
     
     process {
@@ -73,7 +74,7 @@ function Import-FobArtifact {
     end {
         if ($importFiles) {
             try {
-                $started = Get-Date -Format "o"
+                $started2 = Get-Date -Format "o"
 
                 Start-Service -Name $NavServiceName -WarningAction Ignore
                 Add-ArtifactsLog -kind FOB -message "Sync-NAVTenant $ServerInstance with FORCE"
@@ -81,14 +82,14 @@ function Import-FobArtifact {
                 Add-ArtifactsLog -kind FOB -message "Sync NAV Tenant successful" -success success
                 Write-Host "Restart NAV service"
                 Restart-Service -Name $NavServiceName
-                Invoke-LogOperation -name "Sync NAV Tenant" -started $started -telemetryClient $telemetryClient
+                Invoke-LogOperation -name "Sync NAV Tenant" -started $started2 -telemetryClient $telemetryClient
             }
             catch {
                 Add-ArtifactsLog -kind FOB -message "Sync NAV Tenant failed" -success fail -severity Error
                 Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -operation "Import FOB Artifact"
             }
             finally {
-                Add-ArtifactsLog "Import Object Files done."
+                Add-ArtifactsLog "Import Object Files done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
             }
         }
     }

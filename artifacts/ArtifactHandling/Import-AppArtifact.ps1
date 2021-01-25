@@ -28,6 +28,7 @@ function Import-AppArtifact {
         }
 
         $importFiles = $false
+        $started     = Get-Date -Format "o"
     }
     
     process {
@@ -136,7 +137,7 @@ function Import-AppArtifact {
     
     end {
         if ($importFiles) {
-            Add-ArtifactsLog -message "Import App Artifacts done."
+            Add-ArtifactsLog -message "Import App Artifacts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
         }
     }
 }

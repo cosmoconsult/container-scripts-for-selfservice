@@ -41,18 +41,19 @@ function Import-Artifacts {
         }
         if ($items) {
             try {
+                $started   = Get-Date -Format "o"
                 Write-Host "Import $($items.Length) Fonts..."
                 # Import all Fonts
                 Import-Fonts -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
-                $properties["files"] = ($items | foreach { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
+                $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import Fonts" -started $started -telemetryClient $telemetryClient -properties $properties
             }
             catch {
                 Write-Host "Import Fonts Error: $($_.Exception.Message)" -f Red  | Out-String
             }
             finally {
-                Write-Host "Import Fonts done."
+                Write-Host "Import Fonts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
             }
         } else {
             Write-Host "No Fonts to import."
@@ -71,14 +72,14 @@ function Import-Artifacts {
                 # Import all FOBs
                 $items | Import-FobArtifact -NavServiceName $NavServiceName -ServerInstance $ServerInstance -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
-                $properties["files"] = ($items | foreach { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
+                $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import FOBs" -started $started -telemetryClient $telemetryClient -properties $properties
             }
             catch {
                 Write-Host "Import FOBs Error: $($_.Exception.Message)" -f Red  | Out-String
             }
             finally {
-                Write-Host "Import FOBs done."
+                Write-Host "Import FOBs done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
             }
         } else {
             Write-Host "No FOBs to import."
@@ -108,14 +109,14 @@ function Import-Artifacts {
                     @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $SyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
                 }                
 
-                $properties["files"] = ($items | foreach { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
+                $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import Apps" -started $started -telemetryClient $telemetryClient -properties $properties
             }
             catch {
                 Write-Host "Import Apps Error: $($_.Exception.Message)" -f Red
             }
             finally {
-                Write-Host "Import Apps done."
+                Write-Host "Import Apps done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
             }
         } else {
             Write-Host "No Apps to import."
@@ -134,14 +135,14 @@ function Import-Artifacts {
                 # Import all RIMs
                 $items | Import-RIMArtifact -ServerInstance $ServerInstance -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
-                $properties["files"] = ($items | foreach { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
+                $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import RIMs" -started $started -telemetryClient $telemetryClient -properties $properties
             }
             catch {
                 Write-Host "Import RIM packages Error: $($_.Exception.Message)" -f Red
             }
             finally {
-                Write-Host "Import RIM packages done."
+                Write-Host "Import RIM packages done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
             }
         } else {
             Write-Host "No RIMs to import."
