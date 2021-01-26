@@ -50,9 +50,13 @@ function Import-AppArtifact {
 
             Add-ArtifactsLog -kind App -message "$([System.Environment]::NewLine)Import App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
 
-            $scopeParameters = @{ Scope = "$Scope" }
+            $scopeParameters = @{ }
+            # Add scope parameter when available for the command
+            if ((Get-Command Publish-NAVApp).Parameters.Scope) {
+                $scopeParameters["Scope"] = "$Scope"
+            }
             # Add tenant specific parameter only for tenant scope
-            if (("$Scope" -eq "Tenant") -and ((Get-Command Publish-NAVApp).Parameters.Scope)) {
+            if (("$Scope" -eq "Tenant") -and ((Get-Command Publish-NAVApp).Parameters.Tenant)) {
                 $scopeParameters["Tenant"] = $Tenant
             }            
 
