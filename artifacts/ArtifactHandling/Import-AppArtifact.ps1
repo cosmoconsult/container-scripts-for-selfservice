@@ -52,7 +52,7 @@ function Import-AppArtifact {
 
             $scopeParameters = @{ Scope = "$Scope" }
             # Add tenant specific parameter only for tenant scope
-            if ("$Scope" -eq "Tenant") {
+            if (("$Scope" -eq "Tenant") -and ((Get-Command Publish-NAVApp).Parameters.Scope)) {
                 $scopeParameters["Tenant"] = $Tenant
             }            
 
