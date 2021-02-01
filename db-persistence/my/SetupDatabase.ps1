@@ -9,7 +9,11 @@ if ($restartingInstance) {
 
     if ((Get-Item -path $volPath).GetFileSystemInfos().Count -eq 0) {
         # folder is empty, try to move the existing database to the db volume path
-        Write-Host "Move database to volume"
+
+        Write-Host "Setting up database with default script"
+        . (Join-Path $runPath $MyInvocation.MyCommand.Name)
+
+        Write-Host "Move databases to volume"
 
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
 
@@ -19,11 +23,11 @@ if ($restartingInstance) {
 
         $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
 
-        $toCopy = @()
-
         $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
         $smo.Databases | ForEach-Object {
-            if ($_.Name -ne 'master' -and $_.Name -ne 'model' -and $_.Name -ne 'msdb' -and $_.Name -ne 'tempdb') {
+            if ($_.Name -ne 'master' -and $_.Name -ne 'model' -and $_.Name -ne 'msdb' -and $_.Name -ne 'tempdb' -and $_.Name -ne 'default') {
+                Write-Host "- Moving $($_.Name)"
+                $toCopy = @()
                 $dbPath = Join-Path -Path $volPath -ChildPath $_.Name
                 mkdir $dbPath | Out-Null
                 $_.FileGroups | ForEach-Object {
@@ -50,17 +54,21 @@ if ($restartingInstance) {
         }
         $smo.ConnectionContext.Disconnect()
     } else {
-        # folder is not empty, attach the database
-        Write-Host "Attach database $databaseName"
+        $databases = (Get-ChildItem $volPath -Directory).BaseName
 
-        $sqlcmd = "DROP DATABASE IF EXISTS $databaseName"
-        & sqlcmd -S "$databaseServer\$databaseInstance" -Q $sqlcmd
+        foreach ($database in $databases) {
+            # folder is not empty, attach the database
+            Write-Host "Attach database $database"
 
-        $dbPath = (Join-Path $volPath $databaseName)
-        $files = Get-ChildItem $dbPath -File
-        $joinedFiles = $files.Name -join "'), (FILENAME = '$dbPath\"
-        $sqlcmd = "CREATE DATABASE $databaseName ON (FILENAME = '$dbPath\$joinedFiles') FOR ATTACH;"
-        & sqlcmd -S "$databaseServer\$databaseInstance" -Q $sqlcmd
+            $sqlcmd = "DROP DATABASE IF EXISTS $database"
+            & sqlcmd -Q $sqlcmd
+
+            $dbPath = (Join-Path $volPath $database)
+            $files = Get-ChildItem $dbPath -File
+            $joinedFiles = $files.Name -join "'), (FILENAME = '$dbPath\"
+            $sqlcmd = "CREATE DATABASE $database ON (FILENAME = '$dbPath\$joinedFiles') FOR ATTACH;"
+            & sqlcmd -Q $sqlcmd
+        }
     }
 } else {
     # invoke default
