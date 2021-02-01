@@ -24,7 +24,21 @@ if ($restartingInstance) {
         $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
 
         $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
-        $smo.Databases | ForEach-Object {
+        $dbs = New-Object Collections.Generic.List[object]
+        
+        foreach ($db in $smo.Databases) {
+            $dbs.Add($db)
+        }
+        
+        $tenantDb = $dbs | where Name -eq "tenant"
+        
+        if ($tenantDb) {
+            # on multitenant we need to move tenant db first and keep it offline until all databases are moved
+            $dbs.Remove($tenantDb)
+            $dbs.Insert(0, $tenantDb)
+        }
+        
+        $dbs | ForEach-Object {
             if ($_.Name -ne 'master' -and $_.Name -ne 'model' -and $_.Name -ne 'msdb' -and $_.Name -ne 'tempdb' -and $_.Name -ne 'default') {
                 Write-Host "- Moving $($_.Name)"
                 $toCopy = @()
@@ -49,9 +63,17 @@ if ($restartingInstance) {
                 $toCopy | ForEach-Object {
                     Move-Item -Path $_[0] -Destination $_[1]
                 }
-                $_.SetOnline()
+                
+                if ($_.Name -ne 'tenant') {
+                    $_.SetOnline()
+                }
             }
         }
+        
+        if ($tenantDb) {
+            $tenantDb.SetOnline();
+        }
+        
         $smo.ConnectionContext.Disconnect()
     } else {
         $databases = (Get-ChildItem $volPath -Directory).BaseName
