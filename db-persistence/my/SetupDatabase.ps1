@@ -39,7 +39,7 @@ if ($restartingInstance) {
         }
         
         $dbs | ForEach-Object {
-            if ($_.Name -ne 'master' -and $_.Name -ne 'model' -and $_.Name -ne 'msdb' -and $_.Name -ne 'tempdb' -and $_.Name -ne 'default') {
+            if ($_.Name -ne 'master' -and $_.Name -ne 'model' -and $_.Name -ne 'msdb' -and $_.Name -ne 'tempdb') {
                 Write-Host "- Moving $($_.Name)"
                 $toCopy = @()
                 $dbPath = Join-Path -Path $volPath -ChildPath $_.Name
@@ -82,13 +82,13 @@ if ($restartingInstance) {
             # folder is not empty, attach the database
             Write-Host "Attach database $database"
 
-            $sqlcmd = "DROP DATABASE IF EXISTS $database"
+            $sqlcmd = "DROP DATABASE IF EXISTS [$database]"
             & sqlcmd -Q $sqlcmd
 
             $dbPath = (Join-Path $volPath $database)
             $files = Get-ChildItem $dbPath -File
             $joinedFiles = $files.Name -join "'), (FILENAME = '$dbPath\"
-            $sqlcmd = "CREATE DATABASE $database ON (FILENAME = '$dbPath\$joinedFiles') FOR ATTACH;"
+            $sqlcmd = "CREATE DATABASE [$database] ON (FILENAME = '$dbPath\$joinedFiles') FOR ATTACH;"
             & sqlcmd -Q $sqlcmd
         }
     }
