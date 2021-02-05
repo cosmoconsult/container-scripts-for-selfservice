@@ -50,9 +50,13 @@ if ($restartingInstance) {
 
                 $_.Alter()
                 try {
+                    $db = $_
                     $_.SetOffline()
                 } catch {
-                    # ignore
+                    $db.Refresh()
+                    if ($db.Status -ne "Offline") {
+                        Write-Warning "Database $($db.Name) is not offline!"
+                    }
                 }
 
                 $toCopy | ForEach-Object {
