@@ -8,7 +8,7 @@ if ([string]::IsNullOrEmpty($env:useCustomScriptsFromRepo) -or $($env:useCustomS
 Write-Host "Downloading custom run scripts from directory .container-my of repo ..."
 
 if ([string]::IsNullOrEmpty($env:CcOrgName) -or [string]::IsNullOrEmpty($env:CcProjectId) -or [string]::IsNullOrEmpty($env:CcRepoId) -or [string]::IsNullOrEmpty($env:AZURE_DEVOPS_EXT_PAT)) {
-    Write-Warning "CcOrgName, CcProjectId, CcRepoId or AZURE_DEVOPS_EXT_PAT is empty, can't download custom scripts"
+    Write-Warning "CcOrgName=$($env:CcOrgName), CcProjectId=$($env:CcProjectId), CcRepoId=$($env:CcRepoId) or AZURE_DEVOPS_EXT_PAT=$($env:AZURE_DEVOPS_EXT_PAT) is empty, can't download custom scripts"
     return;
 }
 
@@ -18,6 +18,12 @@ $Headers = @{
 }
 
 $url = "https://dev.azure.com/$($env:CcOrgName)/$($env:CcProjectId)/_apis/git/repositories/$($env:CcRepoId)/items?path=%2F.container-my&download=true&resolveLfs=true&%24format=zip&api-version=5.0"
+
+if (-not [string]::IsNullOrEmpty($env:CcBranch)) {
+    $url += "&versionDescriptor%5Bversion%5D=$($env:CcBranch)"
+    Write-Host "- Using branch $($env:CcBranch)"
+}
+
 $ProgressPreference = "SilentlyContinue"
 
 try {
