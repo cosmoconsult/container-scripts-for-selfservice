@@ -7,4 +7,12 @@ $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\L
 winrm create winrm/config/Listener?Address=*+Transport=HTTPS ('@{Hostname="dontcare"; CertificateThumbprint="' + $cert.Thumbprint + '"}')
 winrm set winrm/config/service/Auth '@{Basic="true"}'
 
+# this is from custom-scripts package
+$downloadCustomScriptsScript = "C:\run\my\CC-DownloadCustomScripts.ps1"
+
+if (Test-Path $downloadCustomScriptsScript) {
+  . $downloadCustomScriptsScript
+}
+
+# invoke default
 . (Join-Path $runPath $MyInvocation.MyCommand.Name)
