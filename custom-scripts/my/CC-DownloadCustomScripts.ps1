@@ -1,6 +1,3 @@
-# invoke default
-. (Join-Path $runPath $MyInvocation.MyCommand.Name)
-
 if ([string]::IsNullOrEmpty($env:useCustomScriptsFromRepo) -or $($env:useCustomScriptsFromRepo).ToLower() -ne "true") {
     return;
 }
