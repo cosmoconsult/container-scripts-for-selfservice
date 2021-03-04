@@ -62,9 +62,13 @@ function Get-ArtifactsFromEnvironment {
                     $artifactJson = '{"artifacts":[]}'
                 }
                 Write-Host "Artifacts: $artifactJson"
-                $artifacts = ($artifactJson | ConvertFrom-Json -ErrorAction SilentlyContinue).artifacts
+                $envArtifacts = ($artifactJson | ConvertFrom-Json -ErrorAction SilentlyContinue)
+                $artifacts = $envArtifacts.artifacts
                 if (! $artifacts) {
                     $artifacts = @()
+                }
+                if ($envArtifacts.devopsArtifacts) {
+                    $artifacts += $envArtifacts.devopsArtifacts
                 }
             }
         }
