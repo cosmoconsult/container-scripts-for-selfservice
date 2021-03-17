@@ -31,6 +31,7 @@ function Import-FobArtifact {
         # check restart
         if ($cosmoServiceRestart -eq $true) {
             Add-ArtifactsLog -message "Skipping FOB artifact import because this seems to be a service restart"
+            return
         }
 
         # Initialize, if files are present

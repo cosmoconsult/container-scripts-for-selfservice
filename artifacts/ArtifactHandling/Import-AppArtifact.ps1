@@ -33,8 +33,9 @@ function Import-AppArtifact {
     
     process {
         # check restart
-        if ($cosmoServiceRestart -eq $true) {
+        if ($env:cosmoServiceRestart -eq $true) {
             Add-ArtifactsLog -message "Skipping artifact import because this seems to be a service restart"
+            return
         }
 
         # Initialize, if files are present

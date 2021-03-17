@@ -1,16 +1,16 @@
 function Import-RIMArtifact {
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [Alias("FullName")]    
         [string]$Path,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$ServerInstance = "NAV",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Tenant = "default",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Filter = "*.rapidstart",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null
     )
     
@@ -20,13 +20,14 @@ function Import-RIMArtifact {
         }
 
         $importFiles = $false
-        $started     = Get-Date -Format "o"
+        $started = Get-Date -Format "o"
     }
     
     process {
         # check restart
-        if ($cosmoServiceRestart -eq $true) {
+        if ($env:cosmoServiceRestart -eq $true) {
             Add-ArtifactsLog -message "Skipping RIM artifact import because this seems to be a service restart"
+            return
         }
 
         # Initialize, if files are present
@@ -41,7 +42,7 @@ function Import-RIMArtifact {
         }
 
         foreach ($company in $companies) {
-            $properties = @{"path" = $Path; "Company" = $company.CompanyName; "ServerInstance" = $ServerInstance}
+            $properties = @{"path" = $Path; "Company" = $company.CompanyName; "ServerInstance" = $ServerInstance }
         
             try {
                 Add-ArtifactsLog -kind RIM -message "$([System.Environment]::NewLine)Import RIM $path" -data $properties
