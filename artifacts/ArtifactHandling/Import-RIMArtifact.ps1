@@ -24,6 +24,11 @@ function Import-RIMArtifact {
     }
     
     process {
+        # check restart
+        if ($cosmoServiceRestart -eq $true) {
+            Add-ArtifactsLog -message "Skipping RIM artifact import because this seems to be a service restart"
+        }
+
         # Initialize, if files are present
         if (! $importFiles -and (Get-Item -Path $Path -Filter $Filter -ErrorAction SilentlyContinue)) {
             $importFiles = $true
