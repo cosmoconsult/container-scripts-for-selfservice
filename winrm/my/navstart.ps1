@@ -14,10 +14,12 @@ $volPath = "$env:volPath"
 
 if ($volPath -ne "" -and (Get-Item -path $volPath).GetFileSystemInfos().Count -ne 0) {
   # database volume path is provided and the database files are there, so this seems to be a restart
-  $cosmoServiceRestart = $true
+  $env:cosmoServiceRestart = $true
+  Write-Host "This seems to be a service restart"
 }
 else {
-  $cosmoServiceRestart = $false
+  $env:cosmoServiceRestart = $false
+  Write-Host "This seems to be a regular service start"
 }
 
 if (Test-Path $downloadCustomScriptsScript) {
