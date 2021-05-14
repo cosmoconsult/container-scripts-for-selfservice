@@ -125,6 +125,8 @@ namespace FontResource
     
     end {
         if ($importFiles) {
+            Write-Host "Restart NAV service"
+            Restart-Service -Name $NavServiceName
             Add-ArtifactsLog "Import Fonts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
         }
     }
