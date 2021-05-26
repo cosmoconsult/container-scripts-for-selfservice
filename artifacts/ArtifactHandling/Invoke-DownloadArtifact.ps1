@@ -15,6 +15,8 @@ function Invoke-DownloadArtifact {
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
         [string]$view          = "",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [string]$version       = "",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
         [string]$scope         = "project",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
         [string]$url           = "",
@@ -82,18 +84,23 @@ function Invoke-DownloadArtifact {
 
         $sourceUri = $url
         if ("$sourceUri" -eq "") {
-            Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
-            $version = Get-PackageVersion `
-                -organization    $organization `
-                -project         $project `
-                -feed            $feed `
-                -name            $name `
-                -scope           $scope `
-                -view            $view `
-                -protocolType    $protocolType `
-                -accessToken     $accessToken `
-                -telemetryClient $telemetryClient
-                
+            
+            if ("$version" -ne "") {
+                Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($version)"
+            } else {
+                Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
+                $version = Get-PackageVersion `
+                    -organization    $organization `
+                    -project         $project `
+                    -feed            $feed `
+                    -name            $name `
+                    -scope           $scope `
+                    -view            $view `
+                    -protocolType    $protocolType `
+                    -accessToken     $accessToken `
+                    -telemetryClient $telemetryClient
+            } 
+
             if ("$version" -eq "") {
                 Add-ArtifactsLog -message "Artiact $name (View: '$view') skipped (no version / release found)" -severity Warn
                 Invoke-LogEvent -name "Download Artifact - no Artifact found" -properties $properties -telemetryClient $telemetryClient
