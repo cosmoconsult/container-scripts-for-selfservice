@@ -84,12 +84,12 @@ function Invoke-DownloadArtifact {
 
         $sourceUri = $url
         if ("$sourceUri" -eq "") {
-            
-            if ("$version" -ne "") {
-                Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($version)"
+            $artifactVersion = $version
+            if ("$artifactVersion" -ne "") {
+                Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
             } else {
                 Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
-                $version = Get-PackageVersion `
+                $artifactVersion = Get-PackageVersion `
                     -organization    $organization `
                     -project         $project `
                     -feed            $feed `
@@ -101,18 +101,18 @@ function Invoke-DownloadArtifact {
                     -telemetryClient $telemetryClient
             } 
 
-            if ("$version" -eq "") {
+            if ("$artifactVersion" -eq "") {
                 Add-ArtifactsLog -message "Artiact $name (View: '$view') skipped (no version / release found)" -severity Warn
                 Invoke-LogEvent -name "Download Artifact - no Artifact found" -properties $properties -telemetryClient $telemetryClient
                 $url     = ""
             } else {
-                Add-ArtifactsLog -message "`Artifact $name (View: '$view') has Version v $version"
+                Add-ArtifactsLog -message "`Artifact $name (View: '$view') has Version v $artifactVersion"
 
                 $scope      = $scope
                 if ("$scope" -eq "") { $scope = "project"}
                 $project    = $project
                 if ("$scope" -ne "project" -and "" -eq "$project") { $project = "dummy" }
-                $sourceUri  = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($version)?scope=$($scope)&pat=$($accessToken)"
+                $sourceUri  = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?scope=$($scope)&pat=$($accessToken)"
             }
         }
 
@@ -174,10 +174,10 @@ function Invoke-DownloadArtifact {
                     }
 
                     if ($isArchive) {
-                        Add-ArtifactsLog -message "Extract Artifact $name v $version to $($folder)..."
+                        Add-ArtifactsLog -message "Extract Artifact $name v $artifactVersion to $($folder)..."
                         Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force
                     } else {
-                        Add-ArtifactsLog -message "Copy Artifact '$sourceUri' ($name v $version) to $($folder)..."
+                        Add-ArtifactsLog -message "Copy Artifact '$sourceUri' ($name v $artifactVersion) to $($folder)..."
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force
                         Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
                     }
@@ -214,6 +214,7 @@ function Invoke-DownloadArtifact {
     }
     
     end {
+        $artifactVersion = ""
     }
 }
 Export-ModuleMember -Function Invoke-DownloadArtifact
