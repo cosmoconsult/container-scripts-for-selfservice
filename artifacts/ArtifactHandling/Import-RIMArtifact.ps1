@@ -36,38 +36,51 @@ function Import-RIMArtifact {
             Add-ArtifactsLog -message "Prepare RIM Artifact Import"
             New-NAVServerUser -WindowsAccount (whoami) $ServerInstance -ErrorAction SilentlyContinue
             New-NAVServerUserPermissionSet -WindowsAccount (whoami) -PermissionSetId SUPER $ServerInstance -ErrorAction SilentlyContinue
-            
-            Add-ArtifactsLog -message "Import RapidStart files..."
-            $companies = (Get-NAVCompany $ServerInstance -ErrorAction SilentlyContinue)
         }
 
-        foreach ($company in $companies) {
-            $properties = @{"path" = $Path; "Company" = $company.CompanyName; "ServerInstance" = $ServerInstance}
+        if ($importFiles) {
+            $properties = @{"path" = $Path; "ServerInstance" = $ServerInstance}
+
+            Add-ArtifactsLog -kind RIM -message "Import RIM ... Get Companies ..."
+            $companies  = (Get-NAVCompany $ServerInstance -ErrorAction SilentlyContinue)
         
-            try {
-                Add-ArtifactsLog -kind RIM -message "$([System.Environment]::NewLine)Import RIM $path" -data $properties
-
-                $started = Get-Date -Format "o"
-                Invoke-NAVCodeunit `
-                    -CodeunitId         8620 `
-                    -ServerInstance     $ServerInstance `
-                    -MethodName         'ImportAndApplyRapidStartPackage' `
-                    -Argument           "$Path" `
-                    -CompanyName        "$($company.CompanyName)" `
-                    -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-
-                $info | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Info  -data $properties }
-                $warn | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Warn  -data $properties }
-                $err  | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Error -data $properties }
-                $success = ! $err
-                if ($success) { Add-ArtifactsLog -kind RIM "Import RIM ... successful" -data $properties -success success }
-                Invoke-LogOperation -name "Import RIM Artifact" -started $started -properties $properties -telemetryClient $telemetryClient -success $success
+            if ($companies.count -eq 0){
+                Add-ArtifactsLog -kind RIM -message "Import RIM FAILED:$([System.Environment]::NewLine)  No company found" -data $properties -severity Error -success fail
+                return
+            } else {
+                Add-ArtifactsLog -kind RIM -message "Import RIM ... found $($companies.count) companies" -data $properties
             }
-            catch {
-                Add-ArtifactsLog -kind RIM -message "Import RIM $path FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $properties -severity Error -success fail
-                Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import RIM Artifact"
-            }            
-            Add-ArtifactsLog -message " "
+            
+            Add-ArtifactsLog -kind RIM -message "Import RapidStart files from $Path ..." -data $properties
+            
+            foreach ($company in $companies) {
+                $properties = @{"path" = $Path; "Company" = $company.CompanyName; "ServerInstance" = $ServerInstance}
+            
+                try {
+                    Add-ArtifactsLog -kind RIM -message "$([System.Environment]::NewLine)Import RIM $path" -data $properties
+
+                    $started = Get-Date -Format "o"
+                    Invoke-NAVCodeunit `
+                        -CodeunitId         8620 `
+                        -ServerInstance     $ServerInstance `
+                        -MethodName         'ImportAndApplyRapidStartPackage' `
+                        -Argument           "$Path" `
+                        -CompanyName        "$($company.CompanyName)" `
+                        -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+
+                    $info | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Info  -data $properties }
+                    $warn | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Warn  -data $properties }
+                    $err  | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Error -data $properties }
+                    $success = ! $err
+                    if ($success) { Add-ArtifactsLog -kind RIM "Import RIM ... successful" -data $properties -success success }
+                    Invoke-LogOperation -name "Import RIM Artifact" -started $started -properties $properties -telemetryClient $telemetryClient -success $success
+                }
+                catch {
+                    Add-ArtifactsLog -kind RIM -message "Import RIM $path FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $properties -severity Error -success fail
+                    Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import RIM Artifact"
+                }            
+                Add-ArtifactsLog -message " "
+            }
         }
     }
     
