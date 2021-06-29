@@ -115,7 +115,7 @@ Add-Content $artifactSettings -Value ('$TenantId         = "' + "$TenantId" + '"
 Add-Content $artifactSettings -Value ('$SyncMode         = "' + "$SyncMode" + '"')
 Add-Content $artifactSettings -Value ('$Scope            = "' + "$Scope" + '"')
 
-if ([string]::IsNullOrEmpty($env:enablePerformanceCounter) -or $($env:enablePerformanceCounter).ToLower() -eq "true") {
+if ($($env:enablePerformanceCounter).ToLower() -ne "false") {
     Write-Host "Start Performance Data Collection"
     $DCSName = "BC" 
 
