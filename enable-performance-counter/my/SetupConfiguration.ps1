@@ -1,10 +1,11 @@
 # invoke default
 . (Join-Path $runPath $MyInvocation.MyCommand.Name)
 
-if ($($env:enablePerformanceCounter).ToLower() -eq "false") {
-    return;
+if (-Not [string]::IsNullOrEmpty($env:enablePerformanceCounter)) {
+    if ($($env:enablePerformanceCounter).ToLower() -eq "false") {
+        return;
+    }
 }
-
 
 $navPerfCounters = [xml]'<PerformanceCategory Id="NavPerformanceCounters" Name="Microsoft Dynamics NAV" Help="Performance counters for Microsoft Dynamics NAV" MultiInstance="yes">
         <PerformanceCounter Name="% Primary key cache hit rate" Type="rawFraction" Help="The percentage of hits in the primary key cache, compared to the total requests to the primary key cache." />
