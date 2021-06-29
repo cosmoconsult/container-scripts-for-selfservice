@@ -115,6 +115,64 @@ Add-Content $artifactSettings -Value ('$TenantId         = "' + "$TenantId" + '"
 Add-Content $artifactSettings -Value ('$SyncMode         = "' + "$SyncMode" + '"')
 Add-Content $artifactSettings -Value ('$Scope            = "' + "$Scope" + '"')
 
+if ($($env:enablePerformanceCounter).ToLower() -ne "false") {
+    Write-Host "Start Performance Data Collection"
+    $DCSName = "BC" 
+
+    if ($newPublicDnsName) {
+        [xml]$doc = New-Object System.Xml.XmlDocument
+        $root = $doc.CreateNode("element","PerformanceCounterDataCollector",$null)
+        "\Microsoft Dynamics NAV($ServerInstance)\% Primary key cache hit rate",
+        "\Microsoft Dynamics NAV($ServerInstance)\# Active sessions",
+        "\Microsoft Dynamics NAV($ServerInstance)\% Command cache hit rate",
+        "\process(microsoft.dynamics.nav.server)\% processor time",
+        "\.NET CLR Memory(microsoft.dynamics.nav.server)\# Total committed Bytes" | % {
+            $root.AppendChild($doc.CreateElement('Counter')).InnerText = $_
+        }
+        $doc.AppendChild($root) | Out-Null
+
+        $server = $env:COMPUTERNAME
+    
+        Write-Host "Running Perfmon-Collector to create / update Perfmon Data Collector Set $DCSName on $Server" -ForegroundColor Green
+        $SubDir = "C:\ProgramData\BCContainerHelper\PerfmonLogs"
+        If (!(Test-Path -PathType Container $SubDir)) {
+            New-Item -ItemType Directory -Path $SubDir | Out-Null
+        }
+        $DCS = New-Object -COM Pla.DataCollectorSet
+
+        Write-Host "Creating the $DCSName Data Collector Set"
+        $DCS.DisplayName = $DCSName
+        $DCS.Segment = $true
+        $DCS.SegmentMaxDuration = 86400
+        $DCS.SubdirectoryFormat = 1
+        $DCS.RootPath = $SubDir
+        $DCS.SetCredentials($null,$null)
+        $DCS.Commit($DCSName, $Server, 3) | Out-Null
+        $DCS.Query($DCSName, $Server)
+
+        $DC = $DCS.DataCollectors.CreateDataCollector(0)
+        $DC.Name = $DCSName
+        $DC.FileName = $DCSName + "_"
+        $DC.FileNameFormat = 3
+        $DC.FileNameFormatPattern = "yyyyMMddHHmmss"
+        $DC.SampleInterval = 5
+        $DC.LogFileFormat = 3
+        $DC.SetXML($doc.OuterXml)
+        $DCS.DataCollectors.Add($DC)
+        $DCS.SetCredentials($null,$null)
+        $DCS.Commit($DCSName, $Server, 3) | Out-Null
+        $DCS.Query($DCSName, $Server)
+
+        Write-Host "Starting the $DCSName Data Collector Set"
+        Start-SMPerformanceCollector -CollectorName $DCSName
+    }
+    elseif ($restartingInstance) {
+        Write-Host "Starting the $DCSName Data Collector Set"
+        Start-SMPerformanceCollector -CollectorName $DCSName
+    }
+}
+
+
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
 Write-Host ""
