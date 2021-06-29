@@ -5,3 +5,4 @@
 - Handle restart gracefully
 - DevOps artifacts were ignored
 - Support custom scripts
+- Enable Performance Counter
