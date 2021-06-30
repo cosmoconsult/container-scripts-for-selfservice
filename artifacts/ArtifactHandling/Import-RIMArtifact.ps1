@@ -63,6 +63,7 @@ function Import-RIMArtifact {
                     Invoke-NAVCodeunit `
                         -CodeunitId         8620 `
                         -ServerInstance     $ServerInstance `
+                        -Tenant             $Tenant `
                         -MethodName         'ImportAndApplyRapidStartPackage' `
                         -Argument           "$Path" `
                         -CompanyName        "$($company.CompanyName)" `
