@@ -42,7 +42,7 @@ function Import-RIMArtifact {
             $properties = @{"path" = $Path; "ServerInstance" = $ServerInstance}
 
             Add-ArtifactsLog -kind RIM -message "Import RIM ... Get Companies ..."
-            $companies  = (Get-NAVCompany $ServerInstance -ErrorAction SilentlyContinue)
+            $companies  = (Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue)
         
             if ($companies.count -eq 0){
                 Add-ArtifactsLog -kind RIM -message "Import RIM FAILED:$([System.Environment]::NewLine)  No company found" -data $properties -severity Error -success fail
