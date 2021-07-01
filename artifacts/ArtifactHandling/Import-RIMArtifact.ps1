@@ -34,10 +34,14 @@ function Import-RIMArtifact {
         if (! $importFiles -and (Get-Item -Path $Path -Filter $Filter -ErrorAction SilentlyContinue)) {
             $importFiles = $true
             Add-ArtifactsLog -message "Prepare RIM Artifact Import"
-            New-NAVServerUser -WindowsAccount (whoami) $ServerInstance -ErrorAction SilentlyContinue
-            New-NAVServerUserPermissionSet -WindowsAccount (whoami) -PermissionSetId SUPER $ServerInstance -ErrorAction SilentlyContinue
+            New-NAVServerUser -WindowsAccount (whoami) $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue
+            New-NAVServerUserPermissionSet -WindowsAccount (whoami) -PermissionSetId SUPER $ServerInstance  -Tenant $Tenant -ErrorAction SilentlyContinue
         }
-
+        #Manage path as a filter
+        if ($Path -like '*'){
+            $Path = (Get-Item -Path $Path -Filter $Filter)[0]
+        }
+        
         if ($importFiles) {
             $properties = @{"path" = $Path; "ServerInstance" = $ServerInstance}
 
