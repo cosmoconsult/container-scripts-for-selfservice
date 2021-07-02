@@ -34,31 +34,7 @@ function Import-Artifacts {
     
     process {
         $maxDepth = 4 # max recurse folder depth for searching Apps, FOBs, RIMs, ...
-        # Import Fonts
-        $items = @()
-        if (Test-Path -LiteralPath "c:/fonts") {
-            $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
-        }
-        if ($items) {
-            try {
-                $started   = Get-Date -Format "o"
-                Write-Host "Import $($items.Length) Fonts..."
-                # Import all Fonts
-                Import-Fonts -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-
-                $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
-                Invoke-LogOperation -name "$OperationScope - Import Fonts" -started $started -telemetryClient $telemetryClient -properties $properties
-            }
-            catch {
-                Write-Host "Import Fonts Error: $($_.Exception.Message)" -f Red  | Out-String
-            }
-            finally {
-                Write-Host "Import Fonts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
-            }
-        } else {
-            Write-Host "No Fonts to import."
-        }
-
+        
         # Import FOBs
         $items = @()
         if (Test-Path -LiteralPath "$Path") {
@@ -146,6 +122,30 @@ function Import-Artifacts {
             }
         } else {
             Write-Host "No RIMs to import."
+        }
+        # Import Fonts
+        $items = @()
+        if (Test-Path -LiteralPath "c:/fonts") {
+            $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
+        }
+        if ($items) {
+            try {
+                $started   = Get-Date -Format "o"
+                Write-Host "Import $($items.Length) Fonts..."
+                # Import all Fonts
+                Import-Fonts -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+
+                $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
+                Invoke-LogOperation -name "$OperationScope - Import Fonts" -started $started -telemetryClient $telemetryClient -properties $properties
+            }
+            catch {
+                Write-Host "Import Fonts Error: $($_.Exception.Message)" -f Red  | Out-String
+            }
+            finally {
+                Write-Host "Import Fonts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
+            }
+        } else {
+            Write-Host "No Fonts to import."
         }
     }
     
