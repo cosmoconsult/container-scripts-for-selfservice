@@ -1,4 +1,6 @@
 $volPath = "$env:volPath"
+Write-Host "datenbank: $databaseServer"
+dir env:
 
 if ($restartingInstance) {
 
