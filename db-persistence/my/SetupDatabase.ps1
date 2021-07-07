@@ -4,7 +4,7 @@ if ($restartingInstance) {
 
     # Nothing to do
 
-} elseif ($volPath -ne "") {
+} elseif ($volPath -ne "" -and $databaseServer -ne "localhost") {
     # database volume path is provided, check if the database is already there or not
 
     if ((Get-Item -path $volPath).GetFileSystemInfos().Count -eq 0) {
