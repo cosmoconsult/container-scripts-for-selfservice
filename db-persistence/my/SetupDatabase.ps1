@@ -30,6 +30,14 @@ if ($restartingInstance) {
                 if (($bakfile -ne "") -and $_.Name -eq 'CRONUS') {
                     return; # don't restore CRONUS if we have provided our own bak
                 }
+
+                # set recovery mode and shrink log
+                $sqlcmd = "ALTER DATABASE $($db.Name) SET RECOVERY SIMPLE WITH NO_WAIT"
+                & sqlcmd -Q $sqlcmd
+                $_.LogFiles | ForEach-Object {
+                    $sqlcmd = "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
+                    & sqlcmd -Q $sqlcmd
+                }
             
                 Write-Host "- Moving $($_.Name)"
                 $toCopy = @()
