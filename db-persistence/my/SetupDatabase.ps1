@@ -32,11 +32,12 @@ if ($restartingInstance) {
                 }
 
                 # set recovery mode and shrink log
-                $sqlcmd = "ALTER DATABASE $($db.Name) SET RECOVERY SIMPLE WITH NO_WAIT"
+                $sqlcmd = "ALTER DATABASE $($_.Name) SET RECOVERY SIMPLE WITH NO_WAIT"
                 & sqlcmd -Q $sqlcmd
+                $shrinkCmd = "USE $($_.Name); "
                 $_.LogFiles | ForEach-Object {
-                    $sqlcmd = "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
-                    & sqlcmd -Q $sqlcmd
+                    $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
+                    & sqlcmd -Q $shrinkCmd
                 }
             
                 Write-Host "- Moving $($_.Name)"
