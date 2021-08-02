@@ -73,9 +73,10 @@ function Get-ArtifactsFromEnvironment {
             }
             if ("$env:TEST_APPS_MICROSOFT" -ne "") {
                 Write-Host "Artifacts from TEST_APPS_MICROSOFT ..."
-                $testApps = "$env:TEST_APPS_MICROSOFT".Split(@(',', ';'))
+                $testApps = "$env:TEST_APPS_MICROSOFT".Split(",")
                 
                 $testApps | ForEach-Object {
+                    Write-Host "Adding $_"
                     $artifacts += @{
                         name   = "Microsoft Tests - $_";
                         url    = "c:\\Applications\\BaseApp\\Test\\Microsoft_Tests-$_.app";
