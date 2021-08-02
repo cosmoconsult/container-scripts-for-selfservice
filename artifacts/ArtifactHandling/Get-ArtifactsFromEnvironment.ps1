@@ -15,7 +15,7 @@ function Get-ArtifactsFromEnvironment {
     }
     
     process {
-        if ("$env:AZURE_DEVOPS_PACKAGES" -eq "" -and "$env:AZURE_DEVOPS_ARTIFACTS" -eq "") {
+        if ("$env:AZURE_DEVOPS_PACKAGES" -eq "" -and "$env:AZURE_DEVOPS_ARTIFACTS" -eq "" -and "$env:TEST_APPS_MICROSOFT" -eq "") {
             Write-Host "not packages / artifacts found"
             $artifacts    = [System.Collections.ArrayList]@()
             if (("$path" -ne "") -and (Test-Path "$path")) {
@@ -69,6 +69,19 @@ function Get-ArtifactsFromEnvironment {
                 }
                 if ($envArtifacts.devopsArtifacts) {
                     $artifacts += $envArtifacts.devopsArtifacts
+                }
+            }
+            if ("$env:TEST_APPS_MICROSOFT" -ne "") 
+            {
+                Write-Host "Artifacts from TEST_APPS_MICROSOFT ..."
+                $testApps  = "$env:AZURE_DEVOPS_PACKAGES".Split(@(',', ';'))
+                
+                $testApps | ForEach-Object {
+                    $artifacts += @{
+                        name = "Microsoft Tests - $_";
+                        url = "c:\\Applications\\BaseApp\\Test\\Microsoft_Tests-$_.app";
+                        target = "app";
+                    }
                 }
             }
         }
