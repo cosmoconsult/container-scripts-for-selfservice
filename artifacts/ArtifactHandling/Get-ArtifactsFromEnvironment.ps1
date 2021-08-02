@@ -72,8 +72,9 @@ function Get-ArtifactsFromEnvironment {
                 }
             }
             if ("$env:TEST_APPS_MICROSOFT" -ne "") {
-                Write-Host "Artifacts from TEST_APPS_MICROSOFT ..."
+                Write-Host "Artifacts from TEST_APPS_MICROSOFT ... <$env:TEST_APPS_MICROSOFT>"
                 $testApps = "$env:TEST_APPS_MICROSOFT".Split(",")
+                $testApps | Format-Table
                 
                 $testApps | ForEach-Object {
                     Write-Host "Adding $_"
