@@ -39,6 +39,7 @@ function Invoke-DownloadArtifact {
     )
     
     begin {
+        Write-Host "url: $url"
         $folderIdx         = 0
         $rootFolder        = $destination
         $tempArchive       = "$([System.IO.Path]::GetTempFileName()).zip"
@@ -118,6 +119,8 @@ function Invoke-DownloadArtifact {
 
         $isDownload = "$sourceUri".StartsWith("http")
         $isArchive  = $isDownload -or "$sourceUri".EndsWith(".zip")
+        Write-Host "status: $sourceUri $isDownload $isArchive"
+        Test-Path $sourceUri
         if ("$sourceUri" -ne "") {
             if ($isDownload) {
                 $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
