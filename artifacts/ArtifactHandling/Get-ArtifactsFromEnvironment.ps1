@@ -71,6 +71,7 @@ function Get-ArtifactsFromEnvironment {
                     $artifacts += $envArtifacts.devopsArtifacts
                 }
             }
+            Write-Host $artifacts
             if ("$env:TEST_APPS_MICROSOFT" -ne "") {
                 Write-Host "Artifacts from TEST_APPS_MICROSOFT ... <$env:TEST_APPS_MICROSOFT>"
                 $testApps = "$env:TEST_APPS_MICROSOFT".Split(",")
@@ -78,13 +79,14 @@ function Get-ArtifactsFromEnvironment {
                 
                 $testApps | ForEach-Object {
                     Write-Host "Adding $_"
-                    $artifacts += @{
+                    $artifacts += [pscustomobject] @{
                         name   = "Microsoft Tests - $_";
                         url    = "c:\\Applications\\BaseApp\\Test\\Microsoft_Tests-$_.app";
                         target = "app";
                     }
                 }
             }
+            Write-Host $artifacts
         }
         catch {
             Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient
