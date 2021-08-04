@@ -7,3 +7,4 @@
 - Handle restart gracefully
 - DevOps artifacts were ignored
 - Support custom scripts
+- Add severity level "critical" to logging (see [1232](https://dev.azure.com/cc-ppi/General/_workitems/edit/1232))
