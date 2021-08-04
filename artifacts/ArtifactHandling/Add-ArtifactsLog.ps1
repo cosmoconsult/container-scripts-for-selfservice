@@ -9,7 +9,7 @@ function Add-ArtifactsLog {
         [ValidateSet("", "FOB", "App", "RIM", "DLL", "Font")]
         [string]$kind = "",
         [Parameter(Mandatory=$false)]
-        [ValidateSet("Info", "Warn", "Error")]
+        [ValidateSet("Info", "Warn", "Error", "Debug")]
         [string]$severity = "Info",
         [Parameter(Mandatory=$false)]
         [ValidateSet("", "success", "fail", "skip")]
@@ -40,18 +40,13 @@ function Add-ArtifactsLog {
             "RIM" { $artifactsLog.Log += @($logEntry); }
             Default { $artifactsLog.Log += @($logEntry); }
         }
-        if ($lowerCase) 
-        {
-            $severityString = $severity.ToLower()
-        } else {
-            $severityString = $severity.ToUpper()
-        }
         $info   = "$("$kind".PadRight(4))$("[$severityString]".ToUpper().PadLeft(6))"
         if (! $message) { Write-Host "$info "; return }
         switch ($severity) {
             "Info"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" } } }
             "Warn"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Yellow } } }            
             "Error" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Red } } }
+            "Debug" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f DarkRed } } }
         }
     }
     
