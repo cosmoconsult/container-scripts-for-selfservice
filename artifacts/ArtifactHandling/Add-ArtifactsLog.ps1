@@ -40,7 +40,7 @@ function Add-ArtifactsLog {
             "RIM" { $artifactsLog.Log += @($logEntry); }
             Default { $artifactsLog.Log += @($logEntry); }
         }
-        $info   = "$("$kind".PadRight(4))$("[$severityString]".ToUpper().PadLeft(6))"
+        $info   = "$("$kind".PadRight(4))$("[$severity]".ToUpper().PadLeft(6))"
         if (! $message) { Write-Host "$info "; return }
         switch ($severity) {
             "Info"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" } } }
