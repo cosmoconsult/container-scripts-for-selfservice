@@ -44,7 +44,7 @@ function Add-ArtifactsLog {
         switch ($severity) {
             "Info"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" } } }
             "Warn"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Yellow } } }
-            "Critical" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Red } } }
+            "Critical" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "##vso[task.logissue type=error]$info $($m.trim())" -f Red } } }
             "Error" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Red } } }
         }
     }
