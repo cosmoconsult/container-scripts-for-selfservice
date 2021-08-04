@@ -9,7 +9,7 @@ function Add-ArtifactsLog {
         [ValidateSet("", "FOB", "App", "RIM", "DLL", "Font")]
         [string]$kind = "",
         [Parameter(Mandatory=$false)]
-        [ValidateSet("Info", "Warn", "Critical", "Error")]
+        [ValidateSet("Info", "Warn", "Error")]
         [string]$severity = "Info",
         [Parameter(Mandatory=$false)]
         [ValidateSet("", "success", "fail", "skip")]
@@ -17,7 +17,8 @@ function Add-ArtifactsLog {
         [Parameter(Mandatory=$false)]
         [System.Object]$data = $null,
         [Parameter(Mandatory=$false)]
-        [string]$artifactsLogFile = "C:/inetpub/wwwroot/http/artifacts.log.json"
+        [string]$artifactsLogFile = "C:/inetpub/wwwroot/http/artifacts.log.json",
+        [switch]$lowerCase
     )
     
     begin {
@@ -39,12 +40,17 @@ function Add-ArtifactsLog {
             "RIM" { $artifactsLog.Log += @($logEntry); }
             Default { $artifactsLog.Log += @($logEntry); }
         }
-        $info   = "$("$kind".PadRight(4))$("[$severity]".ToUpper().PadLeft(6))"
+        if ($lowerCase) 
+        {
+            $severityString = $severity.ToLower()
+        } else {
+            $severityString = $severity.ToUpper()
+        }
+        $info   = "$("$kind".PadRight(4))$("[$severityString]".ToUpper().PadLeft(6))"
         if (! $message) { Write-Host "$info "; return }
         switch ($severity) {
             "Info"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" } } }
-            "Warn"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Yellow } } }
-            "Critical" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "##vso[task.logissue type=error]$info $($m.trim())" -f Red } } }
+            "Warn"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Yellow } } }            
             "Error" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Red } } }
         }
     }
