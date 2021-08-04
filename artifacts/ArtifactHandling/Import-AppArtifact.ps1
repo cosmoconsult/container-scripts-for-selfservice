@@ -79,7 +79,7 @@ function Import-AppArtifact {
                 Publish-NavApp -ServerInstance $ServerInstance -Path $Path @optionalParameters -SkipVerification -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                 $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                 $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
-                $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
+                $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Critical -data $app }
                 $success = ! $err
                 if ($success) { Add-ArtifactsLog -kind App -message "Publish App successful" -data $app -success success }
             } catch {
@@ -98,7 +98,7 @@ function Import-AppArtifact {
                     Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
-                    $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
+                    $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Critical -data $app }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Sync App ... successful" -data $app -success success }
                 } catch {
@@ -117,7 +117,7 @@ function Import-AppArtifact {
                     Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
-                    $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
+                    $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Critical -data $app }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Install App ... successful" -data $app -success success }
                 } catch {        

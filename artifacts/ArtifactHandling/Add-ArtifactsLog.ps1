@@ -9,7 +9,7 @@ function Add-ArtifactsLog {
         [ValidateSet("", "FOB", "App", "RIM", "DLL", "Font")]
         [string]$kind = "",
         [Parameter(Mandatory=$false)]
-        [ValidateSet("Info", "Warn", "Error")]
+        [ValidateSet("Info", "Warn", "Critical", "Error")]
         [string]$severity = "Info",
         [Parameter(Mandatory=$false)]
         [ValidateSet("", "success", "fail", "skip")]
@@ -44,6 +44,7 @@ function Add-ArtifactsLog {
         switch ($severity) {
             "Info"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" } } }
             "Warn"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Yellow } } }
+            "Critical" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Red } } }
             "Error" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Red } } }
         }
     }
