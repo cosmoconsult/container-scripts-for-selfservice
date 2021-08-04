@@ -79,7 +79,7 @@ function Import-AppArtifact {
                 Publish-NavApp -ServerInstance $ServerInstance -Path $Path @optionalParameters -SkipVerification -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                 $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                 $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
-                $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
+                $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
                 $success = ! $err
                 if ($success) { Add-ArtifactsLog -kind App -message "Publish App successful" -data $app -success success }
             } catch {
@@ -98,7 +98,7 @@ function Import-AppArtifact {
                     Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
-                    $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
+                    $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Sync App ... successful" -data $app -success success }
                 } catch {
@@ -115,9 +115,9 @@ function Import-AppArtifact {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Install App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
                     Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-                    $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
-                    $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
-                    $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
+                    $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app -lowerCase }
+                    $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app -lowerCase }
+                    $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app -lowerCase }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Install App ... successful" -data $app -success success }
                 } catch {        

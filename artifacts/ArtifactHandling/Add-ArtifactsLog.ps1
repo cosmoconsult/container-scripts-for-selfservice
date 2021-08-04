@@ -9,7 +9,7 @@ function Add-ArtifactsLog {
         [ValidateSet("", "FOB", "App", "RIM", "DLL", "Font")]
         [string]$kind = "",
         [Parameter(Mandatory=$false)]
-        [ValidateSet("Info", "Warn", "Error")]
+        [ValidateSet("Info", "Warn", "Error", "Debug")]
         [string]$severity = "Info",
         [Parameter(Mandatory=$false)]
         [ValidateSet("", "success", "fail", "skip")]
@@ -17,7 +17,8 @@ function Add-ArtifactsLog {
         [Parameter(Mandatory=$false)]
         [System.Object]$data = $null,
         [Parameter(Mandatory=$false)]
-        [string]$artifactsLogFile = "C:/inetpub/wwwroot/http/artifacts.log.json"
+        [string]$artifactsLogFile = "C:/inetpub/wwwroot/http/artifacts.log.json",
+        [switch]$lowerCase
     )
     
     begin {
@@ -45,6 +46,7 @@ function Add-ArtifactsLog {
             "Info"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" } } }
             "Warn"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Yellow } } }
             "Error" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Red } } }
+            "Debug" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f DarkRed } } }
         }
     }
     
