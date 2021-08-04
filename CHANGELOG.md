@@ -1,3 +1,4 @@
+- Add severity level "debug" to logging (see [1232](https://dev.azure.com/cc-ppi/General/_workitems/edit/1232))
 - Add better log handling (simple recovery mode and shrinked log)
 - Enable Performance Counter
 - Fix version resolution for artifacts (see [#1019](https://dev.azure.com/cc-ppi/General/_workitems/edit/1019))
@@ -7,4 +8,3 @@
 - Handle restart gracefully
 - DevOps artifacts were ignored
 - Support custom scripts
-- Add severity level "debug" to logging (see [1232](https://dev.azure.com/cc-ppi/General/_workitems/edit/1232))
