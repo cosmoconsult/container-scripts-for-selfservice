@@ -28,6 +28,8 @@ function Invoke-DownloadArtifact {
         [string]$appImportScope = "",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
         [string]$pat = "",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [string[]]$cosmoArtifactType = @(),
         # Download Parameter
         [Parameter(Mandatory=$false)]
         [string]$destination   = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
@@ -180,6 +182,14 @@ function Invoke-DownloadArtifact {
                     if ($isArchive) {
                         Add-ArtifactsLog -message "Extract Artifact $name v $artifactVersion to $($folder)..."
                         Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force
+                        if ($cosmoArtifactType.Count -gt 0) {
+                            $subfolders = Get-ChildItem -Path "$folder" -Directory
+                            $subfolders | ForEach-Object {
+                                if (-not $cosmoArtifactType.Contains($_.Name)) {
+                                    Remove-Item -Force $_.FullName
+                                }
+                            }
+                        }
                     } else {
                         Add-ArtifactsLog -message "Copy Artifact '$sourceUri' ($name v $artifactVersion) to $($folder)..."
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force
