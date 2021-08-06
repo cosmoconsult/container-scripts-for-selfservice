@@ -26,13 +26,14 @@ function Invoke-DownloadArtifact {
         [string]$targetFolder  = "",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
         [string]$appImportScope = "",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [string]$pat = "",
         # Download Parameter
         [Parameter(Mandatory=$false)]
         [string]$destination   = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
         [Parameter(Mandatory=$false)]
         [string]$baseUrl       = "https://ppi-devops.germanywestcentral.cloudapp.azure.com/proxy",
         [Parameter(Mandatory=$false)]
-        [Alias("pat")]
         [string]$accessToken   = "$($env:AZURE_DEVOPS_EXT_PAT)",
         [Parameter(Mandatory=$false)]
         [System.Object]$telemetryClient = $null
@@ -84,6 +85,9 @@ function Invoke-DownloadArtifact {
 
         $sourceUri = $url
         if ("$sourceUri" -eq "") {
+            if ("$pat" -eq "") {
+                $pat = $accessToken
+            }
             $artifactVersion = $version
             if ("$artifactVersion" -ne "") {
                 Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
@@ -97,7 +101,7 @@ function Invoke-DownloadArtifact {
                     -scope           $scope `
                     -view            $view `
                     -protocolType    $protocolType `
-                    -accessToken     $accessToken `
+                    -accessToken     $pat `
                     -telemetryClient $telemetryClient
             } 
 
@@ -112,7 +116,7 @@ function Invoke-DownloadArtifact {
                 if ("$scope" -eq "") { $scope = "project"}
                 $project    = $project
                 if ("$scope" -ne "project" -and "" -eq "$project") { $project = "dummy" }
-                $sourceUri  = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?scope=$($scope)&pat=$($accessToken)"
+                $sourceUri  = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?scope=$($scope)&pat=$($pat)"
             }
         }
 
