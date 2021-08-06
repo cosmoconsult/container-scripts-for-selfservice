@@ -91,7 +91,7 @@ function Invoke-DownloadArtifact {
                 $pat = $accessToken
             }
             $artifactVersion = $version
-            if ("$artifactVersion" -ne "") {
+            if ("$artifactVersion" -ne "" -and -not "$artifactVersion".Contains("*")) {
                 Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
             } else {
                 Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
@@ -104,7 +104,8 @@ function Invoke-DownloadArtifact {
                     -view            $view `
                     -protocolType    $protocolType `
                     -accessToken     $pat `
-                    -telemetryClient $telemetryClient
+                    -telemetryClient $telemetryClient `
+                    -artifactVersion $artifactVersion
             } 
 
             if ("$artifactVersion" -eq "") {

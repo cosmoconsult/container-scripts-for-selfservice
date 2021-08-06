@@ -18,6 +18,8 @@ function Get-PackageVersion {
         [Parameter(Mandatory=$false)]
         [string]$accessToken  = "$($env:AZURE_DEVOPS_EXT_PAT)",
         [Parameter(Mandatory=$false)]
+        [string]$artifactVersion    = "",
+        [Parameter(Mandatory=$false)]
         [System.Object]$telemetryClient = $null
     )
     begin {
@@ -58,7 +60,15 @@ function Get-PackageVersion {
             $package     = (((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | ConvertFrom-Json).value | Where-Object {$_.name -eq $name -and $_.protocolType -eq $protocolType } | Select-Object -first 1)
             $uri         = "https://feeds.dev.azure.com/$baseuri/_apis/packaging/feeds/$feed/packages/$($package.id)/versions?isListed=true&isDeleted=false&api-version=5.1-preview.1"
             Add-ArtifactsLog -message "Get Version for $name ... $uri" #$($headers | ConvertTo-Json -Compress)
-            $version     = ((((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | ConvertFrom-Json).value | Where-Object { $_.views | Where-Object { "$view" -eq "" -or $_.name -eq $view } }) | Select-Object version -First 1).version
+            if ($artifactVersion -ne "") {
+                Add-ArtifactsLog -message "Requested Version: $artifactVersion"
+            }
+            $artifactVersion = $artifactVersion.Replace("*", "")
+            if ($artifactVersion -eq "") {
+                $version     = ((((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | ConvertFrom-Json).value | Where-Object { $_.views | Where-Object { "$view" -eq "" -or $_.name -eq $view } }) | Select-Object version -First 1).version
+            } else {
+                $version     = ((((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | ConvertFrom-Json).value | Where-Object { $_.views | Where-Object { "$view" -eq "" -or $_.name -eq $view } }) | Where-Object { $_.version.StartsWith($artifactVersion) } | Select-Object version -First 1).version
+            }
             
             Invoke-LogRequest -name "Get-PakageVersion" -started $started -success $true -telemetryClient $telemetryClient
             return $version            
