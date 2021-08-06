@@ -1,3 +1,4 @@
+- Support COSMO IP artifacts (see [#1034](https://dev.azure.com/cc-ppi/General/_workitems/edit/1034))
 - Add severity level "debug" to logging (see [1232](https://dev.azure.com/cc-ppi/General/_workitems/edit/1232))
 - Add better log handling (simple recovery mode and shrinked log)
 - Enable Performance Counter
