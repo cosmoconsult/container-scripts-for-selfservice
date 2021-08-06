@@ -181,14 +181,14 @@ function Invoke-DownloadArtifact {
 
                     if ($isArchive) {
                         Add-ArtifactsLog -message "Extract Artifact $name v $artifactVersion to $($folder)..."
-                        Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force -Verbose
+                        Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force 
                         if ($cosmoArtifactType.Count -gt 0) {
                             Add-ArtifactsLog -message "Artifact has type selection: $([string]::Join(",", $cosmoArtifactType))"
                             $subfolders = Get-ChildItem -Path "$folder" -Directory
                             $subfolders | ForEach-Object {
                                 if (-not $cosmoArtifactType.Contains($_.Name)) {
-                                    Add-ArtifactsLog -message "Artifact has subfolder $($_.Name), which doesn't exist in type selection, therefore removing it"
-                                    Remove-Item -Force $_.FullName
+                                    Add-ArtifactsLog -message "Artifact has subfolder $($_.Name), which doesn't exist in type selection, therefore removing it: $($_.FullName)"
+                                    Remove-Item -Force -Recurse -Path $_.FullName
                                 }
                             }
                         }
