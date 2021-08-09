@@ -26,13 +26,16 @@ function Invoke-DownloadArtifact {
         [string]$targetFolder  = "",
         [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
         [string]$appImportScope = "",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [string]$pat = "",
+        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [string[]]$cosmoArtifactType = @(),
         # Download Parameter
         [Parameter(Mandatory=$false)]
         [string]$destination   = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
         [Parameter(Mandatory=$false)]
         [string]$baseUrl       = "https://ppi-devops.germanywestcentral.cloudapp.azure.com/proxy",
         [Parameter(Mandatory=$false)]
-        [Alias("pat")]
         [string]$accessToken   = "$($env:AZURE_DEVOPS_EXT_PAT)",
         [Parameter(Mandatory=$false)]
         [System.Object]$telemetryClient = $null
@@ -84,8 +87,11 @@ function Invoke-DownloadArtifact {
 
         $sourceUri = $url
         if ("$sourceUri" -eq "") {
+            if ("$pat" -eq "") {
+                $pat = $accessToken
+            }
             $artifactVersion = $version
-            if ("$artifactVersion" -ne "") {
+            if ("$artifactVersion" -ne "" -and -not "$artifactVersion".Contains("*")) {
                 Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
             } else {
                 Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
@@ -97,8 +103,9 @@ function Invoke-DownloadArtifact {
                     -scope           $scope `
                     -view            $view `
                     -protocolType    $protocolType `
-                    -accessToken     $accessToken `
-                    -telemetryClient $telemetryClient
+                    -accessToken     $pat `
+                    -telemetryClient $telemetryClient `
+                    -artifactVersion $artifactVersion
             } 
 
             if ("$artifactVersion" -eq "") {
@@ -112,7 +119,7 @@ function Invoke-DownloadArtifact {
                 if ("$scope" -eq "") { $scope = "project"}
                 $project    = $project
                 if ("$scope" -ne "project" -and "" -eq "$project") { $project = "dummy" }
-                $sourceUri  = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?scope=$($scope)&pat=$($accessToken)"
+                $sourceUri  = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?scope=$($scope)&pat=$($pat)"
             }
         }
 
@@ -175,7 +182,17 @@ function Invoke-DownloadArtifact {
 
                     if ($isArchive) {
                         Add-ArtifactsLog -message "Extract Artifact $name v $artifactVersion to $($folder)..."
-                        Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force
+                        Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force 
+                        if ($cosmoArtifactType.Count -gt 0) {
+                            Add-ArtifactsLog -message "Artifact has type selection: $([string]::Join(",", $cosmoArtifactType))"
+                            $subfolders = Get-ChildItem -Path "$folder" -Directory
+                            $subfolders | ForEach-Object {
+                                if (-not $cosmoArtifactType.Contains($_.Name)) {
+                                    Add-ArtifactsLog -message "Artifact has subfolder $($_.Name), which doesn't exist in type selection, therefore removing it: $($_.FullName)"
+                                    Remove-Item -Force -Recurse -Path $_.FullName
+                                }
+                            }
+                        }
                     } else {
                         Add-ArtifactsLog -message "Copy Artifact '$sourceUri' ($name v $artifactVersion) to $($folder)..."
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force
