@@ -84,6 +84,9 @@ function Import-AppArtifact {
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Uninstall old App successful" -data $app -success success }
+                    $runDataUpgrade = $true
+                } else {
+                    $runDataUpgrade = $false
                 }
             } catch {
                 Add-ArtifactsLog -kind App -message "Uninstall old App $($result.Name) $($result.Publisher) $($result.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
@@ -93,7 +96,7 @@ function Import-AppArtifact {
             }
 
             # Publish NAVApp
-                if ($success) {
+            if ($success) {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..." -data $app
@@ -133,20 +136,20 @@ function Import-AppArtifact {
             }
 
             # Check for Data Upgrade
-            if (! $skipInstall) {
+            if ((! $skipInstall) -and ($runDataUpgrade)) {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Check for needed Data Upgrade of App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
-                    $result = Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue
-                    if ($result -and $result[0].NeedsUpgrade) {
-                        Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-                        $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
-                        $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
-                        $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
-                        $success     = ! $err
-                        $skipInstall = $success # Skip Install, because the upgrade automatically install the app
-                        if ($success) { Add-ArtifactsLog -kind App -message "App Data Upgrade ... successful" -data $app -success success }
-                    }
+                    
+                    Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
+                    $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
+                    $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
+                    $success     = ! $err
+                    if ($success) { Add-ArtifactsLog -kind App -message "App Data Upgrade ... successful" -data $app -success success }
+                    # Check, if the new App is correct installed
+                    $result = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
+                    $skipInstall = $result -and $result.IsInstalled  
                 } catch {
                     Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
                     $success     = $false
