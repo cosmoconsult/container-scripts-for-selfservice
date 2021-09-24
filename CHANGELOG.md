@@ -10,3 +10,4 @@
 - Handle restart gracefully
 - DevOps artifacts were ignored
 - Support custom scripts
+- "Start-NavAppDataUpgrade" added to additional setup, when a data upgrade is needed during app install

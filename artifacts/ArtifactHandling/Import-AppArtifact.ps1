@@ -91,7 +91,7 @@ function Import-AppArtifact {
 
             # Sync NAVApp
             if ($success) {
-                $successInstall = $success
+                $skipInstall = ! $success
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Sync App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
@@ -107,12 +107,37 @@ function Import-AppArtifact {
                 } finally {
                     Invoke-LogOperation -name "Publish App" -started $started2 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
+                $skipInstall = ! $success
+            }
+
+            # Check for Data Upgrade
+            if (! $skipInstall) {
+                try {
+                    $started2 = Get-Date -Format "o"
+                    Add-ArtifactsLog -kind App -message "Check for needed Data Upgrade of App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
+                    $result = Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue
+                    if ($result -and $result[0].NeedsUpgrade) {
+                        Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                        $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
+                        $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
+                        $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
+                        $success     = ! $err
+                        $skipInstall = $success # Skip Install, because the upgrade automatically install the app
+                        if ($success) { Add-ArtifactsLog -kind App -message "App Data Upgrade ... successful" -data $app -success success }
+                    }
+                } catch {
+                    Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
+                    $success     = $false
+                    $skipInstall = $true
+                } finally {
+                    Invoke-LogOperation -name "App Data Upgrade" -started $started2 -properties $properties -success $success -telemetryClient $telemetryClient
+                }
             }
 
             # Install NAVApp
-            if ($successInstall) {
+            if (! $skipInstall) {
                 try {
-                    $started2 = Get-Date -Format "o"
+                    $started3 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Install App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
                     Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app -lowerCase }
@@ -124,7 +149,7 @@ function Import-AppArtifact {
                     Add-ArtifactsLog -kind App -message "Install App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
                     $success = $false
                 } finally {                
-                    Invoke-LogOperation -name "Install App" -started $started2 -properties $properties -success $success -telemetryClient $telemetryClient
+                    Invoke-LogOperation -name "Install App" -started $started3 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
             }
             # Check Result
