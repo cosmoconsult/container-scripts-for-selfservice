@@ -70,31 +70,34 @@ function Import-AppArtifact {
             # Add tenant specific parameter only for tenant scope
             if (("$Scope" -eq "Tenant") -and ((Get-Command Publish-NAVApp).Parameters.Tenant)) {
                 $optionalParameters["Tenant"] = $Tenant
-            }            
+            }   
 
+            # Check if app is already installed with another version
+            $oldApp = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object {$_.IsInstalled} | Select-Object -First 1
+            
             # Uninstall old NAVApp, when present
-            try {
-                $started1 = Get-Date -Format "o"
-                $result = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1 
-                if($result -and $result.IsInstalled) {
-                    Add-ArtifactsLog -kind App -message "Uninstall old App $($result.Name) $($result.Publisher) $($result.Version) ..." -data $app
-                    Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant $Tenant -Name $result.Name -Publisher $result.Publisher -Version $result.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+            if($oldApp -and $oldApp.IsInstalled) {
+                try {
+                    $started1 = Get-Date -Format "o"
+                    Add-ArtifactsLog -kind App -message "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) ..." -data $app
+                    Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant $Tenant -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Uninstall old App successful" -data $app -success success }
                     $runDataUpgrade = $true
-                } else {
-                    $runDataUpgrade = $false
+                } catch {
+                    Add-ArtifactsLog -kind App -message "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
+                    $success = $false
+                } finally {
+                    Invoke-LogOperation -name "Uninstall old App" -started $started1 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
-            } catch {
-                Add-ArtifactsLog -kind App -message "Uninstall old App $($result.Name) $($result.Publisher) $($result.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
-                $success = $false
-            } finally {
-                Invoke-LogOperation -name "Uninstall old App" -started $started1 -properties $properties -success $success -telemetryClient $telemetryClient
+            } else {
+                $runDataUpgrade = $false
+                $success = $true
             }
-
+    
             # Publish NAVApp
             if ($success) {
                 try {
@@ -139,9 +142,9 @@ function Import-AppArtifact {
             if ((! $skipInstall) -and ($runDataUpgrade)) {
                 try {
                     $started2 = Get-Date -Format "o"
-                    Add-ArtifactsLog -kind App -message "Check for needed Data Upgrade of App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
+                    Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
                     
-                    Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
