@@ -1,5 +1,5 @@
-#if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
-if (![string]::IsNullOrEmpty($env:saasbakfile))
+if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
+#if (![string]::IsNullOrEmpty($env:saasbakfile))
 {
     $bak = $env:saasbakfile
     $tenantId = "saas"
