@@ -4,7 +4,13 @@ if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
     $tenantId = "saas"
     Write-Host "MOUNTING SaaS BAKFILE"
     Write-Host "restoring SaaS db"
-    Invoke-sqlcmd -serverinstance "$DatabaseServer\$DatabaseInstance" -Database tenant -query "RESTORE DATABASE [saas] FROM DISK = N'$bak'"
+    #Invoke-sqlcmd -serverinstance "$DatabaseServer\$DatabaseInstance" -Database tenant -query "RESTORE DATABASE [saas] FROM DISK = N'$bak'"
+    New-NAVDatabase -DatabaseServer $DatabaseServer `
+                        -DatabaseInstance $DatabaseInstance `
+                        -DatabaseName "$tenantId" `
+                        -FilePath "$bak" `
+                        -DestinationPath "$databaseFolder" `
+                        -Timeout $SqlTimeout | Out-Null
     
     Write-Host "mounting SaaS tenant"
     Mount-NavTenant `
