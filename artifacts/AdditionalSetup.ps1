@@ -1,36 +1,3 @@
-if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
-#if (![string]::IsNullOrEmpty($env:saasbakfile))
-{
-    $bak = $env:saasbakfile
-    $tenantId = "saas"
-    Write-Host "MOUNTING SaaS BAKFILE"
-    Write-Host "restoring SaaS db"
-    #Invoke-sqlcmd -serverinstance "$DatabaseServer\$DatabaseInstance" -Database tenant -query "RESTORE DATABASE [saas] FROM DISK = N'$bak'"
-    New-NAVDatabase -DatabaseServer $DatabaseServer `
-                        -DatabaseInstance $DatabaseInstance `
-                        -DatabaseName "$tenantId" `
-                        -FilePath "$bak" `
-                        -DestinationPath "$databaseFolder" `
-                        -Timeout $SqlTimeout | Out-Null
-    
-    Write-Host "mounting SaaS tenant"
-    Mount-NavTenant `
-        -ServerInstance $ServerInstance `
-        -id $tenantId `
-        -databasename $tenantId `
-        -databaseserver $DatabaseServer `
-        -databaseinstance $DatabaseInstance `
-        -EnvironmentType Sandbox `
-        -OverwriteTenantIdInDatabase `
-        -Force
-        
-    Write-Host "syncing new tnant"
-    Sync-NavTenant `
-        -ServerInstance $ServerInstance `
-        -Tenant $tenantId `
-        -Force
-}
-
 # Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
 if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
     Write-Host ""
@@ -210,6 +177,38 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
     }
 }
 
+if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
+#if (![string]::IsNullOrEmpty($env:saasbakfile))
+{
+    $bak = $env:saasbakfile
+    $tenantId = "saas"
+    Write-Host "MOUNTING SaaS BAKFILE"
+    Write-Host "restoring SaaS db"
+    #Invoke-sqlcmd -serverinstance "$DatabaseServer\$DatabaseInstance" -Database tenant -query "RESTORE DATABASE [saas] FROM DISK = N'$bak'"
+    New-NAVDatabase -DatabaseServer $DatabaseServer `
+                        -DatabaseInstance $DatabaseInstance `
+                        -DatabaseName "$tenantId" `
+                        -FilePath "$bak" `
+                        -DestinationPath "$databaseFolder" `
+                        -Timeout $SqlTimeout -Force | Out-Null
+    
+    Write-Host "mounting SaaS tenant"
+    Mount-NavTenant `
+        -ServerInstance $ServerInstance `
+        -id $tenantId `
+        -databasename $tenantId `
+        -databaseserver $DatabaseServer `
+        -databaseinstance $DatabaseInstance `
+        -EnvironmentType Sandbox `
+        -OverwriteTenantIdInDatabase `
+        -Force
+        
+    Write-Host "syncing new tnant"
+    Sync-NavTenant `
+        -ServerInstance $ServerInstance `
+        -Tenant $tenantId `
+        -Force
+}
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
