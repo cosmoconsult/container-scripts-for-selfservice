@@ -1,4 +1,30 @@
-﻿# Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
+if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
+{
+    $bak = $env:saasbakfile
+    $tenantId = "saas"
+    Write-Host "MOUNTING SaaS BAKFILE"
+    Write-Host "restoring SaaS db"
+    Invoke-sqlcmd -serverinstance "$DatabaseServer\$DatabaseInstance" -Database tenant -query "RESTORE DATABASE [saas] FROM DISK = N'$bak'"
+    
+    Write-Host "mounting SaaS tenant"
+    Mount-NavTenant `
+        -ServerInstance $ServerInstance `
+        -id $tenantId `
+        -databasename $tenantId `
+        -databaseserver $DatabaseServer `
+        -databaseinstance $DatabaseInstance `
+        -EnvironmentType Sandbox `
+        -OverwriteTenantIdInDatabase `
+        -Force
+        
+    Write-Host "syncing new tnant"
+    Sync-NavTenant `
+        -ServerInstance $ServerInstance `
+        -Tenant $tenantId `
+        -Force
+}
+
+# Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
 if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
     Write-Host ""
     Write-Host "=== Additional Setup Freddy ==="
