@@ -236,7 +236,7 @@ if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
         -Progress
 
     Write-Host " - Create user in new tenant"
-    New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $env:password
+    New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword
     New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER
 
     Write-Host " - Importing License to new tenant"
