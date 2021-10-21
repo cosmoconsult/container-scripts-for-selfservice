@@ -199,8 +199,9 @@ if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
     }
 
     Write-Host " - Replacing default tenant database with new SaaS database"
-    Invoke-SqlCmd -Query "DROP DATABASE [default]"
-    Invoke-SqlCmd -Query "ALTER DATABASE $tenantId MODIFY NAME = [default]"
+    Dismount-NAVTenant -ServerInstance $ServerInstance -Tenant "default" -Force
+    Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]"
+    Invoke-SqlCmd -Query "ALTER DATABASE $tenantId SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE $tenantId MODIFY NAME = [default]; ALTER DATABASE [default] SET MULTI_USER"
     $tenantId = "default"
 
     Write-Host " - Mounting SaaS tenant"
