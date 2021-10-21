@@ -1,4 +1,4 @@
-﻿# Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
+# Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
 if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
     Write-Host ""
     Write-Host "=== Additional Setup Freddy ==="
@@ -177,6 +177,79 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
     }
 }
 
+if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
+{
+    Write-Host "HANDLING SaaS BAKFILE"
+
+    $bak = $env:saasbakfile
+    $tenantId = "saas"
+    
+    Write-Host " - Restoring SaaS db"
+    New-NAVDatabase -DatabaseServer $DatabaseServer `
+                        -DatabaseInstance $DatabaseInstance `
+                        -DatabaseName "$tenantId" `
+                        -FilePath "$bak" `
+                        -DestinationPath "$databaseFolder" `
+                        -Timeout $SqlTimeout -Force | Out-Null
+    
+    Write-Host " - Adapting package IDs"
+    $diffPackageIds = Invoke-Sqlcmd -Query "select da.[App ID], da.[Package ID] FROM [default].[dbo].[NAV App Installed App] da JOIN [$tenantId].[dbo].[NAV App Installed App] ta ON da.[App ID] = ta.[App ID] AND da.[Version Major] = ta.[Version Major] AND da.[Version Minor] = ta.[Version Minor] AND da.[Version Build] = ta.[Version Build] AND da.[Version Revision] = ta.[Version Revision] AND da.[Package ID] != ta.[Package ID]"
+    foreach ($app in $diffPackageIds) {
+        Invoke-Sqlcmd -Database $tenantId -Query "UPDATE [dbo].[NAV App Installed App] SET [Package ID] = '$($app.'Package ID')' WHERE [App ID] = '$($app.'App ID')'"
+    }
+
+    Write-Host " - Replacing default tenant database with new SaaS database"
+    Dismount-NAVTenant -ServerInstance $ServerInstance -Tenant "default" -Force
+    Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]"
+    Invoke-SqlCmd -Query "ALTER DATABASE $tenantId SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE $tenantId MODIFY NAME = [default]; ALTER DATABASE [default] SET MULTI_USER"
+    $tenantId = "default"
+
+    Write-Host " - Mounting SaaS tenant"
+    Mount-NavTenant `
+        -ServerInstance $ServerInstance `
+        -id $tenantId `
+        -databasename $tenantId `
+        -databaseserver $DatabaseServer `
+        -databaseinstance $DatabaseInstance `
+        -EnvironmentType Sandbox `
+        -OverwriteTenantIdInDatabase `
+        -Force
+        
+    Write-Host " - Syncing new tenant"
+    Sync-NavTenant `
+        -ServerInstance $ServerInstance `
+        -Tenant $tenantId `
+        -Force
+
+    Write-Host " - Syncing all apps"
+    for ($i = 0; $i -lt 10; $i++) {
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
+    }
+
+    Write-Host " - Upgrading all apps"
+    Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+
+    Write-Host " - Upgrading tenant"
+    Start-NAVDataUpgrade `
+            -ServerInstance $ServerInstance `
+            -Tenant $tenantId `
+            -Force `
+            -FunctionExecutionMode Serial `
+            -SkipIfAlreadyUpgraded
+    Get-NAVDataUpgrade `
+        -ServerInstance $ServerInstance `
+        -Tenant $tenantId `
+        -Progress
+
+    Write-Host " - Create user in new tenant"
+    New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword
+    New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER
+
+    Write-Host " - Importing License to new tenant"
+    Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]"
+    Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile "$runPath\license.flf" -Database Tenant
+    Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
+}
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
