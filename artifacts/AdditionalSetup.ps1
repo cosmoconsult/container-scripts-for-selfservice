@@ -198,6 +198,11 @@ if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
         Invoke-Sqlcmd -Database $tenantId -Query "UPDATE [dbo].[NAV App Installed App] SET [Package ID] = '$($app.'Package ID')' WHERE [App ID] = '$($app.'App ID')'"
     }
 
+    Write-Host " - Replacing default tenant database with new SaaS database"
+    Invoke-SqlCmd -Query "DROP DATABASE [default]"
+    Invoke-SqlCmd -Query "ALTER DATABASE $tenantId MODIFY NAME = [default]"
+    $tenantId = "default"
+
     Write-Host " - Mounting SaaS tenant"
     Mount-NavTenant `
         -ServerInstance $ServerInstance `
