@@ -94,7 +94,11 @@ function Import-AppArtifact {
                     Invoke-LogOperation -name "Uninstall old App" -started $started1 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
             } else {
-                $runDataUpgrade = $false
+                if ($oldApp) {
+                    $runDataUpgrade = $true
+                } else {
+                    $runDataUpgrade = $false
+                } 
                 $success = $true
             }
     
