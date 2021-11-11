@@ -11,3 +11,4 @@
 - DevOps artifacts were ignored
 - Support custom scripts
 - "Start-NavAppDataUpgrade" added to additional setup, when a data upgrade is needed during app install
+- Fix: "Start-NavAppDataUpgrade" was not executed, when previous app version was uninstalled during upgrade of another app (see [#1314](https://dev.azure.com/cc-ppi/General/_workitems/edit/1314))
