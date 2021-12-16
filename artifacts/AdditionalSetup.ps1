@@ -204,6 +204,61 @@ if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
     Invoke-SqlCmd -Query "ALTER DATABASE $tenantId SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE $tenantId MODIFY NAME = [default]; ALTER DATABASE [default] SET MULTI_USER"
     $tenantId = "default"
 
+    # move database to volume
+    if ($env:volPath -ne "") {
+        $volPath = $env:volPath
+        [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+        [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Common") | Out-Null
+        $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
+        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
+        $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
+        $smo.Databases | Where-Object { $_.Name -eq $tenantId } | ForEach-Object {
+            # set recovery mode and shrink log
+            $sqlcmd = "ALTER DATABASE [$($_.Name)] SET RECOVERY SIMPLE WITH NO_WAIT"
+            & sqlcmd -Q $sqlcmd
+            $shrinkCmd = "USE [$($_.Name)]; "
+            $_.LogFiles | ForEach-Object {
+                $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
+                & sqlcmd -Q $shrinkCmd
+            }
+
+            Write-Host "- Moving $($_.Name)"
+            $toCopy = @()
+            $dbPath = Join-Path -Path $volPath -ChildPath $_.Name
+            New-Item $dbPath -Type Directory -Force | Out-Null
+            $_.FileGroups | ForEach-Object {
+                $_.Files | ForEach-Object {
+                    $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
+                    $toCopy += ,@($_.FileName, $destination)
+                    $_.FileName = $destination
+                } 
+            }
+            $_.LogFiles | ForEach-Object {
+                $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
+                $toCopy += ,@($_.FileName, $destination)
+                $_.FileName = $destination
+            }
+
+            $_.Alter()
+            try {
+                $db = $_
+                $_.SetOffline()
+            } catch {
+                $db.Refresh()
+                if ($db.Status -ne "Offline") {
+                    Write-Warning "Database $($db.Name) is not offline!"
+                }
+            }
+
+            $toCopy | ForEach-Object {
+                Move-Item -Path $_[0] -Destination $_[1]
+            }
+            
+            $_.SetOnline()
+        }
+        $smo.ConnectionContext.Disconnect()
+    }
+
     Write-Host " - Mounting SaaS tenant"
     Mount-NavTenant `
         -ServerInstance $ServerInstance `
