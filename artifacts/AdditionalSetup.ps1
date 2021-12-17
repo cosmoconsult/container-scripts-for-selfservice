@@ -177,7 +177,7 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
     }
 }
 
-if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
+if (!$env:cosmoServiceRestart -and ![string]::IsNullOrEmpty($env:saasbakfile))
 {
     Write-Host "HANDLING SaaS BAKFILE"
 
