@@ -78,7 +78,7 @@ if ($restartingInstance) {
         
         $smo.ConnectionContext.Disconnect()
     } else {
-        $databases = (Get-ChildItem $volPath -Directory).BaseName | Where-Object {(Get-ChildItem $_).Count -gt 0}
+        $databases = (Get-ChildItem $volPath -Directory).BaseName
 
         foreach ($database in $databases) {
             # folder is not empty, attach the database
