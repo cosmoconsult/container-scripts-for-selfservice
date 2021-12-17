@@ -205,6 +205,7 @@ if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
     $tenantId = "default"
 
     # move database to volume
+    Write-Host " - Moving SaaS database to volume"
     if ($env:volPath -ne "") {
         $volPath = $env:volPath
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
@@ -222,7 +223,7 @@ if (!$restartingInstance -and ![string]::IsNullOrEmpty($env:saasbakfile))
                 & sqlcmd -Q $shrinkCmd
             }
 
-            Write-Host "- Moving $($_.Name)"
+            Write-Host " - - Moving $($_.Name)"
             $toCopy = @()
             $dbPath = Join-Path -Path $volPath -ChildPath $_.Name
             New-Item $dbPath -Type Directory -Force | Out-Null
