@@ -18,7 +18,9 @@ function Add-ArtifactsLog {
         [System.Object]$data = $null,
         [Parameter(Mandatory=$false)]
         [string]$artifactsLogFile = "C:/inetpub/wwwroot/http/artifacts.log.json",
-        [switch]$lowerCase
+        [switch]$lowerCase,
+        [string]$suppressedWarnings = $env:SUPPRESSED_WARNINGS,
+        [string]$suppressedErrors = $env:SUPPRESSED_ERRORS
     )
     
     begin {
@@ -40,7 +42,22 @@ function Add-ArtifactsLog {
             "RIM" { $artifactsLog.Log += @($logEntry); }
             Default { $artifactsLog.Log += @($logEntry); }
         }
+        
+        switch ($severity) {
+            "Warn"  { 
+                if (($suppressedWarnings) -and ($message -match $suppressedWarnings)) {
+                    $severity = "Info"
+                }
+            }
+            "Error" { 
+                if (($suppressedErrors) -and ($message -match $suppressedErrors)) {
+                    $severity = "Info"
+                }
+            }
+        }
+
         $info   = "$("$kind".PadRight(4))$("[$severity]".ToUpper().PadLeft(6))"
+
         if (! $message) { Write-Host "$info "; return }
         switch ($severity) {
             "Info"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" } } }
