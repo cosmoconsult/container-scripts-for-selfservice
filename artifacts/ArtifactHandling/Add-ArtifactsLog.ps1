@@ -45,12 +45,12 @@ function Add-ArtifactsLog {
         
         switch ($severity) {
             "Warn"  { 
-                if (($suppressedWarnings) -and ($message -match $suppressedWarnings)) {
+                if (($suppressedWarnings) -and ($message -match [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($suppressedWarnings)))) {
                     $severity = "Info"
                 }
             }
             "Error" { 
-                if (($suppressedErrors) -and ($message -match $suppressedErrors)) {
+                if (($suppressedErrors) -and ($message -match [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($suppressedErrors)))) {
                     $severity = "Info"
                 }
             }
