@@ -19,7 +19,7 @@ function Add-ArtifactsLog {
         [Parameter(Mandatory=$false)]
         [string]$artifactsLogFile = "C:/inetpub/wwwroot/http/artifacts.log.json",
         [switch]$lowerCase,
-        [string]$suppressedWarnings = $env:SUPPRESSED_WARINGS,
+        [string]$suppressedWarnings = $env:SUPPRESSED_WARNINGS,
         [string]$suppressedErrors = $env:SUPPRESSED_ERRORS
     )
     
