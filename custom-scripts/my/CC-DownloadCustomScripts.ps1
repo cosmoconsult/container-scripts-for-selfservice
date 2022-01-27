@@ -19,7 +19,7 @@ $url = "https://dev.azure.com/$($env:CcOrgName)/$($env:CcProjectId)/_apis/git/re
 if (-not [string]::IsNullOrEmpty($env:CcBranch)) {
     $url += "&versionDescriptor%5Bversion%5D=$($env:CcBranch)"
     Write-Host "- Using branch $($env:CcBranch)"
-} else if (([string]::IsNullOrEmpty($env:CcBranch)) -and (-not [string]::IsNullOrEmpty($env:AZP_CONFIG_REPO_PATH))) {
+} elseif (([string]::IsNullOrEmpty($env:CcBranch)) -and (-not [string]::IsNullOrEmpty($env:AZP_CONFIG_REPO_PATH))) {
     $url += "&versionDescriptor%5Bversion%5D=master"
     Write-Host "- Using branch master for demo containers"
 }
