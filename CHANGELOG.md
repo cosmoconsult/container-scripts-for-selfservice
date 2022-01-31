@@ -14,3 +14,5 @@
 - Fix: "Start-NavAppDataUpgrade" was not executed, when previous app version was uninstalled during upgrade of another app (see [#1314](https://dev.azure.com/cc-ppi/General/_workitems/edit/1314))
 - Suppress configurable errors or warnings during logging. The suppressed message are then logged as information. (see [#1730](https://dev.azure.com/cc-ppi/General/_workitems/edit/1730))
 - Suppress configurable errors or warnings changed to Base64. (see [#1730](https://dev.azure.com/cc-ppi/General/_workitems/edit/1730))
+- Logging for RapidStart import improved. (see [#1830](https://dev.azure.com/cc-ppi/General/_workitems/edit/1830))
+- 30 days trial company ('My Company') is now ignored during RapidStart. (see [#1830](https://dev.azure.com/cc-ppi/General/_workitems/edit/1830))
