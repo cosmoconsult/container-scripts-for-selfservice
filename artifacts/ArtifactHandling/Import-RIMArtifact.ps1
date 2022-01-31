@@ -26,14 +26,14 @@ function Import-RIMArtifact {
     process {
         # check restart
         if ($env:cosmoServiceRestart -eq $true) {
-            Add-ArtifactsLog -message "Skipping RIM artifact import because this seems to be a service restart"
+            Add-ArtifactsLog -message "Skipping RapidStart artifact import because this seems to be a service restart"
             return
         }
 
         # Initialize, if files are present
         if (! $importFiles -and (Get-Item -Path $Path -Filter $Filter -ErrorAction SilentlyContinue)) {
             $importFiles = $true
-            Add-ArtifactsLog -message "Prepare RIM Artifact Import"
+            Add-ArtifactsLog -message "Prepare RapidStart Artifact Import"
             New-NAVServerUser -WindowsAccount (whoami) $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue
             New-NAVServerUserPermissionSet -WindowsAccount (whoami) -PermissionSetId SUPER $ServerInstance  -Tenant $Tenant -ErrorAction SilentlyContinue
         }
@@ -45,23 +45,23 @@ function Import-RIMArtifact {
         if ($importFiles) {
             $properties = @{"path" = $Path; "ServerInstance" = $ServerInstance}
 
-            Add-ArtifactsLog -kind RIM -message "Import RIM ... Get Companies ..."
-            $companies  = (Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue)
+            Add-ArtifactsLog -kind RIM -message "Import RapidStart ... Get Companies ..."
+            $companies  = (Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" }
         
             if ($companies.count -eq 0){
-                Add-ArtifactsLog -kind RIM -message "Import RIM FAILED:$([System.Environment]::NewLine)  No company found" -data $properties -severity Error -success fail
+                Add-ArtifactsLog -kind RIM -message "Import RapidStart FAILED:$([System.Environment]::NewLine)  No company found" -data $properties -severity Error -success fail
                 return
             } else {
-                Add-ArtifactsLog -kind RIM -message "Import RIM ... found $($companies.count) companies" -data $properties
+                Add-ArtifactsLog -kind RIM -message "Import RapidStart ... found $($companies.count) companies" -data $properties
             }
             
-            Add-ArtifactsLog -kind RIM -message "Import RapidStart files from $Path ..." -data $properties
+            Add-ArtifactsLog -kind RIM -message "Import and apply RapidStart files from $Path ..." -data $properties
             
             foreach ($company in $companies) {
                 $properties = @{"path" = $Path; "Company" = $company.CompanyName; "ServerInstance" = $ServerInstance}
             
                 try {
-                    Add-ArtifactsLog -kind RIM -message "$([System.Environment]::NewLine)Import RIM $path" -data $properties
+                    Add-ArtifactsLog -kind RIM -message "$([System.Environment]::NewLine)Import and apply RapidStart $path in company '$($company.CompanyName)'" -data $properties
 
                     $started = Get-Date -Format "o"
                     Invoke-NAVCodeunit `
@@ -77,12 +77,12 @@ function Import-RIMArtifact {
                     $warn | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Warn  -data $properties }
                     $err  | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Error -data $properties }
                     $success = ! $err
-                    if ($success) { Add-ArtifactsLog -kind RIM "Import RIM ... successful" -data $properties -success success }
-                    Invoke-LogOperation -name "Import RIM Artifact" -started $started -properties $properties -telemetryClient $telemetryClient -success $success
+                    if ($success) { Add-ArtifactsLog -kind RIM "Import and apply RapidStart $path in company '$($company.CompanyName)' ... successful" -data $properties -success success }
+                    Invoke-LogOperation -name "Import and apply RapidStart Artifact" -started $started -properties $properties -telemetryClient $telemetryClient -success $success
                 }
                 catch {
-                    Add-ArtifactsLog -kind RIM -message "Import RIM $path FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $properties -severity Error -success fail
-                    Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import RIM Artifact"
+                    Add-ArtifactsLog -kind RIM -message "Import and apply RapidStart $path in company '$($company.CompanyName)' FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $properties -severity Error -success fail
+                    Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import RapidStart Artifact"
                 }            
                 Add-ArtifactsLog -message " "
             }

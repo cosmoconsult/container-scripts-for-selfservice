@@ -98,7 +98,7 @@ function Import-Artifacts {
             Write-Host "No Apps to import."
         }
 
-        # Import RIM packages
+        # Import RapidStart packages
         $items = @()
         if (Test-Path -LiteralPath "$Path") {
             $items = @() + (Get-ChildItem -LiteralPath "$Path" -Depth $maxDepth -Filter "*.rapidstart" -Recurse -ErrorAction SilentlyContinue)
@@ -106,22 +106,22 @@ function Import-Artifacts {
         if ($items) {
             try {
                 $started   = Get-Date -Format "o"
-                Write-Host "Import $($items.Length) RIM packages..."
+                Write-Host "Import $($items.Length) RapidStart packages..."
 
                 # Import all RIMs
                 $items | Import-RIMArtifact -ServerInstance $ServerInstance -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
-                Invoke-LogOperation -name "$OperationScope - Import RIMs" -started $started -telemetryClient $telemetryClient -properties $properties
+                Invoke-LogOperation -name "$OperationScope - Import RapidStart Packages" -started $started -telemetryClient $telemetryClient -properties $properties
             }
             catch {
-                Write-Host "Import RIM packages Error: $($_.Exception.Message)" -f Red
+                Write-Host "Import RapidStart packages Error: $($_.Exception.Message)" -f Red
             }
             finally {
-                Write-Host "Import RIM packages done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
+                Write-Host "Import RapidStart packages done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
             }
         } else {
-            Write-Host "No RIMs to import."
+            Write-Host "No RapidStart packages to import."
         }
         # Import Fonts
         $items = @()
