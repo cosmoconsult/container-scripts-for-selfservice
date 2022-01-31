@@ -15,4 +15,4 @@
 - Suppress configurable errors or warnings during logging. The suppressed message are then logged as information. (see [#1730](https://dev.azure.com/cc-ppi/General/_workitems/edit/1730))
 - Suppress configurable errors or warnings changed to Base64. (see [#1730](https://dev.azure.com/cc-ppi/General/_workitems/edit/1730))
 - Logging for RapidStart import improved. (see [#1830](https://dev.azure.com/cc-ppi/General/_workitems/edit/1830))
-- 30 days trail company ('My Company') is now ignored during RapidStart. (see [#1830](https://dev.azure.com/cc-ppi/General/_workitems/edit/1830))
+- 30 days trial company ('My Company') is now ignored during RapidStart. (see [#1830](https://dev.azure.com/cc-ppi/General/_workitems/edit/1830))
