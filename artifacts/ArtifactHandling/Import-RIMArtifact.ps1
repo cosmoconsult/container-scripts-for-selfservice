@@ -46,7 +46,7 @@ function Import-RIMArtifact {
             $properties = @{"path" = $Path; "ServerInstance" = $ServerInstance}
 
             Add-ArtifactsLog -kind RIM -message "Import RapidStart ... Get Companies ..."
-            $companies  = (Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" }
+            $companies  = [System.Collections.ArrayList]@() + ((Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" })
         
             if ($companies.count -eq 0){
                 Add-ArtifactsLog -kind RIM -message "Import RapidStart FAILED:$([System.Environment]::NewLine)  No company found" -data $properties -severity Error -success fail
