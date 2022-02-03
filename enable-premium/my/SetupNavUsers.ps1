@@ -15,7 +15,7 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default | Where-Object
 
 try {
     if (! $Tenant) {
-        $Tenant     = default
+        $Tenant     = "default"
     }
     $companies  = [System.Collections.ArrayList]@() + ((Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" })
 
