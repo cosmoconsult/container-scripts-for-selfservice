@@ -20,6 +20,7 @@ try {
     $companies  = [System.Collections.ArrayList]@() + ((Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" })
 
     foreach ($company in $companies) {
+        Write-Host "Set premium experience at company: $($company.CompanyName)"
         Invoke-NAVCodeunit `
             -CodeunitId         9178 `
             -ServerInstance     $ServerInstance `
@@ -27,7 +28,9 @@ try {
             -MethodName         'SaveExperienceTierCurrentCompany' `
             -Argument           "Premium" `
             -CompanyName        "$($company.CompanyName)"
+        Write-Host "Done."
     }
 } catch {
-    Write-Host "Error: $($_.Exception)" -ForegroundColor Red
+    Write-Host "Error during set premium experience at company: $($company.CompanyName)"
+    Write-Host "  Error Message: $($_.Exception)" -ForegroundColor Red
 }
