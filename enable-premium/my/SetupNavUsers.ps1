@@ -12,14 +12,11 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default | Where-Object
     INSERT INTO [dbo].[User Plan`$63ca2fa4-4f03-4f2b-a480-172fef340d3f] ([Plan ID],[User Security ID]) VALUES ('{8e9002c0-a1d8-4465-b952-817d2948e6e2}','$userId')"
 }
 
-
-
 try {
     if (! $Tenant) {
         $Tenant     = "default"
     }
     $companies  = [System.Collections.ArrayList]@() + ((Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" })
-
 
     $me = whoami
     $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
