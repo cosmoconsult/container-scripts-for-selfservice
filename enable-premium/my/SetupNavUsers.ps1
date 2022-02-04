@@ -13,11 +13,31 @@ Get-NavServerUser -serverInstance $ServerInstance -tenant default | Where-Object
 }
 
 
+
 try {
     if (! $Tenant) {
         $Tenant     = "default"
     }
     $companies  = [System.Collections.ArrayList]@() + ((Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" })
+
+
+    $me = whoami
+    $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
+    $companyParam = @{}
+    if ($companyName -and $version.Major -gt 9) {
+        $companyParam += @{
+            "Company" = $CompanyName
+            "Force" = $true
+            "WarningAction" = "SilentlyContinue"
+        }
+    }
+    if (!($userexist)) {
+        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me @companyParam
+        New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
+        Start-Sleep -Seconds 1
+    } elseif ($userexist.state -eq "Disabled") {
+        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Enabled @companyParam
+    }
 
     foreach ($company in $companies) {
         Write-Host "Set premium experience at company: $($company.CompanyName)"
