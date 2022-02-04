@@ -16,3 +16,4 @@
 - Suppress configurable errors or warnings changed to Base64. (see [#1730](https://dev.azure.com/cc-ppi/General/_workitems/edit/1730))
 - Logging for RapidStart import improved. (see [#1830](https://dev.azure.com/cc-ppi/General/_workitems/edit/1830))
 - 30 days trial company ('My Company') is now ignored during RapidStart. (see [#1830](https://dev.azure.com/cc-ppi/General/_workitems/edit/1830))
+- Change experience at company information for all companies (except 'My Company') into Premium, when `enablePremium` is set to `true`. (see [#1842](https://dev.azure.com/cc-ppi/General/_workitems/edit/1842))
