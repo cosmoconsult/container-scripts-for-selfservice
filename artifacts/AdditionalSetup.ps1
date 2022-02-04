@@ -310,3 +310,31 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
 Write-Host ""
+
+
+if ([string]::IsNullOrEmpty($env:enablePremium) -or $($env:enablePremium).ToLower() -ne "true") {
+    return;
+}
+
+try {
+    if (! $Tenant) {
+        $Tenant     = "default"
+    }
+    Write-Host "SWITCH TO PREMIUM"
+    $companies  = [System.Collections.ArrayList]@() + ((Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" })
+
+    foreach ($company in $companies) {
+        Write-Host "Set premium experience at company: $($company.CompanyName)"
+        Invoke-NAVCodeunit `
+            -CodeunitId         9178 `
+            -ServerInstance     $ServerInstance `
+            -Tenant             $Tenant `
+            -MethodName         'SaveExperienceTierCurrentCompany' `
+            -Argument           "Premium" `
+            -CompanyName        "$($company.CompanyName)"
+        Write-Host "Done."
+    }
+} catch {
+    Write-Host "Error during set premium experience at company: $($company.CompanyName)"
+    Write-Host "  Error Message: $($_.Exception)" -ForegroundColor Red
+}
