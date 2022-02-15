@@ -58,6 +58,12 @@ if (Test-Path "$roleTailoredClientFolder") {
     Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
 }
 
+if (Test-Path 'c:\run\cosmo.compiler.helper.psm1')
+{
+    Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
+    Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
+}
+
 
 $targetDir = "C:\run\my\apps"
 $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue

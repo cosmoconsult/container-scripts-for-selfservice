@@ -10,3 +10,4 @@ function Setup-Compiler{
     Remove-Item -Path $extractFolder -Recurse
     Remove-Item $vsixZipFile
 }
+Export-ModuleMember -Function Setup-Compiler
