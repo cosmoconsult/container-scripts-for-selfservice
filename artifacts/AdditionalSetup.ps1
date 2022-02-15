@@ -121,6 +121,10 @@ Add-Content $artifactSettings -Value ('$TenantId         = "' + "$TenantId" + '"
 Add-Content $artifactSettings -Value ('$SyncMode         = "' + "$SyncMode" + '"')
 Add-Content $artifactSettings -Value ('$Scope            = "' + "$Scope" + '"')
 
+if ($env:IsBuildContainer) {
+    Setup-Compiler
+}
+
 $enablePerformanceCounter = $($env:enablePerformanceCounter)
 if ([string]::IsNullOrEmpty($env:enablePerformanceCounter)) {
     $enablePerformanceCounter = "true"
