@@ -5,9 +5,11 @@ function Setup-Compiler{
     $compilerFolder = "c:\alc"
 
     Copy-Item $vsixFile $vsixZipFile
-    Expand-Archive $vsixZipFile $extractFolder
+    $durationExtract = Measure-Command {Expand-Archive $vsixZipFile $extractFolder}
     Move-Item (Join-Path -Path $extractFolder -ChildPath "/extension/bin") $compilerFolder
     Remove-Item -Path $extractFolder -Recurse
     Remove-Item $vsixZipFile
+    Write-Host ("##vso[task.logissue type=Info;]Extracting compiler to 'c:\alc\alc.exe'" )
+    Write-Host ("##vso[task.logissue type=Info;]Extraction took {0}" -f $durationExtract)
 }
 Export-ModuleMember -Function Setup-Compiler
