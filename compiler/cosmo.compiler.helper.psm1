@@ -9,7 +9,7 @@ function Setup-Compiler{
     Move-Item (Join-Path -Path $extractFolder -ChildPath "/extension/bin") $compilerFolder
     Remove-Item -Path $extractFolder -Recurse
     Remove-Item $vsixZipFile
-    Write-Host ("##vso[task.logissue type=Info;]Extracting compiler to 'c:\alc\alc.exe'" )
-    Write-Host ("##vso[task.logissue type=Info;]Extraction took {0}" -f $durationExtract)
+    Write-Host ("Extracting compiler to 'c:\alc\alc.exe'" )
+    Write-Host ("Extraction took {0}" -f $durationExtract.TotalSeconds)
 }
 Export-ModuleMember -Function Setup-Compiler
