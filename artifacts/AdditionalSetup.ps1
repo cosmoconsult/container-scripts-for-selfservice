@@ -315,10 +315,11 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Tenant $tenantId `
         -Progress
 
-    Write-Host " - Create user in new tenant"
-    Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Force -ErrorAction SilentlyContinue
-    New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword
-    New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER
+    Write-Host " - Create user in new tenant (if not exists)"
+    if(!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object Username -eq $env:username)) {
+        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword
+        New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER
+    }
 
     Write-Host " - Importing License to new tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]"
