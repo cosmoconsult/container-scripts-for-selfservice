@@ -194,13 +194,13 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     $bak = $env:saasbakfile
     $tenantId = "saas"
     
-    Write-Host " - Restoring SaaS db"
+    Write-Host " - Restoring SaaS DB to $databaseFolder"
     New-NAVDatabase -DatabaseServer $DatabaseServer `
                         -DatabaseInstance $DatabaseInstance `
                         -DatabaseName "$tenantId" `
                         -FilePath "$bak" `
                         -DestinationPath "$databaseFolder" `
-                        -Timeout $SqlTimeout -Force | Out-Null
+                        -Timeout $SqlTimeout -Force -Verbose
     
     Write-Host " - Adapting package IDs"
     $diffPackageIds = Invoke-Sqlcmd -Query "select da.[App ID], da.[Package ID] FROM [default].[dbo].[NAV App Installed App] da JOIN [$tenantId].[dbo].[NAV App Installed App] ta ON da.[App ID] = ta.[App ID] AND da.[Version Major] = ta.[Version Major] AND da.[Version Minor] = ta.[Version Minor] AND da.[Version Build] = ta.[Version Build] AND da.[Version Revision] = ta.[Version Revision] AND da.[Package ID] != ta.[Package ID]"
