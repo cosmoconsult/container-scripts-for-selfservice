@@ -194,7 +194,9 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     $bak = $env:saasbakfile
     $tenantId = "saas"
     
-    $databaseFolder = "c:\databases\my"
+    if (!$databaseFolder) {
+        $databaseFolder = "c:\databases\my"
+    }
     
     if (!(Test-Path -Path $databaseFolder -PathType Container)) {
         New-Item -Path $databaseFolder -itemtype Directory | Out-Null
