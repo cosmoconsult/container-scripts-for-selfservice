@@ -72,8 +72,8 @@ function Import-AppArtifact {
                 $optionalParameters["Tenant"] = $Tenant
             }   
 
-            # Check if app is already installed with another version
-            $oldApp = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object {$_.IsInstalled} | Select-Object -First 1
+            # Check if app is already published with another version
+            $oldApp = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
             
             # Uninstall old NAVApp, when present
             if($oldApp -and $oldApp.IsInstalled) {
