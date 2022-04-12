@@ -2,7 +2,8 @@ function Get-ArtifactJson {
     [CmdletBinding()]
     param (
         [string]$path,
-        [string]$filter = "artifact.json"
+        [string]$filter = "artifact.json",
+        [int]$maxDepth = 4
     )    
     process {
         try {
@@ -14,7 +15,7 @@ function Get-ArtifactJson {
             if (! $current) { return }
             if (! $current.PSIsContainer) { $current = $current.Directory }
             do {            
-                $items = (Get-ChildItem -File -LiteralPath $current.FullName -Filter $filter -Recurse -ErrorAction SilentlyContinue)
+                $items = (Get-ChildItem -File -LiteralPath $current.FullName -Filter $filter -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
                 $artifactJson = ($items | Select-Object -First 1 | Get-Content -ErrorAction SilentlyContinue)
                 $current = $current.Parent
             } until ($artifactJson -or ! $current)
