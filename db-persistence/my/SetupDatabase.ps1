@@ -21,7 +21,7 @@ if ($restartingInstance) {
 
         $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
 
-        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection -ArgumentList "$databaseServerInstance"
+        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection -ArgumentList "$DatabaseServer\$DatabaseInstance"
 
         $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
         
