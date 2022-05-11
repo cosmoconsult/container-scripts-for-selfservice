@@ -7,7 +7,7 @@ if ($restartingInstance) {
 } elseif ($volPath -ne "") {
     # database volume path is provided, check if the database is already there or not
 
-    if ((Get-Item -path $volPath).GetFileSystemInfos().Count -eq 0) {
+    if ((Get-ChildItem $volPath).Count -eq 0) {
         # folder is empty, try to move the existing database to the db volume path
 
         Write-Host "Setting up database with default script"
