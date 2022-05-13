@@ -69,7 +69,7 @@ function Import-Artifacts {
         if ($items) {
             try {
                 $started   = Get-Date -Format "o"
-                Write-Host "Import $($items.Length) Apps... Hallo Welt"
+                Write-Host "Import $($items.Length) Apps..."
                 
                 Add-ArtifactsLog -message "Install Apps:$([System.Environment]::NewLine)$($items | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)" -data $app
                 
@@ -77,7 +77,6 @@ function Import-Artifacts {
                 foreach ($item in $items) {
                     # Try to Find the App-Specific Import Scope stored during download in "artifact.json" (Global setup is used, when no app specific information are present in the parent folders)
                     $importScope = $Scope
-                    Write-Host ("Searching artifact json path: {0}" -f $item.Path)
                     if (Test-Path -Path $item.Path) {
                         $artifactJson = Get-ArtifactJson -path $item.Path -ErrorAction SilentlyContinue
                         if ($artifactJson -and $artifactJson.appImportScope) {
