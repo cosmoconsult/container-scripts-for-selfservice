@@ -77,11 +77,13 @@ function Import-Artifacts {
                 foreach ($item in $items) {
                     # Try to Find the App-Specific Import Scope stored during download in "artifact.json" (Global setup is used, when no app specific information are present in the parent folders)
                     $importScope = $Scope
-                    $artifactJson = Get-ArtifactJson -path $item.Path -ErrorAction SilentlyContinue
-                    if ($artifactJson -and $artifactJson.appImportScope) {
-                        $importScope = $artifactJson.appImportScope
+                    if (Test-Path -Path $item.Path) {
+                        $artifactJson = Get-ArtifactJson -path $item.Path -ErrorAction SilentlyContinue
+                        if ($artifactJson -and $artifactJson.appImportScope) {
+                            $importScope = $artifactJson.appImportScope
+                        }
                     }
-
+                        
                     @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $SyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
                 }                
 
