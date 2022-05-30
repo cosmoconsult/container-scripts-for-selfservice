@@ -395,14 +395,17 @@ if ($env:mode -eq "4ps") {
                     -TimeZone ServicesDefaultTimeZone `
                     -ErrorAction SilentlyContinue 
                 
-                Write-Host "    Import setup data from XML file"
-                Invoke-NavCodeunit `
-                    -ServerInstance BC `
-                    -CompanyName $companyName `
-                    -CodeunitId 11012268 `
-                    -MethodName ImportSetupDataFromXmlFile `
-                    -Argument "$($demoDataFile.FullName)"
-                
+                if ($env:IsBuildContainer -ne "true") {
+                    Write-Host "    Import setup data from XML file"
+                    Invoke-NavCodeunit `
+                        -ServerInstance BC `
+                        -CompanyName $companyName `
+                        -CodeunitId 11012268 `
+                        -MethodName ImportSetupDataFromXmlFile `
+                        -Argument "$($demoDataFile.FullName)"
+                } else {
+                    Write-Host "    Skip import setup data from XML file as this seems to be a build container"
+                }                
                     
                 Write-Host "    Run manual data upgrade 4PS"
                 Invoke-NavCodeunit `
