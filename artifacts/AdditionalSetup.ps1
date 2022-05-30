@@ -414,75 +414,79 @@ if ($env:mode -eq "4ps") {
                     -CodeunitId 50189 `
                     -MethodName RunManualDataUpgrade `
                     -Argument "$firstRun"
-
-                Write-Host "    Initialize FSA setup"
-                Invoke-NavCodeunit `
-                    -ServerInstance BC `
-                    -CompanyName $companyName `
-                    -CodeunitId 50189 `
-                    -MethodName InitializeFSASetup
-
-                Write-Host "    Initialize OSA setup"
-                Invoke-NavCodeunit `
-                    -ServerInstance BC `
-                    -CompanyName $companyName `
-                    -CodeunitId 50189 `
-                    -MethodName InitializeOSASetup
-
-                if ($firstRun) {
-                    Write-Host "    Initialize WebServices"
+                    
+                if ($env:IsBuildContainer -ne "true") {
+                    Write-Host "    Initialize FSA setup"
                     Invoke-NavCodeunit `
                         -ServerInstance BC `
                         -CompanyName $companyName `
                         -CodeunitId 50189 `
-                        -MethodName PublishAllWebServices
+                        -MethodName InitializeFSASetup
 
-                    Write-Host "    Initialize FSA"
+                    Write-Host "    Initialize OSA setup"
                     Invoke-NavCodeunit `
                         -ServerInstance BC `
                         -CompanyName $companyName `
                         -CodeunitId 50189 `
-                        -MethodName InitializeFSA
+                        -MethodName InitializeOSASetup
 
-                    Write-Host "    Initialize OSA"
-                    Invoke-NavCodeunit `
-                        -ServerInstance BC `
-                        -CompanyName $companyName `
-                        -CodeunitId 11128546 `
-                        -MethodName InitializeOSA
+                    if ($firstRun) {
+                        Write-Host "    Initialize WebServices"
+                        Invoke-NavCodeunit `
+                            -ServerInstance BC `
+                            -CompanyName $companyName `
+                            -CodeunitId 50189 `
+                            -MethodName PublishAllWebServices
 
-                    Write-Host "    Initialize License"
-                    Invoke-NavCodeunit `
+                        Write-Host "    Initialize FSA"
+                        Invoke-NavCodeunit `
+                            -ServerInstance BC `
+                            -CompanyName $companyName `
+                            -CodeunitId 50189 `
+                            -MethodName InitializeFSA
+
+                        Write-Host "    Initialize OSA"
+                        Invoke-NavCodeunit `
+                            -ServerInstance BC `
+                            -CompanyName $companyName `
+                            -CodeunitId 11128546 `
+                            -MethodName InitializeOSA
+
+                        Write-Host "    Initialize License"
+                        Invoke-NavCodeunit `
+                            -ServerInstance BC `
+                            -CompanyName $companyName `
+                            -CodeunitId 50189 `
+                            -MethodName CreateLicenses
+                        $firstRun = $false
+                    }
+
+                    Write-Host "    Initialize General User ($username / $unsecurepassword) in $companyName"
+                    Invoke-NAVCodeunit `
                         -ServerInstance BC `
                         -CompanyName $companyName `
                         -CodeunitId 50189 `
-                        -MethodName CreateLicenses
-                    $firstRun = $false
+                        -MethodName CreateGeneralAppUser `
+                        -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
+
+                    Write-Host "    Initialize FSA User"
+                    Invoke-NAVCodeunit `
+                        -ServerInstance BC `
+                        -CompanyName $companyName `
+                        -CodeunitId 50189 `
+                        -MethodName CreateFSAUser `
+                        -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
+
+                    Write-Host "    Initialize OSA User"
+                    Invoke-NAVCodeunit `
+                        -ServerInstance BC `
+                        -CompanyName $companyName `
+                        -CodeunitId 50189 `
+                        -MethodName CreateOSAUser `
+                        -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
+                } else {
+                    Write-Host "    Skip app, app user and app license init as this seems to be a build container"
                 }
-
-                Write-Host "    Initialize General User ($username / $unsecurepassword) in $companyName"
-                Invoke-NAVCodeunit `
-                    -ServerInstance BC `
-                    -CompanyName $companyName `
-                    -CodeunitId 50189 `
-                    -MethodName CreateGeneralAppUser `
-                    -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
-                    
-                Write-Host "    Initialize FSA User"
-                Invoke-NAVCodeunit `
-                    -ServerInstance BC `
-                    -CompanyName $companyName `
-                    -CodeunitId 50189 `
-                    -MethodName CreateFSAUser `
-                    -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
-                    
-                Write-Host "    Initialize OSA User"
-                Invoke-NAVCodeunit `
-                    -ServerInstance BC `
-                    -CompanyName $companyName `
-                    -CodeunitId 50189 `
-                    -MethodName CreateOSAUser `
-                    -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
             }
         }
         $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
