@@ -376,7 +376,7 @@ if ($env:mode -eq "4ps") {
         $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
         $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
-        $files = Get-ChildItem "c:\azurefileshare\bc-data\demo" | Sort-Object Name -Descending
+        $files = Get-ChildItem "c:\azurefileshare\bc-data\demo" -Filter *.xml | Sort-Object Name -Descending
         $firstRun = $true
         foreach ($demoDataFile in $files) {
             $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
