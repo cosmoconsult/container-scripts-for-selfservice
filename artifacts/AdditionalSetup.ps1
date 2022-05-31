@@ -489,6 +489,13 @@ if ($env:mode -eq "4ps") {
                 }
             }
         }
+        
+        if ((Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam -ErrorAction Ignore | Where-Object { $_.UserName -eq $username })) {
+            # found existing user with given name
+            # in 4PS mode, we assume .bak with modified base app, so we push the password again as the standard user setup script would ignore this
+            Set-NavServerUser -ServerInstance $ServerInstance @tenantParam -Username $username -Password $securePassword -AuthenticationEMail $authenticationEMail
+        }
+        
         $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
         Write-Host "  4PS initialization took $timespent4PS seconds"
     }
