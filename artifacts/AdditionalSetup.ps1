@@ -105,6 +105,7 @@ finally {
 try {
     $SyncMode = $env:IMPORT_SYNC_MODE
     $Scope = $env:IMPORT_SCOPE
+    Write-Host "############ Default import scope: $($env:IMPORT_SCOPE)"
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
 

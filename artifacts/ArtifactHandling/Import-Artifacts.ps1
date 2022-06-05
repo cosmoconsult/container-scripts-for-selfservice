@@ -79,6 +79,7 @@ function Import-Artifacts {
                     $importScope = $Scope
                     if (Test-Path -Path $item.Path) {
                         $artifactJson = Get-ArtifactJson -path $item.Path -ErrorAction SilentlyContinue
+                        Write-Host "############ artifactJson: $artifactJson"
                         if ($artifactJson -and $artifactJson.appImportScope) {
                             $importScope = $artifactJson.appImportScope
                         }
