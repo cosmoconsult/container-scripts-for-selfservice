@@ -5,7 +5,14 @@ param (
     [string]$Password
 )
 
-# copied from https://github.com/waldo1001/Cloud.Ready.Software.PowerShell/blob/master/PSScripts/DevOps/DeployWithAutomationAPI.ps1
+# copied from https://www.waldo.be/2020/06/15/deploying-from-devops-the-right-way-enabling-external-deployment-in-onprem-business-central-environments/
+if (-not (Get-Module -ListAvailable -Name ALOps.ExternalDeployer)) {
+    Install-PackageProvider -Name NuGet -Force
+    Install-module ALOps.ExternalDeployer -Force
+    Import-module ALOps.ExternalDeployer 
+    Install-ALOpsExternalDeployer 
+    New-ALOpsExternalDeployer -ServerInstance BC
+}
 
 if (-not("dummy" -as [type])) {
     add-type -TypeDefinition @"
@@ -28,6 +35,8 @@ public static class Dummy {
 }
 
 [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [dummy]::GetDelegate()
+
+# copied from https://github.com/waldo1001/Cloud.Ready.Software.PowerShell/blob/master/PSScripts/DevOps/DeployWithAutomationAPI.ps1
 
 $APIBaseURL = "https://localhost:7048/BC/API/microsoft/automation/beta"
 
