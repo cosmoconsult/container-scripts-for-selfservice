@@ -500,6 +500,7 @@ if ($env:mode -eq "4ps") {
         Write-Host "  4PS initialization took $timespent4PS seconds"
         
         if ($env:IsBuildContainer -ne "true") {
+            # copied from https://www.waldo.be/2020/06/15/deploying-from-devops-the-right-way-enabling-external-deployment-in-onprem-business-central-environments/
             Write-Host "Install external deployer"
             Install-module ALOps.ExternalDeployer -Force
             Import-module ALOps.ExternalDeployer 
