@@ -5,6 +5,8 @@ param (
     [string]$Password
 )
 
+# copied from https://github.com/waldo1001/Cloud.Ready.Software.PowerShell/blob/master/PSScripts/DevOps/DeployWithAutomationAPI.ps1
+
 if (-not("dummy" -as [type])) {
     add-type -TypeDefinition @"
 using System;
