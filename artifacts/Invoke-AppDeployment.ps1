@@ -50,11 +50,11 @@ $Companies = Invoke-RestMethod -Method Get `
 $companyId = $Companies.value[0].id
 
 #GetExtensions
-$getExtensions = Invoke-RestMethod -Method Get `
-    -Uri "$APIBaseURL/companies($companyId)/extensions" `
-    -Credential $Credential -UseBasicParsing
-
-$getExtensions.value.displayName
+#$getExtensions = Invoke-RestMethod -Method Get `
+#    -Uri "$APIBaseURL/companies($companyId)/extensions" `
+#    -Credential $Credential -UseBasicParsing
+#
+#$getExtensions.value.displayName
 
 #Publish Extension
 Invoke-RestMethod -Method Patch `
@@ -63,3 +63,5 @@ Invoke-RestMethod -Method Patch `
     -ContentType "application/octet-stream" `
     -Headers @{"If-Match" = "*" } `
     -InFile $AppToDeploy | Out-Null
+
+Write-Host "Deployment successfully started"
