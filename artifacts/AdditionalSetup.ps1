@@ -498,6 +498,16 @@ if ($env:mode -eq "4ps") {
         
         $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
         Write-Host "  4PS initialization took $timespent4PS seconds"
+        
+        if ($env:IsBuildContainer -ne "true") {
+            Write-Host "Install external deployer"
+            Install-module ALOps.ExternalDeployer -Force
+            Import-module ALOps.ExternalDeployer 
+            Install-ALOpsExternalDeployer 
+            New-ALOpsExternalDeployer -ServerInstance BC
+        } else {
+            Write-Host "Skip external deployer as this seems to be a build container"
+        }
     }
 }
 
