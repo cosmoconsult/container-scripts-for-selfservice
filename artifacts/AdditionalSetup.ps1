@@ -23,7 +23,7 @@ if ($env:cosmoUpgradeSysApp) {
     Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop 
     Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop 
     
-    Write-StartProcessLine    "Check data upgrade is executed"
+    Write-Host    "Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
     Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($sysAppInfoFS.Version)"
 }
