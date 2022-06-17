@@ -352,7 +352,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
 }
 
-Invoke-4PSArtifactHandling
+Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="

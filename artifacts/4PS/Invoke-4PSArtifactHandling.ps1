@@ -2,6 +2,12 @@ function Invoke-4PSArtifactHandling {
     [cmdletbinding()]
     PARAM
     (
+        [parameter(Mandatory=$true)]
+        [string]$username,
+        [parameter(Mandatory=$true)]
+        [SecureString]$securepassword,
+        [parameter(Mandatory=$true)]
+        [hashtable]$tenantParam
     )
     PROCESS
     {
