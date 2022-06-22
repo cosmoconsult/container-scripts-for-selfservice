@@ -167,6 +167,20 @@ function Invoke-4PSArtifactHandling {
                     Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword -AuthenticationEMail $authenticationEMail
                 }
 
+                Write-Host "Add Control Add-Ins"
+                $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+                New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.BusinessChart' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\BusinessChart\Microsoft.Dynamics.Nav.Client.BusinessChart.zip" -ErrorAction SilentlyContinue
+                New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.FlowIntegration' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\FlowIntegration\Microsoft.Dynamics.Nav.Client.FlowIntegration.zip" -ErrorAction SilentlyContinue
+                New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.OAuthIntegration' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\OAuthIntegration\Microsoft.Dynamics.Nav.Client.OAuthIntegration.zip" -ErrorAction SilentlyContinue
+                New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.PageReady' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\PageReady\Microsoft.Dynamics.Nav.Client.PageReady.zip" -ErrorAction SilentlyContinue
+                New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.PowerBIManagement' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\PowerBIManagement\Microsoft.Dynamics.Nav.Client.PowerBIManagement.zip" -ErrorAction SilentlyContinue
+                New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.RoleCenterSelector' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\RoleCenterSelector\Microsoft.Dynamics.Nav.Client.RoleCenterSelector.zip" -ErrorAction SilentlyContinue
+                New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.SatisfactionSurvey' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\SatisfactionSurvey\Microsoft.Dynamics.Nav.Client.SatisfactionSurvey.zip" -ErrorAction SilentlyContinue
+                New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.VideoPlayer' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\VideoPlayer\Microsoft.Dynamics.Nav.Client.VideoPlayer.zip" -ErrorAction SilentlyContinue
+                New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.WebPageViewer' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\WebPageViewer\Microsoft.Dynamics.Nav.Client.WebPageViewer.zip" -ErrorAction SilentlyContinue
+                New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.WelcomeWizard' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\WelcomeWizard\Microsoft.Dynamics.Nav.Client.WelcomeWizard.zip" -ErrorAction SilentlyContinue
+                Restart-NAVServerInstance BC
+
                 Uninstall-NAVApp -ServerInstance BC -Name 'Container initializer' -ClearSchema
                 Unpublish-NAVApp -ServerInstance BC -Name 'Container initializer'
                 
