@@ -45,7 +45,7 @@ function Invoke-4PSArtifactHandling {
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
-                $files = Get-ChildItem "c:\azurefileshare\bc-data\demo" -Filter *.xml | Sort-Object Name -Descending
+                $files = Get-ChildItem "c:\demodata" -Filter *.xml | Sort-Object Name -Descending
                 $firstRun = $true
                 foreach ($demoDataFile in $files) {
                     $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
@@ -164,6 +164,9 @@ function Invoke-4PSArtifactHandling {
                     # in 4PS mode, we assume .bak with modified base app, so we push the password again as the standard user setup script would ignore this
                     Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword -AuthenticationEMail $authenticationEMail
                 }
+
+                Uninstall-NAVApp -ServerInstance BC -Name 'Container initializer' -ClearSchema
+                Unpublish-NAVApp -ServerInstance BC -Name 'Container initializer'
                 
                 $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
                 Write-Host "  4PS initialization took $timespent4PS seconds"
