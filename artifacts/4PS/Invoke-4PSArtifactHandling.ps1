@@ -167,7 +167,7 @@ function Invoke-4PSArtifactHandling {
                     Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword -AuthenticationEMail $authenticationEMail
                 }
 
-                Write-Host "Add Control Add-Ins"
+                Write-Host "  Add Control Add-Ins"
                 $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
                 New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.BusinessChart' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\BusinessChart\Microsoft.Dynamics.Nav.Client.BusinessChart.zip" -ErrorAction SilentlyContinue
                 New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.FlowIntegration' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\FlowIntegration\Microsoft.Dynamics.Nav.Client.FlowIntegration.zip" -ErrorAction SilentlyContinue
