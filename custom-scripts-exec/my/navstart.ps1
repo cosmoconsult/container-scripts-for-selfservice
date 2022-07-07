@@ -1,6 +1,11 @@
 # this is from custom-scripts package
 $downloadCustomScriptsScript = "C:\run\my\CC-DownloadCustomScripts.ps1"
 
+if (Test-Path "C:\CosmoSetupCompleted.txt")
+{
+   Remove-Item -path "C:\CosmoSetupCompleted.txt" -force | Out-Null
+}
+
 $volPath = "$env:volPath"
 
 if ($volPath -ne "" -and (Get-Item -path $volPath).GetFileSystemInfos().Count -ne 0) {
