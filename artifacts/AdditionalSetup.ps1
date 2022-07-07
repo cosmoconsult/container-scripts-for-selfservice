@@ -329,4 +329,8 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
+if (!(Test-Path "C:\CosmoSetupCompleted.txt"))
+{
+   New-Item -path "C:" -name "CosmoSetupCompleted.txt" -type "file" | Out-Null
+}
 Write-Host ""
