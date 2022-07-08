@@ -358,7 +358,7 @@ Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
 if (!(Test-Path "C:\CosmoSetupCompleted.txt"))
 {
-   New-Item -path "C:" -name "CosmoSetupCompleted.txt" -type "file"
+   New-Item "c:\CosmoSetupCompleted.txt" -type "file"
    Write-Host "Set marker for health check"
 }
 Write-Host ""
