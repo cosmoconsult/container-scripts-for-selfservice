@@ -65,8 +65,7 @@ function Import-Artifacts {
         $items = @()
         $params = @{
             Depth = $maxDepth
-            Filter = "*.app"
-            ErrorAction = 'SilentlyContinue'
+            Filter = "*.app"            
         }
         if ($null -ne $env:AppExludeExpr)
         {
@@ -74,7 +73,7 @@ function Import-Artifacts {
         }
         if (Test-Path -LiteralPath "$Path") {
             $params.Add("Path", "$Path")
-            $items = @() + (Get-AppFilesSortedByDependencies @params)
+            $items = @() + (Get-AppFilesSortedByDependencies @params -ErrorAction SilentlyContinue)
         }
         if ($items) {
             try {
