@@ -66,7 +66,7 @@ function Import-Artifacts {
         $params = @{
             Depth = $maxDepth
             Filter = "*.app"
-            ErrorAction = SilentlyContinue
+            ErrorAction = 'SilentlyContinue'
         }
         if ($null -ne $env:AppExludeExpr)
         {
