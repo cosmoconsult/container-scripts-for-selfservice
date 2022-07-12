@@ -69,6 +69,7 @@ function Import-Artifacts {
         }
         if ($null -ne $env:AppExludeExpr)
         {
+            Write-Host ("Found App expression override {0}" -f $env:AppExludeExpr)
             $params.Add("ExludeExpr", $env:AppExludeExpr)   
         }
         if (Test-Path -LiteralPath "$Path") {
