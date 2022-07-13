@@ -67,10 +67,10 @@ function Import-Artifacts {
             Depth = $maxDepth
             Filter = "*.app"            
         }
-        if ($null -ne $env:AppExludeExpr)
+        if ($null -ne $env:AppExcludeExpr)
         {
-            Write-Host ("Found App expression override {0}" -f $env:AppExludeExpr)
-            $params.Add("ExcludeExpr", $env:AppExludeExpr)   
+            Write-Host ("Found App expression override {0}" -f $env:AppExcludeExpr)
+            $params.Add("ExcludeExpr", $env:AppExcludeExpr)   
         }
         if (Test-Path -LiteralPath "$Path") {
             $params.Add("Path", "$Path")
