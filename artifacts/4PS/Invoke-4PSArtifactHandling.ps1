@@ -47,7 +47,7 @@ function Invoke-4PSArtifactHandling {
                 } else {
                     Write-Error "Container seems to have a version where we don't have a matching initializer app: $($sysAppInfoFS.Version.Major)"
                 }
-                Publish-NAVApp -ServerInstance BC -Path ":C\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app" -SkipVerification -Scope Tenant
+                Publish-NAVApp -ServerInstance BC -Path "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app" -SkipVerification -Scope Tenant
                 Sync-NAVApp -ServerInstance BC -Name 'Container initializer'
                 Install-NAVApp -ServerInstance BC -Name 'Container initializer'
 
