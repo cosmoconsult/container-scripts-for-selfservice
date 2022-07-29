@@ -42,7 +42,7 @@ function Invoke-4PSArtifactHandling {
                 $initializerVersion = ''
                 if ($sysAppInfoFS.Version.Major -eq 20) {
                     $initializerVersion = '2.0.0.0'
-                } else if ($sysAppInfoFS.Version.Major -eq 19) {
+                } elseif ($sysAppInfoFS.Version.Major -eq 19) {
                     $initializerVersion = '1.0.0.0'
                 } else {
                     Write-Error "Container seems to have a version where we don't have a matching initializer app: $($sysAppInfoFS.Version.Major)"
