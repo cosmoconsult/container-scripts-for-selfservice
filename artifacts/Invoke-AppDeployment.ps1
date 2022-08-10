@@ -4,7 +4,7 @@ param (
     [string]$Username,
     [string]$Password
 )
-
+asfd
 c:\run\prompt.ps1
 try {
     $started = Get-Date -Format "o"
@@ -103,7 +103,7 @@ try {
         try {
             $started3 = Get-Date -Format "o"
             Write-Host "Install App $($app.Name) $($app.Publisher) $($app.Version)..."
-            Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+            Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" -lowerCase }
             $warn | foreach { Write-Host "$_" -lowerCase }
             $err  | foreach { Write-Error "$_" -severity Error -lowerCase }
