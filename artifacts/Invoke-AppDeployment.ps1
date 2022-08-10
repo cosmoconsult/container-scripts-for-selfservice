@@ -4,7 +4,7 @@ param (
     [string]$Username,
     [string]$Password
 )
-asfd
+
 c:\run\prompt.ps1
 try {
     $started = Get-Date -Format "o"
@@ -45,7 +45,7 @@ try {
         try {
             $started2 = Get-Date -Format "o"
             Write-Host "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..."
-            Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+            Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope tenant -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" }
             $warn | foreach { Write-Host "$_" }
             $err  | foreach { Write-Error "$_" }
