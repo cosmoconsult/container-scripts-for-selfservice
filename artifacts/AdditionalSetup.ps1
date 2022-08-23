@@ -53,7 +53,7 @@ if (Test-Path "$serviceTierFolder") {
     Write-Host "Import App Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
     Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
 }
-if (Test-Path "$roleTailoredClientFolder") {
+if (Test-Path "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1") {
     Write-Host "Import Nav IDE from $roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1"
     Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
 }
@@ -329,4 +329,8 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
+if (!(Test-Path "C:\CosmoSetupCompleted.txt"))
+{
+   New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
+}
 Write-Host ""

@@ -3,7 +3,7 @@ function Get-ArtifactJson {
     param (
         [string]$path,
         [string]$filter = "artifact.json",
-        [int]$maxDepth = 4
+        [int]$maxDepth = 2
     )    
     process {
         try {
