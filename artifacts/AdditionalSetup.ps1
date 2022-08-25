@@ -327,19 +327,6 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
 }
 
-
-Invoke-LogEvent -name "Import K8S Helper" -telemetryClient $telemetryClient
-Write-Host "Import K8S Helper"
-try {
-   if (Test-Path "C:\run\helper\k8s-bc-helper.psd1") {
-      Import-Module "C:\run\helper\k8s-bc-helper.psd1" -Scope Global
-   }
-}
-catch {
-   Invoke-LogEvent -name "Error Import K8S Helper" -telemetryClient $telemetryClient
-   Write-Host "Error Import K8S Helper"
-}
-
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
 if (!(Test-Path "C:\CosmoSetupCompleted.txt"))
