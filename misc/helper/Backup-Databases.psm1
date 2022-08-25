@@ -48,6 +48,7 @@ function Backup-BCDatabases {
         }
 
         if ($multitenant) {
+            Import-Module (Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "NavAdminTool.ps1")
             if (!($tenant)) {
                 $tenant = @(get-navtenant $serverInstance | % { $_.Id }) + "tenant"
             }
