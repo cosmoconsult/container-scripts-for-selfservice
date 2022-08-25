@@ -332,7 +332,7 @@ Invoke-LogEvent -name "Import K8S Helper" -telemetryClient $telemetryClient
 Write-Host "Import K8S Helper"
 try {
    if (Test-Path "C:\run\helper\k8s-bc-helper.psd1") {
-      Import-Module "C:\run\helper\k8s-bc-helper.psd1"
+      Import-Module "C:\run\helper\k8s-bc-helper.psd1" -Scope Global
    }
 }
 catch {
