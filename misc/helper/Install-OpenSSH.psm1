@@ -31,11 +31,6 @@ function Install-OpenSSH {
     Write-Output "Generating host keys"
     .\\ssh-keygen.exe -A
 
-    Write-Output "Fixing host file permissions"
-    & .\\FixHostFilePermissions.ps1 -Confirm:$false
-
-    Write-Output "Fixing user file permissions"
-    & .\\FixUserFilePermissions.ps1 -Confirm:$false
 
     Pop-Location
 
@@ -57,7 +52,7 @@ function Install-OpenSSH {
     Write-Output "Setting sshd service restart behavior"
     sc.exe failure sshd reset= 86400 actions= restart/500
     $authpath = "c:\ProgramData\ssh\administrators_authorized_keys"
-    copy $keyPath $authpath
+    Copy-Item $keyPath $authpath
     $acl = Get-Acl -Path $authpath
 
     $acl.SetSecurityDescriptorSddlForm("O:BAD:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)")
@@ -67,6 +62,16 @@ function Install-OpenSSH {
 
     $acl.SetSecurityDescriptorSddlForm("O:BAD:PAI(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)")
     Set-Acl -Path $keypath -AclObject $acl
+
+    
+    Push-Location C:\\OpenSSH-Win64
+    Write-Output "Fixing host file permissions"
+    & .\\FixHostFilePermissions.ps1 -Confirm:$false
+
+    Write-Output "Fixing user file permissions"
+    & .\\FixUserFilePermissions.ps1 -Confirm:$false
+
+    Pop-Location
 
     Start-Service sshd
 }
