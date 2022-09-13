@@ -113,7 +113,7 @@ if ($restartingInstance) {
 
         if ($bakfile -ne "") {
             $appDatabaseName = "mydatabase"
-        } else if ($multitenant) {
+        } elseif ($multitenant) {
             $appDatabaseName = "default"
         } else {
             $appDatabaseName = "CRONUS"
