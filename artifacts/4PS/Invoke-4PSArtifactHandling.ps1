@@ -15,8 +15,12 @@ function Invoke-4PSArtifactHandling {
             Write-Host "4PS mode found"
             c:\Run\prompt.ps1
 
+            $appDatabaseName = Get-AppDatabaseName
+
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
+            } elseif ("CRONUS" -eq $appDatabaseName) {
+                Write-Host "4PS initialization skipped as this seems to be a CRONUS database"
             } else {
                 Write-Host "4PS initialization starts"
                 $startTime4PS = [DateTime]::Now
