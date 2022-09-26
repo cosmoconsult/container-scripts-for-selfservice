@@ -1,5 +1,10 @@
 $volPath = "$env:volPath"
 
+if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
+    Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
+    Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
+}
+
 if ($restartingInstance) {
 
     # Nothing to do

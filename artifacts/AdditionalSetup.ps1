@@ -1,8 +1,3 @@
-if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
-    Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-    Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
-}
-
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
     Write-Host "  Uninstall the previous system application with dependencies"
