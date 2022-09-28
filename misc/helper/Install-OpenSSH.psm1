@@ -43,7 +43,7 @@ function Install-OpenSSH {
   Subsystem	sftp	sftp-server.exe
   Match Group administrators
          AuthorizedKeysFile __PROGRAMDATA__/ssh/administrators_authorized_keys
-"@ | -OutFile "C:\ProgramData\ssh\sshd_config" -Encoding utf8
+"@ | OutFile "C:\ProgramData\ssh\sshd_config" -Encoding utf8
 
   
   $path = "c:\ProgramData\ssh\administrators_authorized_keys" 
