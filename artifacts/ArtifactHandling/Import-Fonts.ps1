@@ -127,6 +127,15 @@ namespace FontResource
         if ($importFiles) {
             Write-Host "Restart NAV service"
             Restart-Service -Name $NavServiceName
+            for ($i = 0; $i -lt 10; $i++) {
+                $TenantState = (Get-NavTenant -ServerInstance $NavServiceName -Tenant $Tenant).State
+                if ($TenantState -eq "Operational") {
+                    break;
+                }
+
+                Write-Host " - - Tenant not operational yet (try $i), sleeping 10s"
+                Start-Sleep -Seconds 10
+            }
             Add-ArtifactsLog "Import Fonts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
         }
     }
