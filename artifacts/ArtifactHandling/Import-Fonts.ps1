@@ -129,7 +129,7 @@ namespace FontResource
             Restart-Service -Name $NavServiceName
             for ($i = 0; $i -lt 10; $i++) {
                 $TenantState = (Get-NavTenant -ServerInstance $NavServiceName -Tenant $Tenant).State
-                if ($TenantState -eq "Operational") {
+                if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
                     break;
                 }
 
