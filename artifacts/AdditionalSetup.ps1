@@ -1,3 +1,30 @@
+# this is from custom-scripts package
+$downloadCustomScriptsScript = "C:\run\my\CC-DownloadCustomScripts.ps1"
+
+if (Test-Path "C:\CosmoSetupCompleted.txt")
+{
+   Remove-Item -path "C:\CosmoSetupCompleted.txt" -force | Out-Null
+}
+
+$volPath = "$env:volPath"
+
+if ($volPath -ne "" -and (Get-Item -path $volPath).GetFileSystemInfos().Count -ne 0) {
+  # database volume path is provided and the database files are there, so this seems to be a restart
+  $env:cosmoServiceRestart = $true
+  Write-Host "This seems to be a service restart"
+}
+else {
+  $env:cosmoServiceRestart = $false
+  Write-Host "This seems to be a regular service start"
+}
+
+if (Test-Path $downloadCustomScriptsScript) {
+  . $downloadCustomScriptsScript
+}
+
+# invoke default
+. (Join-Path $runPath $MyInvocation.MyCommand.Name)
+
 # Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
 if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
     Write-Host ""
@@ -42,11 +69,6 @@ if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
 Write-Host ""
 Write-Host "=== Additional Setup ==="
 
-if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
-    Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-    Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
-}
-
 if (Test-Path "$serviceTierFolder") {
     Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.psd1"
     Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psd1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
@@ -74,7 +96,7 @@ Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryCli
 try {
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.target -ne "bak" } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
     $properties["artifats"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
@@ -327,10 +349,13 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
 }
 
+Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
+
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
 if (!(Test-Path "C:\CosmoSetupCompleted.txt"))
 {
    New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
+   Write-Host "Set marker for health check"
 }
 Write-Host ""
