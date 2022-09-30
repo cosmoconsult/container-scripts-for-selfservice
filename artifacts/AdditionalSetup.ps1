@@ -1,28 +1,3 @@
-if ($env:cosmoUpgradeSysApp) {
-    Write-Host "System application upgrade requested"
-    Write-Host "  Uninstall the previous system application with dependencies"
-    Uninstall-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Force
-    $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-    Write-Host "  Publish the new system application $($sysAppInfoFS.Version)"
-    Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-    Write-Host "  Sync the new system application"
-    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
-    Write-Host "  Start data upgrade for the system application"
-    Start-NAVAppDataUpgrade -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
-    Write-Host "  Install the new system application"
-    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
-
-    Write-Host    "Set NAVApplication version '$($sysAppInfoFS.Version)' in Serverinstance 'BC'."
-    Set-NAVApplication -ApplicationVersion "$($sysAppInfoFS.Version)" -ServerInstance BC -Force -ErrorAction Stop
-    Sync-NAVTenant -ServerInstance BC -Mode Sync -Force -ErrorAction Stop
-    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop 
-    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop 
-    
-    Write-Host    "Check data upgrade is executed"
-    Set-NavServerInstance -ServerInstance BC -Restart
-    Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($sysAppInfoFS.Version)"
-}
-
 # Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
 if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
     Write-Host ""
@@ -67,6 +42,11 @@ if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
 Write-Host ""
 Write-Host "=== Additional Setup ==="
 
+if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
+    Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
+    Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
+}
+
 if (Test-Path "$serviceTierFolder") {
     Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.psd1"
     Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psd1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
@@ -94,7 +74,7 @@ Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryCli
 try {
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.target -ne "bak" } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
     $properties["artifats"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
@@ -347,13 +327,10 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
 }
 
-Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
-
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
 if (!(Test-Path "C:\CosmoSetupCompleted.txt"))
 {
-   New-Item "c:\CosmoSetupCompleted.txt" -type "file"
-   Write-Host "Set marker for health check"
+   New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
 }
 Write-Host ""
