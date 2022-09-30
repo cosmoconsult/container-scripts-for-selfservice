@@ -1,29 +1,27 @@
-# this is from custom-scripts package
-$downloadCustomScriptsScript = "C:\run\my\CC-DownloadCustomScripts.ps1"
+if ($env:cosmoUpgradeSysApp) {
+    Write-Host "System application upgrade requested"
+    Write-Host "  Uninstall the previous system application with dependencies"
+    Uninstall-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Force
+    $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Publish the new system application $($sysAppInfoFS.Version)"
+    Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Sync the new system application"
+    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Write-Host "  Start data upgrade for the system application"
+    Start-NAVAppDataUpgrade -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Write-Host "  Install the new system application"
+    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
 
-if (Test-Path "C:\CosmoSetupCompleted.txt")
-{
-   Remove-Item -path "C:\CosmoSetupCompleted.txt" -force | Out-Null
+    Write-Host    "Set NAVApplication version '$($sysAppInfoFS.Version)' in Serverinstance 'BC'."
+    Set-NAVApplication -ApplicationVersion "$($sysAppInfoFS.Version)" -ServerInstance BC -Force -ErrorAction Stop
+    Sync-NAVTenant -ServerInstance BC -Mode Sync -Force -ErrorAction Stop
+    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop 
+    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop 
+
+    Write-Host    "Check data upgrade is executed"
+    Set-NavServerInstance -ServerInstance BC -Restart
+    Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($sysAppInfoFS.Version)"
 }
-
-$volPath = "$env:volPath"
-
-if ($volPath -ne "" -and (Get-Item -path $volPath).GetFileSystemInfos().Count -ne 0) {
-  # database volume path is provided and the database files are there, so this seems to be a restart
-  $env:cosmoServiceRestart = $true
-  Write-Host "This seems to be a service restart"
-}
-else {
-  $env:cosmoServiceRestart = $false
-  Write-Host "This seems to be a regular service start"
-}
-
-if (Test-Path $downloadCustomScriptsScript) {
-  . $downloadCustomScriptsScript
-}
-
-# invoke default
-. (Join-Path $runPath $MyInvocation.MyCommand.Name)
 
 # Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
 if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
