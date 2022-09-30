@@ -63,8 +63,18 @@ function Import-Artifacts {
 
         # Publish apps
         $items = @()
+        $params = @{
+            Depth = $maxDepth
+            Filter = "*.app"            
+        }
+        if ($null -ne $env:AppExcludeExpr)
+        {
+            Write-Host ("Found App expression override {0}" -f $env:AppExcludeExpr)
+            $params.Add("ExcludeExpr", $env:AppExcludeExpr)   
+        }
         if (Test-Path -LiteralPath "$Path") {
-            $items = @() + (Get-AppFilesSortedByDependencies -Path "$Path" -Depth $maxDepth -Filter "*.app" -ErrorAction SilentlyContinue)
+            $params.Add("Path", "$Path")
+            $items = @() + (Get-AppFilesSortedByDependencies @params -ErrorAction SilentlyContinue)
         }
         if ($items) {
             try {
