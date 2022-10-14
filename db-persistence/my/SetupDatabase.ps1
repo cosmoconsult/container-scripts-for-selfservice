@@ -122,7 +122,7 @@ if ($restartingInstance) {
                 Write-Error "  Database version is newer than container version, this probably won't work"
             } elseif ($sysAppVersionFS -gt $sysAppVersionDB) {
                 Write-Host "  Container version is newer than database version, trying to convert"
-                Invoke-NAVApplicationDatabaseConversion -databaseServer "localhost" -appDatabaseName "$databaseName" -Force
+                Invoke-NAVApplicationDatabaseConversion -databaseServer "localhost" -DatabaseName "$databaseName" -Force
                 $env:cosmoUpgradeSysApp = $true
             } else {
                 Write-Host "  Versions are identical, this should work"
