@@ -7,6 +7,11 @@ if (Test-Path "C:\CosmoSetupCompleted.txt")
    Write-Host "Remove marker for health check"
 }
 
+if ($env:mode -eq "4ps") {
+  Write-Host "4PS mode, set time zone"
+  tzutil /s "W. Europe Standard Time"
+}
+
 $volPath = "$env:volPath"
 
 if ($volPath -ne "" -and (Get-Item -path $volPath).GetFileSystemInfos().Count -ne 0) {
