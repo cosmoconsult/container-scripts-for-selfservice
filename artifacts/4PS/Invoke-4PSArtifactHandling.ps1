@@ -16,6 +16,7 @@ function Invoke-4PSArtifactHandling {
             c:\Run\prompt.ps1
 
             $appDatabaseName = Get-AppDatabaseName
+            Write-Host "  app database name is: $appDatabaseName"
 
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
