@@ -20,8 +20,8 @@ function Invoke-4PSArtifactHandling {
 
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
-            } elseif ("CRONUS" -eq $appDatabaseName) {
-                Write-Host "4PS initialization skipped as this seems to be a CRONUS database"
+            } elseif ("CRONUS" -eq $appDatabaseName -or "default" -eq $appDatabaseName) {
+                Write-Host "4PS initialization skipped as this seems to be a Microsoft standard database"
             } else {
                 Write-Host "4PS initialization starts"
                 $startTime4PS = [DateTime]::Now
