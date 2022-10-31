@@ -1,7 +1,10 @@
 Write-Host "Start Setup Configuration"
 
+Push-Location
 # invoke default
 . (Join-Path $runPath $MyInvocation.MyCommand.Name)
+
+Pop-Location
 
 $scripts = @(
                         (Join-Path $PSScriptRoot "EnablePremium.ps1")
