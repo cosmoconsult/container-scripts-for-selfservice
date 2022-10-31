@@ -5,6 +5,10 @@
   Install-OpenSSH
 #>
 function Install-OpenSSH {
+  if (!(Test-Path -Path "C:\pubKey\pubkey.pub")) {
+    Write-Output "No ssh key found, ssh disabled"
+    return
+  }
   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
   Write-Output "Downloading OpenSSH"
@@ -48,8 +52,7 @@ function Install-OpenSSH {
   
   $path = "c:\ProgramData\ssh\administrators_authorized_keys" 
   
-  # TODO insert public key passed into container
-  $sshkey=(Get-Content C:\azurefileshare\ps\id_rsa.pub) 
+  $sshkey=("C:\pubKey\pubkey.pub") 
   $sshKey | Out-File $path -Encoding utf8
 
   $acl = Get-Acl -Path $path
