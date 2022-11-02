@@ -28,5 +28,4 @@ if (Test-Path "C:\licenses\licenseUrl") {
   (New-Object System.Net.WebClient).DownloadFile($customLicenseUrl, $env:licensefile)
 }
 
-# invoke default
-. (Join-Path $runPath $MyInvocation.MyCommand.Name)
+
