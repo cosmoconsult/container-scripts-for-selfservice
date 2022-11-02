@@ -1,7 +1,7 @@
 Write-Host "Start Setup Configuration"
 
 $scripts = @(
-                        (Join-Path $PSScriptRoot "EnablePerformanceCounter.ps1")
+                        (Join-Path $runPath "EnablePerformanceCounter.ps1")
                    )
 Push-Location
 # invoke default
