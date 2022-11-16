@@ -67,6 +67,13 @@ if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
 Write-Host ""
 Write-Host "=== Additional Setup ==="
 
+if ($env:IsBuildContainer) {
+    if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
+        Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
+        Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
+    }
+}
+
 if (Test-Path "$serviceTierFolder") {
     Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.psd1"
     Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psd1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
