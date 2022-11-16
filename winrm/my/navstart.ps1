@@ -10,6 +10,11 @@ winrm set winrm/config/service/Auth '@{Basic="true"}'
 # this is from custom-scripts package
 $downloadCustomScriptsScript = "C:\run\my\CC-DownloadCustomScripts.ps1"
 
+if ($env:mode -eq "4ps") {
+  Write-Host "4PS mode, set time zone"
+  tzutil /s "W. Europe Standard Time"
+}
+
 $volPath = "$env:volPath"
 
 if ($volPath -ne "" -and (Get-Item -path $volPath).GetFileSystemInfos().Count -ne 0) {
