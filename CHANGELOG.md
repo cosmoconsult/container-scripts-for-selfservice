@@ -19,3 +19,4 @@
 - Change experience at company information for all companies (except 'My Company') into Premium, when `enablePremium` is set to `true`. (see [#1842](https://dev.azure.com/cc-ppi/General/_workitems/edit/1842))
 - Extend health check to also consider a marker file generated at the end of AdditionalSetup.ps1 (see [#2232](https://dev.azure.com/cc-ppi/Self-Service/_workitems/edit/2232))
 - Add 4PS initialization and upgrade handling
+- Add 4PS post startup handling to collect DLLs for base app modifications

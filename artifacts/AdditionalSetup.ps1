@@ -364,3 +364,5 @@ if (!(Test-Path "C:\CosmoSetupCompleted.txt"))
    Write-Host "Set marker for health check"
 }
 Write-Host ""
+
+Invoke-4PSPostStartupHandling
