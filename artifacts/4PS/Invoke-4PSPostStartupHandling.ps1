@@ -1,4 +1,4 @@
-function Invoke-4PSArtifactHandling {
+function Invoke-4PSPostStartupHandling {
     [cmdletbinding()]
     PARAM
     ()
