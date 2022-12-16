@@ -45,17 +45,20 @@ function Invoke-4PSArtifactHandling {
 
                 $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
                 $initializerVersion = ''
-                #if ($sysAppInfoFS.Version.Major -eq 21) {
-                #    $initializerVersion = '3.0.0.0'
-                #} else
-                if ($sysAppInfoFS.Version.Major -eq 20) {
+                if ($sysAppInfoFS.Version.Major -ge 21) {
+                    $initializerVersion = "$($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor).0.0"
+                } elseif ($sysAppInfoFS.Version.Major -eq 20) {
                     $initializerVersion = '2.0.0.0'
                 } elseif ($sysAppInfoFS.Version.Major -eq 19) {
                     $initializerVersion = '1.0.0.0'
                 } else {
-                    Write-Error "Container seems to have a version where we don't have a matching initializer app: $($sysAppInfoFS.Version.Major)"
+                    Write-Error "Container seems to have a version where we don't have a matching initializer app: $($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor)"
                 }
-                Publish-NAVApp -ServerInstance BC -Path "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app" -SkipVerification -Scope Tenant
+                $initializerPath = "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app"
+                if (! Test-Path $initializerPath) {
+                    Write-Error "Couldn't find the expected initializer app at $initializerPath"
+                }
+                Publish-NAVApp -ServerInstance BC -Path $initializerPath -SkipVerification -Scope Tenant
                 Sync-NAVApp -ServerInstance BC -Name 'Container initializer'
                 Install-NAVApp -ServerInstance BC -Name 'Container initializer'
 
