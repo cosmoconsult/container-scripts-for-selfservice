@@ -15,7 +15,6 @@ function Unpublish-AllNavAppsInServerInstance {
     [cmdletbinding()]
     PARAM
     (
-        [parameter(Mandatory=$true)]
         [string]$ServerInstance,
         [string]$Tenant
     )
@@ -23,6 +22,9 @@ function Unpublish-AllNavAppsInServerInstance {
     {
         if (!$Tenant) {
             $Tenant = 'default'
+        }
+        if (!$ServerInstance) {
+            $ServerInstance = 'BC'
         }
         
         $InstalledApps = @{}
