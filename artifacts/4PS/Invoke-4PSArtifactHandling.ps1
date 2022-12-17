@@ -65,9 +65,9 @@ function Invoke-4PSArtifactHandling {
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
+                $firstRun = $true
                 if (Test-Path -Path "c:\demodata") {
                     $files = Get-ChildItem "c:\demodata" -Filter *.xml | Sort-Object Name -Descending
-                    $firstRun = $true
                     foreach ($demoDataFile in $files) {
                         $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
                         "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
@@ -182,6 +182,10 @@ function Invoke-4PSArtifactHandling {
                             }
                         }
                     }
+                }
+                if ($firstRun) {
+                    Write-Host "  Looks like no company has been created from demo data, creating an empty one"
+                    New-NAVCompany -CompanyName "Empty Company" -ServerInstance BC
                 }
                 
                 if ((Get-NAVServerUser -ServerInstance BC @tenantParam -ErrorAction Ignore | Where-Object { $_.UserName -eq $username })) {
