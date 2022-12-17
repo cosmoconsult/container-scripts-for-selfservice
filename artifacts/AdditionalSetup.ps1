@@ -1,7 +1,12 @@
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
-    Write-Host "  Uninstall the previous system application with dependencies"
-    Uninstall-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Force
+    $sysAppInstallInfo = Get-NAVAppInfo -ServerInstance BC -Name "System Application" -Publisher "Microsoft"
+    if ($sysAppInstallInfo) {
+        Write-Host "  Uninstall the previous system application with dependencies"
+        Uninstall-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Force
+    } else {
+        Write-Host "  No previous system application found"
+    }
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Publish the new system application $($sysAppInfoFS.Version)"
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
