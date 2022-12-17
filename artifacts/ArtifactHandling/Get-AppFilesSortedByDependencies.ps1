@@ -55,7 +55,7 @@ function Get-AppFilesSortedByDependencies {
             $Path = "C:\ProgramData\NavContainerHelper\DependencyApps"
         }
         $optionalParameters = @{}
-        if ($Depth) {            
+        if ($Depth) {
             $optionalParameters["Depth"] = $Depth
         }
         Write-Host ("Seraching for apps excluding: {0}" -f $ExcludeExpr)

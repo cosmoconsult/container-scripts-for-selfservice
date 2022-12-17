@@ -72,7 +72,8 @@ Description = 'PPI Azure DevOps Artifact Utils Library'
 FunctionsToExport = 'Get-TelemetryClient', 'Invoke-LogEvent', 'Invoke-LogOperation', 'Invoke-LogError',
                'Get-PackageVersion', 'Invoke-DownloadArtifact', 'Get-AppFilesSortedByDependencies', 'Get-ArtifactsFromEnvironment',
                'Import-FOBArtifact', 'Import-AppArtifact', 'Import-RIMArtifact', 'Import-Artifacts', 
-               'Get-ArtifactsLog', 'Add-ArtifactsLog', 'Import-Fonts', 'Get-ArtifactJson'
+               'Get-ArtifactsLog', 'Add-ArtifactsLog', 'Import-Fonts', 'Get-ArtifactJson',
+               'Invoke-4PSArtifactHandling', 'Invoke-4PSPostStartupHandling', 'Check-DataUpgradeExecuted', 'Wait-DataUpgradeToFinish', 'Get-AppDatabaseName'
 
 # Aus diesem Modul zu exportierende Cmdlets. Um optimale Leistung zu erzielen, verwenden Sie keine Platzhalter und lueschen den Eintrag nicht. Verwenden Sie ein leeres Array, wenn keine zu exportierenden Cmdlets vorhanden sind.
 CmdletsToExport = @()
