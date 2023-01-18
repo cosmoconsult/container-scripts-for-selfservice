@@ -106,7 +106,7 @@ try {
             Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" -lowerCase }
             $warn | foreach { Write-Host "$_" -lowerCase }
-            $err  | foreach { Write-Error "$_" -severity Error -lowerCase }
+            $err  | foreach { Write-Error "$_" -lowerCase }
             $success = ! $err
             if ($success) { Write-Host "Install App ... successful" }
         } catch {        
