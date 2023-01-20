@@ -104,9 +104,9 @@ try {
             $started3 = Get-Date -Format "o"
             Write-Host "Install App $($app.Name) $($app.Publisher) $($app.Version)..."
             Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-            $info | foreach { Write-Host "$_" -lowerCase }
-            $warn | foreach { Write-Host "$_" -lowerCase }
-            $err  | foreach { Write-Error "$_" -lowerCase }
+            $info | foreach { Write-Host "$_" }
+            $warn | foreach { Write-Host "$_" }
+            $err  | foreach { Write-Error "$_" }
             $success = ! $err
             if ($success) { Write-Host "Install App ... successful" }
         } catch {        
