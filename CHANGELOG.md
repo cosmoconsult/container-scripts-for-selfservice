@@ -20,3 +20,5 @@
 - Extend health check to also consider a marker file generated at the end of AdditionalSetup.ps1 (see [#2232](https://dev.azure.com/cc-ppi/Self-Service/_workitems/edit/2232))
 - Add 4PS initialization and upgrade handling
 - Add 4PS post startup handling to collect DLLs for base app modifications
+- Improve stability during upgrades for corner cases
+- Add ability to unpublish all apps as this is required for BC 20 -> 21 upgrades
