@@ -38,11 +38,11 @@ if ($restartingInstance) {
 
                 # set recovery mode and shrink log
                 $sqlcmd = "ALTER DATABASE [$($_.Name)] SET RECOVERY SIMPLE WITH NO_WAIT"
-                & sqlcmd -Q $sqlcmd
+                Invoke-Sqlcmd -Query $sqlcmd -ServerInstance "$DatabaseServer\$DatabaseInstance"
                 $shrinkCmd = "USE [$($_.Name)]; "
                 $_.LogFiles | ForEach-Object {
                     $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
-                    & sqlcmd -Q $shrinkCmd
+                    Invoke-Sqlcmd -Query $shrinkCmd -ServerInstance "$DatabaseServer\$DatabaseInstance"
                 }
             
                 Write-Host "- Moving $($_.Name)"
@@ -90,13 +90,13 @@ if ($restartingInstance) {
             Write-Host "Attach database $database"
 
             $sqlcmd = "DROP DATABASE IF EXISTS [$database]"
-            & sqlcmd -Q $sqlcmd
+            Invoke-Sqlcmd -Query $sqlcmd -ServerInstance "$DatabaseServer\$DatabaseInstance"
 
             $dbPath = (Join-Path $volPath $database)
             $files = Get-ChildItem $dbPath -File
             $joinedFiles = $files.Name -join "'), (FILENAME = '$dbPath\"
             $sqlcmd = "CREATE DATABASE [$database] ON (FILENAME = '$dbPath\$joinedFiles') FOR ATTACH;"
-            & sqlcmd -Q $sqlcmd
+            Invoke-Sqlcmd -Query $sqlcmd -ServerInstance "$DatabaseServer\$DatabaseInstance"
         }
 
         $appDatabaseName = Get-AppDatabaseName
