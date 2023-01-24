@@ -178,6 +178,7 @@ function Invoke-DownloadArtifact {
                         #"app"     { $folder = "c:/apps" }
                         "font"    { $folder = "c:/fonts" }
                         "fonts"   { $folder = "c:/fonts" }
+                        "demodata" { $folder = "c:/demodata" }
                     }
 
                     if ($isArchive) {

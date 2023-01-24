@@ -4,6 +4,12 @@ $downloadCustomScriptsScript = "C:\run\my\CC-DownloadCustomScripts.ps1"
 if (Test-Path "C:\CosmoSetupCompleted.txt")
 {
    Remove-Item -path "C:\CosmoSetupCompleted.txt" -force | Out-Null
+   Write-Host "Remove marker for health check"
+}
+
+if ($env:mode -eq "4ps") {
+  Write-Host "4PS mode, set time zone"
+  tzutil /s "W. Europe Standard Time"
 }
 
 $volPath = "$env:volPath"

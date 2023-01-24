@@ -1,6 +1,7 @@
 $scripts = @(
                         (Join-Path $PSScriptRoot "navstartCustomScripts.ps1"),
                         (Join-Path $PSScriptRoot "winrm.ps1")
+                        (Join-Path $PSScriptRoot "timezone.ps1")
                    )
 
 Write-Host "Start "
