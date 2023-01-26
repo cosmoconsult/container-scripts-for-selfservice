@@ -119,10 +119,19 @@ finally {
     Add-ArtifactsLog -message "Donwload Artifacts done."
 }
 
-# If SaaS backup for 4PS (modified base app), we need to remove all apps but the System App first
+# If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
 if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
-    Unpublish-AllNavAppsInServerInstance -ExcludeSystemApp
+    Unpublish-AllNavAppsInServerInstance
+    $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
+    Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Sync the system application"
+    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Write-Host "  Start data upgrade for the system application"
+    Start-NAVAppDataUpgrade -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Write-Host "  Install the dsystem application"
+    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
 }
 
 # Import Artifacts
