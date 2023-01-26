@@ -74,7 +74,7 @@ function Import-Artifacts {
         }
         if ($Path.StartsWith("C:\run\my\manuallysorted-apps")) {
             Write-Host "Working on manually sorted apps"
-            $items = Get-ChildItem -LiteralPath "$Path" -recurse
+            $items = Get-ChildItem -LiteralPath "$Path" -recurse -filter "*.app"
         } else {
             if (Test-Path -LiteralPath "$Path") {
                 $params.Add("Path", "$Path")
