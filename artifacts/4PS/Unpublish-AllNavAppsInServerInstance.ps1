@@ -9,6 +9,8 @@
     The Nav/Bc Server Instance where apps must be unpublished, eg. 'ProdBc16'
     .PARAMETER Tenant
     The Tenant of the Server Instance where dataupgrade must be checked, eg. 'default'
+    .PARAMETER ExcludeSystemApp
+    If true, don't unpublish the system application
 #>
 
 function Unpublish-AllNavAppsInServerInstance {
@@ -16,7 +18,8 @@ function Unpublish-AllNavAppsInServerInstance {
     PARAM
     (
         [string]$ServerInstance,
-        [string]$Tenant
+        [string]$Tenant,
+        [switch]$ExcludeSystemApp = $false
     )
     PROCESS
     {
@@ -40,9 +43,13 @@ function Unpublish-AllNavAppsInServerInstance {
             $ExistingApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant 
         
             foreach ($ExistingApp in $ExistingApps) {  
-                unpublish-navapp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance -ErrorAction SilentlyContinue
-                if (!(get-navappinfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance)) {
-                    "App {0} with version {1} unpublished..." -f $ExistingApp.name, $ExistingApp.Version
+                if ("System Application" -eq $ExistingApp.name -and $ExcludeSystemApp) {
+                    Write-Host "Skipping the System Application"
+                } else {
+                    unpublish-navapp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance -ErrorAction SilentlyContinue
+                    if (!(get-navappinfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance)) {
+                        "App {0} with version {1} unpublished..." -f $ExistingApp.name, $ExistingApp.Version
+                    }
                 }
             }
         
