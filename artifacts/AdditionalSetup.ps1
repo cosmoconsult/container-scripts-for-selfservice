@@ -119,6 +119,11 @@ finally {
     Add-ArtifactsLog -message "Donwload Artifacts done."
 }
 
+# If SaaS backup for 4PS (modified base app), we need to remove the base app first
+if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
+    Uninstall-NAVApp -ServerInstance BC -Name "Base Application" -Publisher "Microsoft" -Force
+}
+
 # Import Artifacts
 try {
     $SyncMode = $env:IMPORT_SYNC_MODE
@@ -223,7 +228,7 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
 if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saasbakfile))
 {
     Write-Host "HANDLING SaaS BAKFILE"
-
+    
     $bak = $env:saasbakfile
     $tenantId = "saas"
     
