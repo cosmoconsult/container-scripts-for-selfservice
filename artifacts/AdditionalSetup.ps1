@@ -72,7 +72,8 @@ if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
 Write-Host ""
 Write-Host "=== Additional Setup ==="
 
-if ($env:IsBuildContainer) {
+$ppiau = Get-Module -Name PPIArtifactUtils
+if (-not $ppiau) {
     if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
         Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
         Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
