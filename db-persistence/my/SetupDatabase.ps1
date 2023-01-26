@@ -111,11 +111,13 @@ if ($restartingInstance) {
         $sysAppVersionDB = [Version]::new()
         $canParseVersionDB = [Version]::TryParse("$($sysAppInfoDB.'Version Major').$($sysAppInfoDB.'Version Minor').$($sysAppInfoDB.'Version Build').$($sysAppInfoDB.'Version Revision')", [ref]$sysAppVersionDB)
         if (-not $canParseVersionDB) {
-            Write-Host "  Unable to parse the version in the database, doing nothing and hoping for the best..."
+            Write-Host "  Unable to parse the version in the database, trying to convert and hoping for the best..."
             Write-Host "  Found in FS:"
             $sysAppInfoFS
             Write-Host "  Found in DB:"
             $sysAppInfoDB
+            Invoke-NAVApplicationDatabaseConversion -databaseServer "localhost" -DatabaseName "$databaseName" -Force
+            $env:cosmoUpgradeSysApp = $true
         } else {
             Write-Host "  Found version $sysAppVersionFS for the container and $sysAppVersionDB for the database"
             if ($sysAppVersionDB -gt $sysAppVersionFS) {
