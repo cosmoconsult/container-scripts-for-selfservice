@@ -128,8 +128,6 @@ if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Sync the system application"
     Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
-    Write-Host "  Start data upgrade for the system application"
-    Start-NAVAppDataUpgrade -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
     Write-Host "  Install the dsystem application"
     Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
 }
