@@ -121,6 +121,7 @@ finally {
 
 # If SaaS backup for 4PS (modified base app), we need to remove the base app first
 if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
+    Write-Host "Identified SaaS Backup and 4PS mode, removing the base application"
     Uninstall-NAVApp -ServerInstance BC -Name "Base Application" -Publisher "Microsoft" -Force
 }
 
