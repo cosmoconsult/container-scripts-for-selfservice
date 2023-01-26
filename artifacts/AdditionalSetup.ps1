@@ -99,6 +99,7 @@ if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)
 
 
 $targetDir = "C:\run\my\apps"
+$targetDirManuallySorted = "C:\run\my\manuallysorted-apps"
 $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
 $properties = @{}
 
@@ -107,7 +108,8 @@ Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryCli
 try {
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.target -ne "bak" } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and -not $_.name.StartsWith("sortorder")  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
     $properties["artifats"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
@@ -138,6 +140,16 @@ try {
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
+
+    Import-Artifacts `
+        -Path            $targetDirManuallySorted `
+        -NavServiceName  $NavServiceName `
+        -ServerInstance  $ServerInstance `
+        -Tenant          $TenantId `
+        -SyncMode        $SyncMode `
+        -Scope           $Scope `
+        -telemetryClient $telemetryClient `
+        -ErrorAction     SilentlyContinue 
 
     Import-Artifacts `
         -Path            $targetDir `

@@ -72,9 +72,15 @@ function Import-Artifacts {
             Write-Host ("Found App expression override {0}" -f $env:AppExcludeExpr)
             $params.Add("ExcludeExpr", $env:AppExcludeExpr)   
         }
-        if (Test-Path -LiteralPath "$Path") {
-            $params.Add("Path", "$Path")
-            $items = @() + (Get-AppFilesSortedByDependencies @params -ErrorAction SilentlyContinue)
+        if ($Path.StartsWith("C:\run\my\manuallysorted-apps")) {
+            Write-Host "Working on manually sorted apps"
+            $items = Get-ChildItem -LiteralPath "$Path" -recurse
+        } else {
+            if (Test-Path -LiteralPath "$Path") {
+                $params.Add("Path", "$Path")
+                Write-Host "Working on apps sorted by dependency"
+                $items = @() + (Get-AppFilesSortedByDependencies @params -ErrorAction SilentlyContinue)
+            }
         }
         if ($items) {
             try {
@@ -82,7 +88,7 @@ function Import-Artifacts {
                 Write-Host "Import $($items.Length) Apps..."
                 
                 Add-ArtifactsLog -message "Install Apps:$([System.Environment]::NewLine)$($items | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)" -data $app
-                
+
                 # Import all Apps
                 foreach ($item in $items) {
                     # Try to Find the App-Specific Import Scope stored during download in "artifact.json" (Global setup is used, when no app specific information are present in the parent folders)
