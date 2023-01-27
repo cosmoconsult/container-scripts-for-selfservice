@@ -125,10 +125,6 @@ finally {
 if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
     Unpublish-AllNavAppsInServerInstance
-    Write-Host "Change collation"
-    Stop-NAVServerInstance -ServerInstance $ServerInstance
-    Invoke-SqlCmd -Query "ALTER DATABASE CRONUS SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE CRONUS COLLATE Latin1_General_100_CI_AS ; ALTER DATABASE CRONUS SET MULTI_USER"
-    Start-NAVServerInstance -ServerInstance $ServerInstance
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
@@ -344,6 +340,23 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     if (![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)) {
         Write-Host "Set application version to $($env:cosmoBaseAppVersion) as this is a modified base app"
         Set-NAVApplication -ApplicationVersion "$($env:cosmoBaseAppVersion)" -ServerInstance BC -Force -ErrorAction Stop
+
+        $collation = "Latin1_General_100_CI_AS"
+        Write-Host "Change collation to $collation"
+        $navDataFilePath = (Join-Path $volPath "export.navdata")
+        Write-Host "Export NAVData"
+        Export-NAVData -ServerInstance BC -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
+        Write-Host "Create new app database"
+        New-NAVApplicationDatabase -Collation $collation -DatabaseLocation $volPath -DatabaseName "CronusNew" -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance 
+        Write-Host "Import NAVData"
+        Import-NAVData -DatabaseServer $DatabaseServer -DatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
+        Write-Host "Stop server instance"
+        Stop-NAVServerInstance BC
+        Write-Host "Replace CRONUS database"
+        Invoke-SqlCmd -Query "alter database [CRONUS] set single_user with rollback immediate; DROP DATABASE [CRONUS]"
+        Invoke-SqlCmd -Query "ALTER DATABASE CronusNew SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE CronusNew MODIFY NAME = [CRONUS]; ALTER DATABASE [CRONUS] SET MULTI_USER"
+        Write-Host "Start server instance"
+        Start-NAVServerInstance BC
     }
 
     Write-Host " - Mounting SaaS tenant"
