@@ -72,19 +72,11 @@ function Import-Artifacts {
             Write-Host ("Found App expression override {0}" -f $env:AppExcludeExpr)
             $params.Add("ExcludeExpr", $env:AppExcludeExpr)   
         }
-        <#if ($Path.StartsWith("C:\run\my\manuallysorted-apps")) {
-            Write-Host "Working on manually sorted apps"
-            $items = Get-ChildItem -LiteralPath "$Path" -recurse -filter "*.app"
-            foreach ($item in $items) {
-                $item.Path = $item.FullName
-            }
-        } else {#>
-            if (Test-Path -LiteralPath "$Path") {
-                $params.Add("Path", "$Path")
-                Write-Host "Working on apps sorted by dependency"
-                $items = @() + (Get-AppFilesSortedByDependencies @params -ErrorAction SilentlyContinue)
-            }
-        #}
+        if (Test-Path -LiteralPath "$Path") {
+            $params.Add("Path", "$Path")
+            Write-Host "Working on apps sorted by dependency"
+            $items = @() + (Get-AppFilesSortedByDependencies @params -ErrorAction SilentlyContinue)
+        }
         if ($items) {
             try {
                 $started   = Get-Date -Format "o"
