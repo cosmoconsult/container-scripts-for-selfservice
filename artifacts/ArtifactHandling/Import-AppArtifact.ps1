@@ -123,7 +123,7 @@ function Import-AppArtifact {
             }
 
             # Sync NAVApp
-            if ($success) {
+            if ($success -and $env:cosmoHasTenant) {
                 $skipInstall = ! $success
                 try {
                     $started2 = Get-Date -Format "o"
@@ -144,7 +144,7 @@ function Import-AppArtifact {
             }
 
             # Check for Data Upgrade
-            if ((! $skipInstall) -and ($runDataUpgrade)) {
+            if ((! $skipInstall) -and ($runDataUpgrade) -and ($env:cosmoHasTenant)) {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
@@ -168,7 +168,7 @@ function Import-AppArtifact {
             }
 
             # Install NAVApp
-            if (! $skipInstall) {
+            if (! $skipInstall -and $env:cosmoHasTenant) {
                 try {
                     $started3 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Install App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
@@ -193,24 +193,26 @@ function Import-AppArtifact {
             }
 
             # Check Result
-            $result = Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue
-            if ($result) { 
-                Add-ArtifactsLog -kind App -message "$(($result | Select-Object Name, Publisher, Version, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion | Format-Table -AutoSize | Out-String -Width 1024).Trim())"
-                $result = $result | Select-Object -First 1
-                Add-ArtifactsLog -kind App -message "App Status $($app.Name) $($app.Publisher) $($app.Version) ... Published: $($result.IsPublished) Installed: $($result.IsInstalled) SyncState: $($result.SyncState) " -data $result
-            } else {
-                Add-ArtifactsLog -kind App -message "Import App $($app.Name) $($app.Publisher) $($app.Version) failed" -data $app -severity Error -success fail
-            }
+            if ($env:cosmoHasTenant) {
+                $result = Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue
+                if ($result) { 
+                    Add-ArtifactsLog -kind App -message "$(($result | Select-Object Name, Publisher, Version, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion | Format-Table -AutoSize | Out-String -Width 1024).Trim())"
+                    $result = $result | Select-Object -First 1
+                    Add-ArtifactsLog -kind App -message "App Status $($app.Name) $($app.Publisher) $($app.Version) ... Published: $($result.IsPublished) Installed: $($result.IsInstalled) SyncState: $($result.SyncState) " -data $result
+                } else {
+                    Add-ArtifactsLog -kind App -message "Import App $($app.Name) $($app.Publisher) $($app.Version) failed" -data $app -severity Error -success fail
+                }
 
-            if ($result) {
-                $properties["IsPublished"]          = $result.IsPublished
-                $properties["IsInstalled"]          = $result.IsInstalled
-                $properties["SyncState"]            = $result.SyncState
-                $properties["NeedsUpgrade"]         = $result.NeedsUpgrade
-                $properties["ExtensionDataVersion"] = $result.ExtensionDataVersion
+                if ($result) {
+                    $properties["IsPublished"]          = $result.IsPublished
+                    $properties["IsInstalled"]          = $result.IsInstalled
+                    $properties["SyncState"]            = $result.SyncState
+                    $properties["NeedsUpgrade"]         = $result.NeedsUpgrade
+                    $properties["ExtensionDataVersion"] = $result.ExtensionDataVersion
+                }
+                Add-ArtifactsLog -message " "
+                Invoke-LogOperation -name "Import App Artifact" -started $started -properties $properties -telemetryClient $telemetryClient
             }
-            Add-ArtifactsLog -message " "
-            Invoke-LogOperation -name "Import App Artifact" -started $started -properties $properties -telemetryClient $telemetryClient
         }
         catch {
             Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import App Artifact"
