@@ -29,7 +29,7 @@ if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
     Write-Host "=== Additional Setup Freddy ==="
     
     if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
-        Invoke-Sqlcmd -ServerInstance 'localhost\SQLEXPRESS' -Database $DatabaseName -Query "update [dbo].[Object] SET [Modified] = 0" | Out-Null
+        & sqlcmd -S 'localhost\SQLEXPRESS' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
     }
 
     if (!(Test-Path "c:\navpfiles\*")) {
@@ -262,11 +262,11 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         $smo.Databases | Where-Object { $_.Name -eq $tenantId } | ForEach-Object {
             # set recovery mode and shrink log
             $sqlcmd = "ALTER DATABASE [$($_.Name)] SET RECOVERY SIMPLE WITH NO_WAIT"
-            Invoke-Sqlcmd -Query $sqlcmd -ServerInstance "$DatabaseServer\$DatabaseInstance"
+            & sqlcmd -Q $sqlcmd -S "$DatabaseServer\$DatabaseInstance"
             $shrinkCmd = "USE [$($_.Name)]; "
             $_.LogFiles | ForEach-Object {
                 $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
-                Invoke-Sqlcmd -Query $shrinkCmd -ServerInstance "$DatabaseServer\$DatabaseInstance"
+                & sqlcmd -Q $shrinkCmd -S "$DatabaseServer\$DatabaseInstance"
             }
 
             Write-Host " - - Moving $($_.Name)"
