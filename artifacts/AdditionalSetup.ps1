@@ -121,10 +121,18 @@ finally {
     Add-ArtifactsLog -message "Donwload Artifacts done."
 }
 
+# If SaaS backup, we will mount another tenant later anyway
+if (![string]::IsNullOrEmpty($env:saasbakfile) {
+    Dismount-NAVTenant -ServerInstance $ServerInstance -Tenant "default" -Force
+    Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]"
+}
+
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
 if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
     Unpublish-AllNavAppsInServerInstance
+    Write-Host "Change collation"
+    Invoke-SqlCmd -Query "ALTER DATABASE CRONUS COLLATE Latin1_General_100_CI_AS ;"
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
@@ -275,8 +283,6 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     }
 
     Write-Host " - Replacing default tenant database with new SaaS database"
-    Dismount-NAVTenant -ServerInstance $ServerInstance -Tenant "default" -Force
-    Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]"
     Invoke-SqlCmd -Query "ALTER DATABASE $tenantId SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE $tenantId MODIFY NAME = [default]; ALTER DATABASE [default] SET MULTI_USER"
     $tenantId = "default"
 
