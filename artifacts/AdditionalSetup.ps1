@@ -337,7 +337,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     }
 
     # special handling for modified base app
-    if (!string.IsNullOrEmpty($env:cosmoBaseAppVersion)) {
+    if (![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)) {
         Write-Host "Set application version to $($app.Version) as this is a modified base app"
         Set-NAVApplication -ApplicationVersion "$($app.Version)" -ServerInstance BC -Force -ErrorAction Stop
         Write-Host "Sync tenant"
