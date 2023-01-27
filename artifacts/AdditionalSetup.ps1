@@ -345,7 +345,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host "Change collation to $collation"
         $navDataFilePath = (Join-Path $volPath "export.navdata")
         Write-Host "Export NAVData"
-        Export-NAVData -ServerInstance BC -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
+        Export-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
         Write-Host "Create new app database"
         New-NAVApplicationDatabase -Collation $collation -DatabaseLocation $volPath -DatabaseName "CronusNew" -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance 
         Write-Host "Import NAVData"
