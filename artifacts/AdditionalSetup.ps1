@@ -340,8 +340,6 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     if (![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)) {
         Write-Host "Set application version to $($env:cosmoBaseAppVersion) as this is a modified base app"
         Set-NAVApplication -ApplicationVersion "$($env:cosmoBaseAppVersion)" -ServerInstance BC -Force -ErrorAction Stop
-        Write-Host "Sync tenant"
-        Sync-NAVTenant -ServerInstance BC -Mode Sync -Force
         Write-Host "Start data upgrade"
         Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force
         Write-Host "Wait for data upgrade to finish"
