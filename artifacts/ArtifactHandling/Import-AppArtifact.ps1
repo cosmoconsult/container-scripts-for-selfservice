@@ -123,7 +123,7 @@ function Import-AppArtifact {
             }
 
             # Sync NAVApp
-            if ($success -and $env:cosmoHasTenant) {
+            if ($success -and ($env:cosmoHasTenant -eq "true")) {
                 $skipInstall = ! $success
                 try {
                     $started2 = Get-Date -Format "o"
@@ -144,7 +144,7 @@ function Import-AppArtifact {
             }
 
             # Check for Data Upgrade
-            if ((! $skipInstall) -and ($runDataUpgrade) -and ($env:cosmoHasTenant)) {
+            if ((! $skipInstall) -and ($runDataUpgrade) -and ($env:cosmoHasTenant -eq "true")) {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
@@ -168,7 +168,7 @@ function Import-AppArtifact {
             }
 
             # Install NAVApp
-            if (! $skipInstall -and $env:cosmoHasTenant) {
+            if (! $skipInstall -and $env:cosmoHasTenant -eq "true") {
                 try {
                     $started3 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Install App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
@@ -193,7 +193,7 @@ function Import-AppArtifact {
             }
 
             # Check Result
-            if ($env:cosmoHasTenant) {
+            if ($env:cosmoHasTenant -eq "true") {
                 $result = Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue
                 if ($result) { 
                     Add-ArtifactsLog -kind App -message "$(($result | Select-Object Name, Publisher, Version, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion | Format-Table -AutoSize | Out-String -Width 1024).Trim())"

@@ -122,11 +122,11 @@ finally {
 }
 
 # If SaaS backup, we will mount another tenant later anyway, so we can remove the old one and don't have to sync
-$env:cosmoHasTenant = $true
+$env:cosmoHasTenant = "true"
 if (![string]::IsNullOrEmpty($env:saasbakfile)) {
     Dismount-NAVTenant -ServerInstance $ServerInstance -Tenant "default" -Force
     Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]"
-    $env:cosmoHasTenant = $false
+    $env:cosmoHasTenant = "false"
 }
 
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
@@ -140,7 +140,7 @@ if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-    if ($env:cosmoHasTenant) {
+    if ($env:cosmoHasTenant -eq "true") {
         Write-Host "  Sync the system application"
         Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
         Write-Host "  Install the system application"
@@ -365,7 +365,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -OverwriteTenantIdInDatabase `
         -Force
 
-    $env:cosmoHasTenant = $true
+    $env:cosmoHasTenant = "true"
         
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
