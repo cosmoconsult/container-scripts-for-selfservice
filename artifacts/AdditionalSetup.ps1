@@ -347,7 +347,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host "Export NAVData"
         Export-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
         Write-Host "Create new app database"
-        New-NAVApplicationDatabase -Collation $collation -DatabaseLocation $volPath -DatabaseName "CronusNew" -DatabaseServer $DatabaseServer -DatabaseInstance $DatabaseInstance 
+        New-NAVApplicationDatabase -Collation $collation -DatabaseLocation $volPath -DatabaseName "CronusNew" -DatabaseServer $DatabaseServer
         Write-Host "Import NAVData"
         Import-NAVData -DatabaseServer $DatabaseServer -DatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
         Write-Host "Stop server instance"
