@@ -190,9 +190,12 @@ function Import-AppArtifact {
             if ($IsModifiedBaseApp) {
                 Write-Host "Set application version to $($app.Version) as this is a modified base app"
                 Set-NAVApplication -ApplicationVersion "$($app.Version)" -ServerInstance BC -Force -ErrorAction Stop
-                Sync-NAVTenant -ServerInstance BC -Mode Sync -Force -ErrorAction Stop
-                Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop 
-                Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop 
+                Write-Host "Sync tenant"
+                Sync-NAVTenant -ServerInstance BC -Mode Sync -Force
+                Write-Host "Start data upgrade"
+                Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force
+                Write-Host "Wait for data upgrade to finish"
+                Wait-DataUpgradeToFinish -ServerInstance BC 
 
                 Write-Host    "Check data upgrade is executed"
                 Set-NavServerInstance -ServerInstance BC -Restart
