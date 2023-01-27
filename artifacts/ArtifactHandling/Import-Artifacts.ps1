@@ -94,8 +94,10 @@ function Import-Artifacts {
                             $importScope = $artifactJson.appImportScope
                         }
                     }
+
+                    $IsModifiedBaseApp = $item.Path.IndexOf("sortorder01") -gt -1
                         
-                    @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $SyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                    @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $SyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue -IsModifiedBaseApp:$IsModifiedBaseApp
                 }                
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
