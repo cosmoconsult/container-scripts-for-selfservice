@@ -122,7 +122,7 @@ finally {
 }
 
 # If SaaS backup, we will mount another tenant later anyway
-if (![string]::IsNullOrEmpty($env:saasbakfile) {
+if (![string]::IsNullOrEmpty($env:saasbakfile)) {
     Dismount-NAVTenant -ServerInstance $ServerInstance -Tenant "default" -Force
     Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]"
 }
