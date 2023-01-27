@@ -132,7 +132,9 @@ if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
     Unpublish-AllNavAppsInServerInstance
     Write-Host "Change collation"
-    Invoke-SqlCmd -Query "ALTER DATABASE CRONUS COLLATE Latin1_General_100_CI_AS ;"
+    Stop-NAVServerInstance -ServerInstance $ServerInstance
+    Invoke-SqlCmd -Query "ALTER DATABASE CRONUS SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE CRONUS COLLATE Latin1_General_100_CI_AS ; ALTER DATABASE CRONUS SET MULTI_USER"
+    Start-NAVServerInstance -ServerInstance $ServerInstance
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
