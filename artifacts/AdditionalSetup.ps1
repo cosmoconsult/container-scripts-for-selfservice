@@ -336,6 +336,22 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         $smo.ConnectionContext.Disconnect()
     }
 
+    # special handling for modified base app
+    if (!string.IsNullOrEmpty($env:cosmoBaseAppVersion)) {
+        Write-Host "Set application version to $($app.Version) as this is a modified base app"
+        Set-NAVApplication -ApplicationVersion "$($app.Version)" -ServerInstance BC -Force -ErrorAction Stop
+        Write-Host "Sync tenant"
+        Sync-NAVTenant -ServerInstance BC -Mode Sync -Force
+        Write-Host "Start data upgrade"
+        Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force
+        Write-Host "Wait for data upgrade to finish"
+        Wait-DataUpgradeToFinish -ServerInstance BC 
+
+        Write-Host    "Check data upgrade is executed"
+        Set-NavServerInstance -ServerInstance BC -Restart
+        Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($app.Version)"
+    }
+
     Write-Host " - Mounting SaaS tenant"
     Mount-NavTenant `
         -ServerInstance $ServerInstance `

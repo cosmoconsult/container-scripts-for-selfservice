@@ -188,18 +188,8 @@ function Import-AppArtifact {
 
             # Special handling for modified base app
             if ($IsModifiedBaseApp) {
-                Write-Host "Set application version to $($app.Version) as this is a modified base app"
-                Set-NAVApplication -ApplicationVersion "$($app.Version)" -ServerInstance BC -Force -ErrorAction Stop
-                Write-Host "Sync tenant"
-                Sync-NAVTenant -ServerInstance BC -Mode Sync -Force
-                Write-Host "Start data upgrade"
-                Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force
-                Write-Host "Wait for data upgrade to finish"
-                Wait-DataUpgradeToFinish -ServerInstance BC 
-
-                Write-Host    "Check data upgrade is executed"
-                Set-NavServerInstance -ServerInstance BC -Restart
-                Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($app.Version)"
+                # remember base app version
+                $env:cosmoBaseAppVersion = $app.Version
             }
 
             # Check Result
