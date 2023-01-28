@@ -83,7 +83,7 @@ function Import-Artifacts {
                 Write-Host "Import $($items.Length) Apps..."
                 
                 Add-ArtifactsLog -message "Install Apps:$([System.Environment]::NewLine)$($items | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)" -data $app
-
+                
                 # Import all Apps
                 foreach ($item in $items) {
                     # Try to Find the App-Specific Import Scope stored during download in "artifact.json" (Global setup is used, when no app specific information are present in the parent folders)
