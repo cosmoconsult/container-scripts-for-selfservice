@@ -409,6 +409,11 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Create user in new tenant (if not exists)"
     if(!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object Username -eq $env:username)) {
+        Write-Host " - Deactivate all users to ensure license compliance"
+        Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | % {
+            Write-Host " - Disable $($_.UserName)"
+            Set-NAVServerUser -UserName $_.UserName -State Disabled -ServerInstance $ServerInstance -Tenant $tenantId
+        }
         New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER
     }
