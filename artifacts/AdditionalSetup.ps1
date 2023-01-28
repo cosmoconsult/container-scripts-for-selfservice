@@ -408,14 +408,15 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Tenant $tenantId `
         -Progress
 
+    Write-Host " - Deactivate all users to ensure license compliance"
+    Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() } | % {
+        Write-Host " - Disable $($_.UserName)"
+        Set-NAVServerUser -UserName $_.UserName -State Disabled -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue
+    }
+
     Write-Host " - Create user in new tenant (if not exists)"
-    if(!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object Username -eq $env:username)) {
-        Write-Host " - Deactivate all users to ensure license compliance"
-        Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | % {
-            Write-Host " - Disable $($_.UserName)"
-            Set-NAVServerUser -UserName $_.UserName -State Disabled -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue
-        }
-        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
+    if(!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() })) {
+        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -AuthenticationEMail $env:username -ErrorAction Continue
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
     }
 
