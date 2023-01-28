@@ -380,7 +380,6 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -EnvironmentType Sandbox `
         -OverwriteTenantIdInDatabase `
         -Force
-
         
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
