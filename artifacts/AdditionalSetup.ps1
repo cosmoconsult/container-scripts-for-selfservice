@@ -1,3 +1,65 @@
+function Move-Database {
+    param (
+        $databaseToMove
+    )
+
+    Write-Host " - Moving SaaS database to volume"
+    if ($env:volPath -ne "") {
+        $volPath = $env:volPath
+        [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+        [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Common") | Out-Null
+        $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
+        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
+        $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
+        $smo.Databases | Where-Object { $_.Name -eq $databaseToMove } | ForEach-Object {
+            # set recovery mode and shrink log
+            $sqlcmd = "ALTER DATABASE [$($_.Name)] SET RECOVERY SIMPLE WITH NO_WAIT"
+            & sqlcmd -Q $sqlcmd
+            $shrinkCmd = "USE [$($_.Name)]; "
+            $_.LogFiles | ForEach-Object {
+                $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
+                & sqlcmd -Q $shrinkCmd
+            }
+
+            Write-Host " - - Moving $($_.Name)"
+            $toCopy = @()
+            $dbPath = Join-Path -Path $volPath -ChildPath $_.Name
+            New-Item $dbPath -Type Directory -Force | Out-Null
+            $_.FileGroups | ForEach-Object {
+                $_.Files | ForEach-Object {
+                    $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
+                    $toCopy += ,@($_.FileName, $destination)
+                    $_.FileName = $destination
+                } 
+            }
+            $_.LogFiles | ForEach-Object {
+                $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
+                $toCopy += ,@($_.FileName, $destination)
+                $_.FileName = $destination
+            }
+
+            $_.Alter()
+            try {
+                $db = $_
+                $_.SetOffline()
+            } catch {
+                $db.Refresh()
+                if ($db.Status -ne "Offline") {
+                    Write-Warning "Database $($db.Name) is not offline!"
+                }
+            }
+
+            $toCopy | ForEach-Object {
+                Move-Item -Path $_[0] -Destination $_[1]
+            }
+            
+            $_.SetOnline()
+        }
+        $smo.ConnectionContext.Disconnect()
+    }
+
+}
+
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
     $sysAppInstallInfo = Get-NAVAppInfo -ServerInstance BC -Name "System Application" -Publisher "Microsoft"
@@ -281,60 +343,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     $tenantId = "default"
 
     # move database to volume
-    Write-Host " - Moving SaaS database to volume"
-    if ($env:volPath -ne "") {
-        $volPath = $env:volPath
-        [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
-        [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Common") | Out-Null
-        $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
-        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
-        $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
-        $smo.Databases | Where-Object { $_.Name -eq $tenantId } | ForEach-Object {
-            # set recovery mode and shrink log
-            $sqlcmd = "ALTER DATABASE [$($_.Name)] SET RECOVERY SIMPLE WITH NO_WAIT"
-            & sqlcmd -Q $sqlcmd
-            $shrinkCmd = "USE [$($_.Name)]; "
-            $_.LogFiles | ForEach-Object {
-                $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
-                & sqlcmd -Q $shrinkCmd
-            }
-
-            Write-Host " - - Moving $($_.Name)"
-            $toCopy = @()
-            $dbPath = Join-Path -Path $volPath -ChildPath $_.Name
-            New-Item $dbPath -Type Directory -Force | Out-Null
-            $_.FileGroups | ForEach-Object {
-                $_.Files | ForEach-Object {
-                    $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
-                    $toCopy += ,@($_.FileName, $destination)
-                    $_.FileName = $destination
-                } 
-            }
-            $_.LogFiles | ForEach-Object {
-                $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
-                $toCopy += ,@($_.FileName, $destination)
-                $_.FileName = $destination
-            }
-
-            $_.Alter()
-            try {
-                $db = $_
-                $_.SetOffline()
-            } catch {
-                $db.Refresh()
-                if ($db.Status -ne "Offline") {
-                    Write-Warning "Database $($db.Name) is not offline!"
-                }
-            }
-
-            $toCopy | ForEach-Object {
-                Move-Item -Path $_[0] -Destination $_[1]
-            }
-            
-            $_.SetOnline()
-        }
-        $smo.ConnectionContext.Disconnect()
-    }
+    Move-Database -databaseToMove $tenantId
 
     # special handling for modified base app
     if (![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)) {
@@ -346,10 +355,11 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         $navDataFilePath = (Join-Path $volPath "export.navdata")
         Write-Host "Export NAVData"
         Export-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
-        Write-Host "Create new app database with collation $collation at $volPath with server $DatabaseServer"
-        New-NAVApplicationDatabase -Collation $collation -DatabaseLocation $volPath -DatabaseName "CronusNew" -DatabaseServer $DatabaseServer
+        Write-Host "Create new database with collation $collation"
+        Invoke-SqlCmd -Query "CREATE DATABASE [CronusNew] COLLATE $collation"
+        Move-Database -databaseToMove "CronusNew"
         Write-Host "Import NAVData"
-        Import-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
+        Import-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath -Force
         Write-Host "Stop server instance"
         Stop-NAVServerInstance BC
         Write-Host "Replace CRONUS database"
