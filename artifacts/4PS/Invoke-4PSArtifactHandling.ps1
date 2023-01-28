@@ -191,7 +191,7 @@ function Invoke-4PSArtifactHandling {
                 if ((Get-NAVServerUser -ServerInstance BC @tenantParam -ErrorAction Ignore | Where-Object { $_.UserName -eq $username })) {
                     # found existing user with given name
                     # in 4PS mode, we assume .bak with modified base app, so we push the password again as the standard user setup script would ignore this
-                    Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword -AuthenticationEMail $authenticationEMail
+                    Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword -AuthenticationEMail $username
                 }
 
                 Write-Host "  Add Control Add-Ins"
