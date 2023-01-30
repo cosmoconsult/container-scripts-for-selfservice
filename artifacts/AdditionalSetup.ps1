@@ -14,11 +14,11 @@ function Move-Database {
         $smo.Databases | Where-Object { $_.Name -eq $databaseToMove } | ForEach-Object {
             # set recovery mode and shrink log
             $sqlcmd = "ALTER DATABASE [$($_.Name)] SET RECOVERY SIMPLE WITH NO_WAIT"
-            & sqlcmd -Q $sqlcmd
+            & sqlcmd -S 'localhost\SQLEXPRESS' -Q $sqlcmd
             $shrinkCmd = "USE [$($_.Name)]; "
             $_.LogFiles | ForEach-Object {
                 $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
-                & sqlcmd -Q $shrinkCmd
+                & sqlcmd -S 'localhost\SQLEXPRESS' -Q $shrinkCmd
             }
 
             Write-Host " - - Moving $($_.Name)"
