@@ -99,13 +99,16 @@ function Invoke-4PSArtifactHandling {
                                 Write-Host "    Skip import setup data from XML file as this seems to be a build container"
                             }                
                                 
-                            Write-Host "    Run manual data upgrade 4PS"
-                            Invoke-NavCodeunit `
-                                -ServerInstance BC `
-                                -CompanyName $companyName `
-                                -CodeunitId 50189 `
-                                -MethodName RunManualDataUpgrade `
-                                -Argument "$firstRun"
+                            if ($sysAppInfoFS.Version.Major -le 20) {
+                                # Only required on 20 and older
+                                Write-Host "    Run manual data upgrade 4PS"
+                                Invoke-NavCodeunit `
+                                    -ServerInstance BC `
+                                    -CompanyName $companyName `
+                                    -CodeunitId 50189 `
+                                    -MethodName RunManualDataUpgrade `
+                                    -Argument "$firstRun"
+                            }   
                                 
                             if ($env:IsBuildContainer -ne "true") {
                                 Write-Host "    Initialize FSA setup"
