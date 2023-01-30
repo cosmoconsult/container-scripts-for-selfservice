@@ -4,6 +4,7 @@ function Import-AppArtifact {
         [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
         [Alias("FullName")]    
         [string]$Path,
+        [switch]$IsModifiedBaseApp,
         [Parameter(Mandatory=$false)]
         [string]$ServerInstance = "NAV",
         [Parameter(Mandatory=$false)]
@@ -184,6 +185,13 @@ function Import-AppArtifact {
                     Invoke-LogOperation -name "Install App" -started $started3 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
             }
+
+            # Special handling for modified base app
+            if ($IsModifiedBaseApp) {
+                # remember base app version
+                $env:cosmoBaseAppVersion = $app.Version
+            }
+
             # Check Result
             $result = Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue
             if ($result) { 

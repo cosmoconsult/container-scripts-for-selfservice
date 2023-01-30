@@ -45,7 +45,9 @@ function Invoke-4PSArtifactHandling {
 
                 $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
                 $initializerVersion = ''
-                if ($sysAppInfoFS.Version.Major -ge 21) {
+                if ($sysAppInfoFS.Version.Major -eq 21) {
+                    $initializerVersion = "$($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor).1.0"
+                } elseif ($sysAppInfoFS.Version.Major -gt 21) {
                     $initializerVersion = "$($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor).0.0"
                 } elseif ($sysAppInfoFS.Version.Major -eq 20) {
                     $initializerVersion = '2.0.0.0'
@@ -97,13 +99,16 @@ function Invoke-4PSArtifactHandling {
                                 Write-Host "    Skip import setup data from XML file as this seems to be a build container"
                             }                
                                 
-                            Write-Host "    Run manual data upgrade 4PS"
-                            Invoke-NavCodeunit `
-                                -ServerInstance BC `
-                                -CompanyName $companyName `
-                                -CodeunitId 50189 `
-                                -MethodName RunManualDataUpgrade `
-                                -Argument "$firstRun"
+                            if ($sysAppInfoFS.Version.Major -le 20) {
+                                # Only required on 20 and older
+                                Write-Host "    Run manual data upgrade 4PS"
+                                Invoke-NavCodeunit `
+                                    -ServerInstance BC `
+                                    -CompanyName $companyName `
+                                    -CodeunitId 50189 `
+                                    -MethodName RunManualDataUpgrade `
+                                    -Argument "$firstRun"
+                            }   
                                 
                             if ($env:IsBuildContainer -ne "true") {
                                 Write-Host "    Initialize FSA setup"
@@ -191,7 +196,11 @@ function Invoke-4PSArtifactHandling {
                 if ((Get-NAVServerUser -ServerInstance BC @tenantParam -ErrorAction Ignore | Where-Object { $_.UserName -eq $username })) {
                     # found existing user with given name
                     # in 4PS mode, we assume .bak with modified base app, so we push the password again as the standard user setup script would ignore this
-                    Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword -AuthenticationEMail $authenticationEMail
+                    if ($env:Auth -eq "aad") {
+                        Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword -AuthenticationEMail $authenticationEMail
+                    } else {
+                        Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword 
+                    }
                 }
 
                 Write-Host "  Add Control Add-Ins"

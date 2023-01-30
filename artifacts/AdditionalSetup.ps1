@@ -1,3 +1,65 @@
+function Move-Database {
+    param (
+        $databaseToMove
+    )
+
+    Write-Host " - Moving SaaS database to volume"
+    if ($env:volPath -ne "") {
+        $volPath = $env:volPath
+        [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
+        [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Common") | Out-Null
+        $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
+        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
+        $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
+        $smo.Databases | Where-Object { $_.Name -eq $databaseToMove } | ForEach-Object {
+            # set recovery mode and shrink log
+            $sqlcmd = "ALTER DATABASE [$($_.Name)] SET RECOVERY SIMPLE WITH NO_WAIT"
+            & sqlcmd -S 'localhost\SQLEXPRESS' -Q $sqlcmd
+            $shrinkCmd = "USE [$($_.Name)]; "
+            $_.LogFiles | ForEach-Object {
+                $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
+                & sqlcmd -S 'localhost\SQLEXPRESS' -Q $shrinkCmd
+            }
+
+            Write-Host " - - Moving $($_.Name)"
+            $toCopy = @()
+            $dbPath = Join-Path -Path $volPath -ChildPath $_.Name
+            New-Item $dbPath -Type Directory -Force | Out-Null
+            $_.FileGroups | ForEach-Object {
+                $_.Files | ForEach-Object {
+                    $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
+                    $toCopy += ,@($_.FileName, $destination)
+                    $_.FileName = $destination
+                } 
+            }
+            $_.LogFiles | ForEach-Object {
+                $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
+                $toCopy += ,@($_.FileName, $destination)
+                $_.FileName = $destination
+            }
+
+            $_.Alter()
+            try {
+                $db = $_
+                $_.SetOffline()
+            } catch {
+                $db.Refresh()
+                if ($db.Status -ne "Offline") {
+                    Write-Warning "Database $($db.Name) is not offline!"
+                }
+            }
+
+            $toCopy | ForEach-Object {
+                Move-Item -Path $_[0] -Destination $_[1]
+            }
+            
+            $_.SetOnline()
+        }
+        $smo.ConnectionContext.Disconnect()
+    }
+
+}
+
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
     $sysAppInstallInfo = Get-NAVAppInfo -ServerInstance BC -Name "System Application" -Publisher "Microsoft"
@@ -99,6 +161,7 @@ if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)
 
 
 $targetDir = "C:\run\my\apps"
+$targetDirManuallySorted = "C:\run\my\manuallysorted-apps"
 $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
 $properties = @{}
 
@@ -107,7 +170,8 @@ Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryCli
 try {
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.target -ne "bak" } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
     $properties["artifats"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
@@ -119,12 +183,35 @@ finally {
     Add-ArtifactsLog -message "Donwload Artifacts done."
 }
 
+# If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
+if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
+    Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
+    Unpublish-AllNavAppsInServerInstance
+    $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
+    Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Sync the system application"
+    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Write-Host "  Install the system application"
+    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+}
+
 # Import Artifacts
 try {
     $SyncMode = $env:IMPORT_SYNC_MODE
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
+
+    Import-Artifacts `
+        -Path            $targetDirManuallySorted `
+        -NavServiceName  $NavServiceName `
+        -ServerInstance  $ServerInstance `
+        -Tenant          $TenantId `
+        -SyncMode        $SyncMode `
+        -Scope           $Scope `
+        -telemetryClient $telemetryClient `
+        -ErrorAction     SilentlyContinue 
 
     Import-Artifacts `
         -Path            $targetDir `
@@ -256,59 +343,31 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     $tenantId = "default"
 
     # move database to volume
-    Write-Host " - Moving SaaS database to volume"
-    if ($env:volPath -ne "") {
-        $volPath = $env:volPath
-        [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
-        [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Common") | Out-Null
-        $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
-        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
-        $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
-        $smo.Databases | Where-Object { $_.Name -eq $tenantId } | ForEach-Object {
-            # set recovery mode and shrink log
-            $sqlcmd = "ALTER DATABASE [$($_.Name)] SET RECOVERY SIMPLE WITH NO_WAIT"
-            & sqlcmd -Q $sqlcmd
-            $shrinkCmd = "USE [$($_.Name)]; "
-            $_.LogFiles | ForEach-Object {
-                $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
-                & sqlcmd -Q $shrinkCmd
-            }
+    Move-Database -databaseToMove $tenantId
 
-            Write-Host " - - Moving $($_.Name)"
-            $toCopy = @()
-            $dbPath = Join-Path -Path $volPath -ChildPath $_.Name
-            New-Item $dbPath -Type Directory -Force | Out-Null
-            $_.FileGroups | ForEach-Object {
-                $_.Files | ForEach-Object {
-                    $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
-                    $toCopy += ,@($_.FileName, $destination)
-                    $_.FileName = $destination
-                } 
-            }
-            $_.LogFiles | ForEach-Object {
-                $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
-                $toCopy += ,@($_.FileName, $destination)
-                $_.FileName = $destination
-            }
+    # special handling for modified base app
+    if (![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)) {
+        Write-Host "Set application version to $($env:cosmoBaseAppVersion) as this is a modified base app"
+        Set-NAVApplication -ApplicationVersion "$($env:cosmoBaseAppVersion)" -ServerInstance BC -Force -ErrorAction Stop
 
-            $_.Alter()
-            try {
-                $db = $_
-                $_.SetOffline()
-            } catch {
-                $db.Refresh()
-                if ($db.Status -ne "Offline") {
-                    Write-Warning "Database $($db.Name) is not offline!"
-                }
-            }
-
-            $toCopy | ForEach-Object {
-                Move-Item -Path $_[0] -Destination $_[1]
-            }
-            
-            $_.SetOnline()
-        }
-        $smo.ConnectionContext.Disconnect()
+        $collation = "Latin1_General_100_CI_AS"
+        Write-Host "Change collation to $collation"
+        $navDataFilePath = (Join-Path $volPath "export.navdata")
+        Write-Host "Export NAVData"
+        Export-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
+        Write-Host "Create new database with collation $collation"
+        Invoke-SqlCmd -Query "CREATE DATABASE [CronusNew] COLLATE $collation"
+        Write-Host "Import NAVData"
+        Import-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath -Force
+        Write-Host "Stop server instance"
+        Stop-NAVServerInstance BC
+        Write-Host "Replace CRONUS database"
+        Invoke-SqlCmd -Query "alter database [CRONUS] set single_user with rollback immediate; DROP DATABASE [CRONUS]"
+        Invoke-SqlCmd -Query "ALTER DATABASE CronusNew SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE CronusNew MODIFY NAME = [CRONUS]; ALTER DATABASE [CRONUS] SET MULTI_USER"
+        Remove-Item (Join-Path $volPath "CRONUS") -recurse -force
+        Move-Database -databaseToMove "CRONUS"
+        Write-Host "Start server instance"
+        Start-NAVServerInstance BC
     }
 
     Write-Host " - Mounting SaaS tenant"
@@ -348,10 +407,16 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Tenant $tenantId `
         -Progress
 
+    Write-Host " - Deactivate all users to ensure license compliance"
+    Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() } | % {
+        Write-Host " - Disable $($_.UserName)"
+        Set-NAVServerUser -UserName $_.UserName -State Disabled -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue
+    }
+
     Write-Host " - Create user in new tenant (if not exists)"
-    if(!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object Username -eq $env:username)) {
-        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword
-        New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER
+    if(!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() })) {
+        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -AuthenticationEMail $env:username -ErrorAction Continue
+        New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
     }
 
     Write-Host " - Importing License to new tenant"

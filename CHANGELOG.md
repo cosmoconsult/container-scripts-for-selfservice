@@ -22,3 +22,4 @@
 - Add 4PS post startup handling to collect DLLs for base app modifications
 - Improve stability during upgrades for corner cases
 - Add ability to unpublish all apps as this is required for BC 20 -> 21 upgrades
+- Allow to work with BC Online backups from modified base app clusters
