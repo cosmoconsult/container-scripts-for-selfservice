@@ -45,7 +45,9 @@ function Invoke-4PSArtifactHandling {
 
                 $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
                 $initializerVersion = ''
-                if ($sysAppInfoFS.Version.Major -ge 21) {
+                if ($sysAppInfoFS.Version.Major -eq 21) {
+                    $initializerVersion = "$($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor).1.0"
+                } elseif ($sysAppInfoFS.Version.Major -gt 21) {
                     $initializerVersion = "$($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor).0.0"
                 } elseif ($sysAppInfoFS.Version.Major -eq 20) {
                     $initializerVersion = '2.0.0.0'
