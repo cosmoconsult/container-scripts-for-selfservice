@@ -133,6 +133,8 @@ if ($restartingInstance) {
                     Write-Host "  Versions are identical, this should work"
                 }
             }
+        } else {
+            Write-Host "Can't upgrade database because System App not available (likely old BC version)"
         }
     }
 } else {
