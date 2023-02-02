@@ -182,6 +182,17 @@ function Invoke-4PSArtifactHandling {
                                     -CodeunitId 50189 `
                                     -MethodName CreateOSAUser `
                                     -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
+
+                                if ($sysAppInfoFS.Version.Major -gt 20) {
+                                    # Only available on 21 and newer
+                                    Write-Host "    Initialize Container Information"
+                                    Invoke-NAVCodeunit `
+                                        -ServerInstance BC `
+                                        -CompanyName $companyName `
+                                        -CodeunitId 50189 `
+                                        -MethodName InitContainer `
+                                        -Argument "$($env:AZP_SERVICE_DISPLAYNAME)"
+                                }
                             } else {
                                 Write-Host "    Skip app, app user and app license init as this seems to be a build container"
                             }
