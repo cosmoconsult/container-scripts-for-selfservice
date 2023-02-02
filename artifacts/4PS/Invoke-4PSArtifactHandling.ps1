@@ -227,9 +227,6 @@ function Invoke-4PSArtifactHandling {
                 New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.WebPageViewer' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\WebPageViewer\Microsoft.Dynamics.Nav.Client.WebPageViewer.zip" -ErrorAction SilentlyContinue
                 New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.WelcomeWizard' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\WelcomeWizard\Microsoft.Dynamics.Nav.Client.WelcomeWizard.zip" -ErrorAction SilentlyContinue
                 Restart-NAVServerInstance BC
-
-                Uninstall-NAVApp -ServerInstance BC -Name 'Container initializer' -ClearSchema
-                Unpublish-NAVApp -ServerInstance BC -Name 'Container initializer'
                 
                 $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
                 Write-Host "  4PS initialization took $timespent4PS seconds"
