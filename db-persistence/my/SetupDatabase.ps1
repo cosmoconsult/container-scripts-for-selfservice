@@ -102,32 +102,36 @@ if ($restartingInstance) {
         $appDatabaseName = Get-AppDatabaseName
 
         Write-Host "Check database $appDatabaseName and container version to identify need for upgrade"
-        c:\run\prompt.ps1
-        $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-        $sysAppInfoDB = (Invoke-Sqlcmd -database $appDatabaseName -Query "select * FROM [dbo].[NAV App Installed App] WHERE Publisher='Microsoft' and Name='System Application'")
+        $sysAppPath = 'C:\Applications\system application\source\Microsoft_System Application.app'
+        if (Test-Path $sysAppPath)
+        {
+            c:\run\prompt.ps1
+            $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath
+            $sysAppInfoDB = (Invoke-Sqlcmd -database $appDatabaseName -Query "select * FROM [dbo].[NAV App Installed App] WHERE Publisher='Microsoft' and Name='System Application'")
 
-        $sysAppVersionFS = $sysAppInfoFS.Version
-        Write-Host "Trying to parse $($sysAppInfoDB.'Version Major').$($sysAppInfoDB.'Version Minor').$($sysAppInfoDB.'Version Build').$($sysAppInfoDB.'Version Revision') for the database version"
-        $sysAppVersionDB = [Version]::new()
-        $canParseVersionDB = [Version]::TryParse("$($sysAppInfoDB.'Version Major').$($sysAppInfoDB.'Version Minor').$($sysAppInfoDB.'Version Build').$($sysAppInfoDB.'Version Revision')", [ref]$sysAppVersionDB)
-        if (-not $canParseVersionDB) {
-            Write-Host "  Unable to parse the version in the database, trying to convert and hoping for the best..."
-            Write-Host "  Found in FS:"
-            $sysAppInfoFS
-            Write-Host "  Found in DB:"
-            $sysAppInfoDB
-            Invoke-NAVApplicationDatabaseConversion -databaseServer "localhost" -DatabaseName "$databaseName" -Force
-            $env:cosmoUpgradeSysApp = $true
-        } else {
-            Write-Host "  Found version $sysAppVersionFS for the container and $sysAppVersionDB for the database"
-            if ($sysAppVersionDB -gt $sysAppVersionFS) {
-                Write-Error "  Database version is newer than container version, this probably won't work"
-            } elseif ($sysAppVersionFS -gt $sysAppVersionDB) {
-                Write-Host "  Container version is newer than database version, trying to convert"
+            $sysAppVersionFS = $sysAppInfoFS.Version
+            Write-Host "Trying to parse $($sysAppInfoDB.'Version Major').$($sysAppInfoDB.'Version Minor').$($sysAppInfoDB.'Version Build').$($sysAppInfoDB.'Version Revision') for the database version"
+            $sysAppVersionDB = [Version]::new()
+            $canParseVersionDB = [Version]::TryParse("$($sysAppInfoDB.'Version Major').$($sysAppInfoDB.'Version Minor').$($sysAppInfoDB.'Version Build').$($sysAppInfoDB.'Version Revision')", [ref]$sysAppVersionDB)
+            if (-not $canParseVersionDB) {
+                Write-Host "  Unable to parse the version in the database, trying to convert and hoping for the best..."
+                Write-Host "  Found in FS:"
+                $sysAppInfoFS
+                Write-Host "  Found in DB:"
+                $sysAppInfoDB
                 Invoke-NAVApplicationDatabaseConversion -databaseServer "localhost" -DatabaseName "$databaseName" -Force
                 $env:cosmoUpgradeSysApp = $true
             } else {
-                Write-Host "  Versions are identical, this should work"
+                Write-Host "  Found version $sysAppVersionFS for the container and $sysAppVersionDB for the database"
+                if ($sysAppVersionDB -gt $sysAppVersionFS) {
+                    Write-Error "  Database version is newer than container version, this probably won't work"
+                } elseif ($sysAppVersionFS -gt $sysAppVersionDB) {
+                    Write-Host "  Container version is newer than database version, trying to convert"
+                    Invoke-NAVApplicationDatabaseConversion -databaseServer "localhost" -DatabaseName "$databaseName" -Force
+                    $env:cosmoUpgradeSysApp = $true
+                } else {
+                    Write-Host "  Versions are identical, this should work"
+                }
             }
         }
     }
