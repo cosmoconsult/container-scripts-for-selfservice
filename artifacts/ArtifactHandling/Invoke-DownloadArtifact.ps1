@@ -91,7 +91,7 @@ function Invoke-DownloadArtifact {
                 $pat = $accessToken
             }
             $artifactVersion = $version
-            if ("$artifactVersion" -ne "" -and -not "$artifactVersion".Contains("*")) {
+            if ("$artifactVersion" -ne "") {
                 Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
             } else {
                 Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
@@ -165,7 +165,11 @@ function Invoke-DownloadArtifact {
                     # Setup correct folder
                     $folderIdx = $folderIdx + 1
                     if ("$targetFolder" -eq "") {
-                        $folderSuffix = "$($folderIdx.ToString().PadLeft(3, '0'))"                        
+                        if ($name.StartsWith("sortorder")) {
+                            $folderSuffix = $name.Split(" ")[0]
+                        } else {
+                            $folderSuffix = "$($folderIdx.ToString().PadLeft(3, '0'))"                        
+                        }
                     } else {
                         $folderSuffix = "$targetFolder"
                     }
