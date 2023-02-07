@@ -149,8 +149,8 @@ if (Test-Path "$serviceTierFolder") {
         Write-Host "Import App Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
         Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
     } elseif (Test-Path "$serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
-        Write-Host "Import App Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
-        Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
+        Write-Host "Import App Management Utils from $serviceTierFolderr\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1"
+        Import-Module "$serviceTierFolderr\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
     }
 }
 if (Test-Path "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1") {
