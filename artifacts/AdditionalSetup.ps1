@@ -400,6 +400,12 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Write-Host " - Upgrading all apps"
     Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
 
+    Write-Host " - Syncing new tenant"
+    Sync-NavTenant `
+        -ServerInstance $ServerInstance `
+        -Tenant $tenantId `
+        -Force
+
     Write-Host " - Upgrading tenant"
     Start-NAVDataUpgrade `
             -ServerInstance $ServerInstance `
