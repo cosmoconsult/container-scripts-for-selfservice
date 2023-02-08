@@ -105,10 +105,15 @@ if ($restartingInstance) {
         $sysAppPath = 'C:\Applications\system application\source\Microsoft_System Application.app'
         if (Test-Path $sysAppPath)
         {
-            if (!$TenantId) { $TenantId = "default" }
+            $multiTenant = $true
+            if (!$TenantId) { $multiTenant = $false }
             
             c:\run\prompt.ps1
-            $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath -Tenant $TenantId
+            if ($multiTenant) {
+                $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath -Tenant $TenantId
+            } else {
+                $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath
+            }
             $sysAppInfoDB = (Invoke-Sqlcmd -database $appDatabaseName -Query "select * FROM [dbo].[NAV App Installed App] WHERE Publisher='Microsoft' and Name='System Application'" -ServerInstance "$DatabaseServer\$DatabaseInstance")
 
             $sysAppVersionFS = $sysAppInfoFS.Version
