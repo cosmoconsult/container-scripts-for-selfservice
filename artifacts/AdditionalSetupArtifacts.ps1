@@ -62,6 +62,7 @@ function Move-Database {
 
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
+    if (!$TenantId) { $TenantId = "default" }
     $sysAppInstallInfo = Get-NAVAppInfo -ServerInstance BC -Name "System Application" -Publisher "Microsoft"
     if ($sysAppInstallInfo) {
         Write-Host "  Uninstall the previous system application with dependencies"
