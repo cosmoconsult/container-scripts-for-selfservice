@@ -105,9 +105,11 @@ if ($restartingInstance) {
         $sysAppPath = 'C:\Applications\system application\source\Microsoft_System Application.app'
         if (Test-Path $sysAppPath)
         {
+            if (!$TenantId) { $TenantId = "default" }
+            
             c:\run\prompt.ps1
-            $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath
-            $sysAppInfoDB = (Invoke-Sqlcmd -database $appDatabaseName -Query "select * FROM [dbo].[NAV App Installed App] WHERE Publisher='Microsoft' and Name='System Application'")
+            $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath -Tenant $TenantId
+            $sysAppInfoDB = (Invoke-Sqlcmd -database $appDatabaseName -Query "select * FROM [dbo].[NAV App Installed App] WHERE Publisher='Microsoft' and Name='System Application'" -ServerInstance "$DatabaseServer\$DatabaseInstance")
 
             $sysAppVersionFS = $sysAppInfoFS.Version
             Write-Host "Trying to parse $($sysAppInfoDB.'Version Major').$($sysAppInfoDB.'Version Minor').$($sysAppInfoDB.'Version Build').$($sysAppInfoDB.'Version Revision') for the database version"
@@ -119,7 +121,7 @@ if ($restartingInstance) {
                 $sysAppInfoFS
                 Write-Host "  Found in DB:"
                 $sysAppInfoDB
-                Invoke-NAVApplicationDatabaseConversion -databaseServer "localhost" -DatabaseName "$databaseName" -Force
+                Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
                 $env:cosmoUpgradeSysApp = $true
             } else {
                 Write-Host "  Found version $sysAppVersionFS for the container and $sysAppVersionDB for the database"
@@ -127,7 +129,7 @@ if ($restartingInstance) {
                     Write-Error "  Database version is newer than container version, this probably won't work"
                 } elseif ($sysAppVersionFS -gt $sysAppVersionDB) {
                     Write-Host "  Container version is newer than database version, trying to convert"
-                    Invoke-NAVApplicationDatabaseConversion -databaseServer "localhost" -DatabaseName "$databaseName" -Force
+                    Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
                     $env:cosmoUpgradeSysApp = $true
                 } else {
                     Write-Host "  Versions are identical, this should work"
