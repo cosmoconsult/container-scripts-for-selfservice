@@ -62,10 +62,11 @@ function Move-Database {
 
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
+    if (!$TenantId) { $TenantId = "default" }
     $sysAppInstallInfo = Get-NAVAppInfo -ServerInstance BC -Name "System Application" -Publisher "Microsoft"
     if ($sysAppInstallInfo) {
         Write-Host "  Uninstall the previous system application with dependencies"
-        Uninstall-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Force
+        Uninstall-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Force -Tenant $TenantId
     } else {
         Write-Host "  No previous system application found"
     }
@@ -73,17 +74,17 @@ if ($env:cosmoUpgradeSysApp) {
     Write-Host "  Publish the new system application $($sysAppInfoFS.Version)"
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Sync the new system application"
-    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Tenant $TenantId
     Write-Host "  Start data upgrade for the system application"
-    Start-NAVAppDataUpgrade -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Start-NAVAppDataUpgrade -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Tenant $TenantId
     Write-Host "  Install the new system application"
-    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Tenant $TenantId
 
     Write-Host    "Set NAVApplication version '$($sysAppInfoFS.Version)' in Serverinstance 'BC'."
     Set-NAVApplication -ApplicationVersion "$($sysAppInfoFS.Version)" -ServerInstance BC -Force -ErrorAction Stop
-    Sync-NAVTenant -ServerInstance BC -Mode Sync -Force -ErrorAction Stop
-    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop 
-    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop 
+    Sync-NAVTenant -ServerInstance BC -Mode Sync -Force -ErrorAction Stop -Tenant $TenantId
+    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
+    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
 
     Write-Host    "Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
