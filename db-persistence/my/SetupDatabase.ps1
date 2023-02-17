@@ -119,8 +119,8 @@ if ($restartingInstance) {
                 $sysAppInfoFS
                 Write-Host "  Found in DB:"
                 $sysAppInfoDB
-                Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
-                $env:cosmoUpgradeSysApp = $true
+                #FIXME Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
+                #FIXME $env:cosmoUpgradeSysApp = $true
             } else {
                 Write-Host "  Found version $sysAppVersionFS for the container and $sysAppVersionDB for the database"
                 if ($sysAppVersionDB -gt $sysAppVersionFS) {
