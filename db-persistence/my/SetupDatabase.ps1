@@ -99,7 +99,7 @@ if ($restartingInstance) {
             & sqlcmd -Q $sqlcmd
         }
 
-        $appDatabaseName = Get-AppDatabaseName
+        $appDatabaseName = (Get-NAVApplication BC)."Database name"
 
         Write-Host "Check database $appDatabaseName and container version to identify need for upgrade"
         $sysAppPath = 'C:\Applications\system application\source\Microsoft_System Application.app'

@@ -15,7 +15,7 @@ function Invoke-4PSArtifactHandling {
             Write-Host "4PS mode found"
             c:\Run\prompt.ps1
 
-            $appDatabaseName = Get-AppDatabaseName
+            $appDatabaseName = (Get-NAVApplication BC)."Database name"
             Write-Host "  app database name is: $appDatabaseName"
 
             if ($env:cosmoServiceRestart -eq $true) {
