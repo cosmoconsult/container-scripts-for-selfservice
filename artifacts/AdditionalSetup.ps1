@@ -190,7 +190,7 @@ finally {
 }
 
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
-if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
+if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
     Unpublish-AllNavAppsInServerInstance
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
