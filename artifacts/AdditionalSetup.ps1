@@ -425,7 +425,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Create user in new tenant (if not exists)"
     if(!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() })) {
-        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -AuthenticationEMail $env:username -ErrorAction Continue
+        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -AuthenticationEMail "dummy@dummy.com" -ErrorAction Continue
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
     }
 
