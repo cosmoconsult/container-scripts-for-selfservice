@@ -391,11 +391,12 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Sync-NavTenant `
         -ServerInstance $ServerInstance `
         -Tenant $tenantId `
+        -Mode ForceSync
         -Force
 
     Write-Host " - Syncing all apps"
     for ($i = 0; $i -lt 10; $i++) {
-        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId 
     }
 
     Write-Host " - Upgrading all apps"
@@ -405,6 +406,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Sync-NavTenant `
         -ServerInstance $ServerInstance `
         -Tenant $tenantId `
+        -Mode ForceSync
         -Force
 
     Write-Host " - Upgrading tenant"
