@@ -391,7 +391,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Sync-NavTenant `
         -ServerInstance $ServerInstance `
         -Tenant $tenantId `
-        -Mode ForceSync
+        -Mode ForceSync `
         -Force
 
     Write-Host " - Syncing all apps"
@@ -406,7 +406,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Sync-NavTenant `
         -ServerInstance $ServerInstance `
         -Tenant $tenantId `
-        -Mode ForceSync
+        -Mode ForceSync `
         -Force
 
     Write-Host " - Upgrading tenant"
