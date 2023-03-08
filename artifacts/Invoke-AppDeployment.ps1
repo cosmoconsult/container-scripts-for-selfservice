@@ -1,13 +1,49 @@
 [CmdletBinding()]
 param (
-    [string]$AppToDeploy, 
-    [string]$Username,
-    [string]$Password
+    [string]$AppToDeploy,
+    [string]$Username,  # ignored
+    [string]$Password,  # ignored
+    [string]$BearerToken = "",
+    [string]$PathInZip = ""
 )
 
 c:\run\prompt.ps1
 try {
     $started = Get-Date -Format "o"
+
+    if ($AppToDeploy.StartsWith("http")) {
+        # given a URL, so need to download
+        $basePath = "c:\downloadedBuildArtifacts"
+        $headers = @{}
+        $headers.Add("authorization", "Bearer $BearerToken")
+        if (-not (Test-Path $basePath)) {
+            New-Item "$basePath" -ItemType Directory
+        }
+        $subfolder = $([convert]::tostring((get-random 65535),16).padleft(8,'0'))
+        $folder = Join-Path $basePath $subfolder
+        New-Item "$folder" -ItemType Directory
+        $filename = "downloadedapp.app"
+        if ($AppToDeploy.EndsWith("zip")) {
+            $filename = "downloadedapp.zip"
+        }
+        $fullPath = Join-Path $folder $filename
+        Invoke-WebRequest -Uri $AppToDeploy -Method GET -Headers $headers -OutFile $fullPath
+        if (-not (Test-Path $fullPath)) {
+            Write-Error "Failed to download the file from $AppToDeploy"
+            exit
+        }
+
+        if ($AppToDeploy.EndsWith("zip")) {
+            Expand-Archive $fullPath -DestinationPath $folder
+            $AppToDeploy = Join-Path $folder $PathInZip
+            if (-not (Test-Path $AppToDeploy)) {
+                Write-Error "Couldn't find $PathInZip in $AppToDeploy"
+                exit
+            }
+        } else {
+            $AppToDeploy = $fullPath
+        }
+    }
     
     $ServerInstance = "BC"
     $Path = $AppToDeploy
@@ -74,6 +110,13 @@ try {
             $success = $false
         }
         $skipInstall = ! $success
+    }
+
+    # If extension data version is older than extension version, that should also trigger the data upgrade
+    $appInfo = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue) | Select-Object -First 1
+    if ((! $skipInstall) -and ($appInfo.ExtensionDataVersion) -and [System.Version]$appInfo.ExtensionDataVersion -lt [System.Version]$appInfo.Version) {
+        Write-Host "Identified lower extension data version ($($appInfo.ExtensionDataVersion)) than extension version ($($appInfo.Version)), need to run data upgrade"
+        $runDataUpgrade = $true
     }
 
     # Check for Data Upgrade
