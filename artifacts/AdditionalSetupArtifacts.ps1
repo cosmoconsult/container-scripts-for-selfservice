@@ -9,7 +9,7 @@ function Move-Database {
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Common") | Out-Null
         $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
-        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
+        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection -ArgumentList "$DatabaseServer\$DatabaseInstance"
         $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
         $smo.Databases | Where-Object { $_.Name -eq $databaseToMove } | ForEach-Object {
             # set recovery mode and shrink log
@@ -362,14 +362,14 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host "Export NAVData"
         Export-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
         Write-Host "Create new database with collation $collation"
-        Invoke-SqlCmd -Query "CREATE DATABASE [CronusNew] COLLATE $collation"
+        Invoke-SqlCmd -Query "CREATE DATABASE [CronusNew] COLLATE $collation" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Write-Host "Import NAVData"
         Import-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath -Force
         Write-Host "Stop server instance"
         Stop-NAVServerInstance BC
         Write-Host "Replace CRONUS database"
-        Invoke-SqlCmd -Query "alter database [CRONUS] set single_user with rollback immediate; DROP DATABASE [CRONUS]"
-        Invoke-SqlCmd -Query "ALTER DATABASE CronusNew SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE CronusNew MODIFY NAME = [CRONUS]; ALTER DATABASE [CRONUS] SET MULTI_USER"
+        Invoke-SqlCmd -Query "alter database [CRONUS] set single_user with rollback immediate; DROP DATABASE [CRONUS]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+        Invoke-SqlCmd -Query "ALTER DATABASE CronusNew SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE CronusNew MODIFY NAME = [CRONUS]; ALTER DATABASE [CRONUS] SET MULTI_USER" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Remove-Item (Join-Path $volPath "CRONUS") -recurse -force
         Move-Database -databaseToMove "CRONUS"
         Write-Host "Start server instance"
