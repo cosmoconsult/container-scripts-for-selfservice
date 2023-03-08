@@ -112,6 +112,13 @@ try {
         $skipInstall = ! $success
     }
 
+    # If extension data version is older than extension version, that should also trigger the data upgrade
+    $appInfo = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue) | Select-Object -First 1
+    if ((! $skipInstall) -and ($appInfo.ExtensionDataVersion) -and [System.Version]$appInfo.ExtensionDataVersion -lt [System.Version]$appInfo.Version) {
+        Write-Host "Identified lower extension data version ($($appInfo.ExtensionDataVersion)) than extension version ($($appInfo.Version)), need to run data upgrade"
+        $runDataUpgrade = $true
+    }
+
     # Check for Data Upgrade
     if ((! $skipInstall) -and ($runDataUpgrade)) {
         try {
