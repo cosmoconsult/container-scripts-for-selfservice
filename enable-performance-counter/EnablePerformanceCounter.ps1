@@ -1,5 +1,3 @@
-# invoke default
-. (Join-Path $runPath $MyInvocation.MyCommand.Name)
 
 if (-Not [string]::IsNullOrEmpty($env:enablePerformanceCounter)) {
     if ($($env:enablePerformanceCounter).ToLower() -eq "false") {

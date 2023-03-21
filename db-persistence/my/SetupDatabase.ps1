@@ -12,7 +12,7 @@ if ($restartingInstance) {
 } elseif ($volPath -ne "") {
     # database volume path is provided, check if the database is already there or not
 
-    if ((Get-Item -path $volPath).GetFileSystemInfos().Count -eq 0) {
+    if ((Get-ChildItem $volPath).Count -eq 0) {
         # folder is empty, try to move the existing database to the db volume path
 
         Write-Host "Setting up database with default script"
@@ -26,7 +26,7 @@ if ($restartingInstance) {
 
         $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
 
-        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
+        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection -ArgumentList "$DatabaseServer\$DatabaseInstance"
 
         $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
         
@@ -38,11 +38,11 @@ if ($restartingInstance) {
 
                 # set recovery mode and shrink log
                 $sqlcmd = "ALTER DATABASE [$($_.Name)] SET RECOVERY SIMPLE WITH NO_WAIT"
-                & sqlcmd -Q $sqlcmd
+                & sqlcmd -Q $sqlcmd -S "$DatabaseServer\$DatabaseInstance"
                 $shrinkCmd = "USE [$($_.Name)]; "
                 $_.LogFiles | ForEach-Object {
                     $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
-                    & sqlcmd -Q $shrinkCmd
+                    & sqlcmd -Q $shrinkCmd -S "$DatabaseServer\$DatabaseInstance"
                 }
             
                 Write-Host "- Moving $($_.Name)"
@@ -90,13 +90,13 @@ if ($restartingInstance) {
             Write-Host "Attach database $database"
 
             $sqlcmd = "DROP DATABASE IF EXISTS [$database]"
-            & sqlcmd -Q $sqlcmd
+            & sqlcmd -Q $sqlcmd -S "$DatabaseServer\$DatabaseInstance"
 
             $dbPath = (Join-Path $volPath $database)
             $files = Get-ChildItem $dbPath -File
             $joinedFiles = $files.Name -join "'), (FILENAME = '$dbPath\"
             $sqlcmd = "CREATE DATABASE [$database] ON (FILENAME = '$dbPath\$joinedFiles') FOR ATTACH;"
-            & sqlcmd -Q $sqlcmd
+            & sqlcmd -Q $sqlcmd -S "$DatabaseServer\$DatabaseInstance"
         }
 
         $appDatabaseName = Get-AppDatabaseName

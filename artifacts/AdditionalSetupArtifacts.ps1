@@ -9,7 +9,7 @@ function Move-Database {
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Common") | Out-Null
         $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
-        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
+        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection -ArgumentList "$DatabaseServer\$DatabaseInstance"
         $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
         $smo.Databases | Where-Object { $_.Name -eq $databaseToMove } | ForEach-Object {
             # set recovery mode and shrink log
@@ -97,7 +97,7 @@ if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
     Write-Host "=== Additional Setup Freddy ==="
     
     if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
-        sqlcmd -S 'localhost\SQLEXPRESS' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
+        & sqlcmd -S 'localhost\SQLEXPRESS' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
     }
 
     if (!(Test-Path "c:\navpfiles\*")) {
@@ -337,15 +337,15 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
                         -Timeout $SqlTimeout -Force | out-null
     
     Write-Host " - Adapting package IDs"
-    $diffPackageIds = Invoke-Sqlcmd -Query "select da.[App ID], da.[Package ID] FROM [default].[dbo].[NAV App Installed App] da JOIN [$tenantId].[dbo].[NAV App Installed App] ta ON da.[App ID] = ta.[App ID] AND da.[Version Major] = ta.[Version Major] AND da.[Version Minor] = ta.[Version Minor] AND da.[Version Build] = ta.[Version Build] AND da.[Version Revision] = ta.[Version Revision] AND da.[Package ID] != ta.[Package ID]"
+    $diffPackageIds = Invoke-Sqlcmd -Query "select da.[App ID], da.[Package ID] FROM [default].[dbo].[NAV App Installed App] da JOIN [$tenantId].[dbo].[NAV App Installed App] ta ON da.[App ID] = ta.[App ID] AND da.[Version Major] = ta.[Version Major] AND da.[Version Minor] = ta.[Version Minor] AND da.[Version Build] = ta.[Version Build] AND da.[Version Revision] = ta.[Version Revision] AND da.[Package ID] != ta.[Package ID]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     foreach ($app in $diffPackageIds) {
-        Invoke-Sqlcmd -Database $tenantId -Query "UPDATE [dbo].[NAV App Installed App] SET [Package ID] = '$($app.'Package ID')' WHERE [App ID] = '$($app.'App ID')'"
+        Invoke-Sqlcmd -Database $tenantId -Query "UPDATE [dbo].[NAV App Installed App] SET [Package ID] = '$($app.'Package ID')' WHERE [App ID] = '$($app.'App ID')'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
 
     Write-Host " - Replacing default tenant database with new SaaS database"
     Dismount-NAVTenant -ServerInstance $ServerInstance -Tenant "default" -Force
-    Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]"
-    Invoke-SqlCmd -Query "ALTER DATABASE $tenantId SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE $tenantId MODIFY NAME = [default]; ALTER DATABASE [default] SET MULTI_USER"
+    Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+    Invoke-SqlCmd -Query "ALTER DATABASE $tenantId SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE $tenantId MODIFY NAME = [default]; ALTER DATABASE [default] SET MULTI_USER" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     $tenantId = "default"
 
     # move database to volume
@@ -362,14 +362,14 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host "Export NAVData"
         Export-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
         Write-Host "Create new database with collation $collation"
-        Invoke-SqlCmd -Query "CREATE DATABASE [CronusNew] COLLATE $collation"
+        Invoke-SqlCmd -Query "CREATE DATABASE [CronusNew] COLLATE $collation" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Write-Host "Import NAVData"
         Import-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath -Force
         Write-Host "Stop server instance"
         Stop-NAVServerInstance BC
         Write-Host "Replace CRONUS database"
-        Invoke-SqlCmd -Query "alter database [CRONUS] set single_user with rollback immediate; DROP DATABASE [CRONUS]"
-        Invoke-SqlCmd -Query "ALTER DATABASE CronusNew SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE CronusNew MODIFY NAME = [CRONUS]; ALTER DATABASE [CRONUS] SET MULTI_USER"
+        Invoke-SqlCmd -Query "alter database [CRONUS] set single_user with rollback immediate; DROP DATABASE [CRONUS]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+        Invoke-SqlCmd -Query "ALTER DATABASE CronusNew SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE CronusNew MODIFY NAME = [CRONUS]; ALTER DATABASE [CRONUS] SET MULTI_USER" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Remove-Item (Join-Path $volPath "CRONUS") -recurse -force
         Move-Database -databaseToMove "CRONUS"
         Write-Host "Start server instance"
@@ -436,7 +436,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     }
 
     Write-Host " - Importing License to new tenant"
-    Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]"
+    Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile "$runPath\license.flf" -Database Tenant
     Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
 }
