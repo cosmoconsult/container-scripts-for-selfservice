@@ -89,6 +89,17 @@ if ($env:cosmoUpgradeSysApp) {
     Write-Host    "Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
     Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($sysAppInfoFS.Version)"
+
+    if ($env:mode -ne "4ps") {
+        Write-Host " - Syncing all apps"
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
+    
+        Write-Host " - Upgrading all apps"
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+
+        Write-Host " - Installing all apps"
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Install-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+    }
 }
 
 # Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
