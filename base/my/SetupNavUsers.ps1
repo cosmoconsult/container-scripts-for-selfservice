@@ -12,6 +12,12 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrWhiteSpace($en
 
     Import-NAVServerLicense -ServerInstance $ServerInstance -LicenseFile $licenseToImport -Database NavDatabase
     Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
+
+    Write-Host " - Deactivate all users to ensure license compliance"
+    Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() } | % {
+        Write-Host " - Disable $($_.UserName)"
+        Set-NAVServerUser -UserName $_.UserName -State Disabled -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue
+    }
 }
 
 
