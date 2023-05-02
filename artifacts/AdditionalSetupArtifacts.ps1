@@ -444,7 +444,14 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Importing License to new tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
-    Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile "$runPath\license.flf" -Database Tenant
+
+    if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
+        $licenseToImport = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Cronus.*").FullName
+    } else {
+        $licenseToImport = $env:licensefile
+    }
+
+    Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile $licenseToImport -Database Tenant
     Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
 }
 
