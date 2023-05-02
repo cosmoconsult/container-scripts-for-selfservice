@@ -1,6 +1,6 @@
 Write-Host "Start Setup NAV Users"
 
-if (![string]::IsNullOrWhiteSpace($env:bakfile)) {
+if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrWhiteSpace($env:bakfile)) {
     Write-Host " - Importing license to restored database mydatabase at $DatabaseServer\$DatabaseInstance"
     Invoke-Sqlcmd -Database "mydatabase" -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
 
