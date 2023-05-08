@@ -4,7 +4,7 @@ function Move-Database {
     )
 
     Write-Host " - Moving SaaS database to volume"
-    if ($env:volPath -ne "") {
+    if (($env:volPath -ne "") -and (Test-Path $env:volPath)) {
         $volPath = $env:volPath
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Common") | Out-Null

@@ -14,7 +14,7 @@ if ($env:mode -eq "4ps") {
 
 $volPath = "$env:volPath"
 
-if ($volPath -ne "" -and (Get-ChildItem $volPath).Count -ne 0) {
+if ($volPath -ne "" -and (Test-Path $volPath) -and (Get-ChildItem $volPath).Count -ne 0) {
   # database volume path is provided and the database files are there, so this seems to be a restart
   $env:cosmoServiceRestart = $true
   Write-Host "This seems to be a service restart"
