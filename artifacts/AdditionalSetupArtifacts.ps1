@@ -360,11 +360,11 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host "Change collation to $collation"
         $navDataFilePath = (Join-Path $volPath "export.navdata")
         Write-Host "Export NAVData"
-        Export-NAVData -ApplicationDatabaseServer "$DatabaseServer\$DatabaseInstance" -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
+        Export-NAVData -ApplicationDatabaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseServer "$DatabaseServer\$DatabaseInstance" -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
         Write-Host "Create new database with collation $collation"
         Invoke-SqlCmd -Query "CREATE DATABASE [CronusNew] COLLATE $collation" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Write-Host "Import NAVData"
-        Import-NAVData -ApplicationDatabaseServer "$DatabaseServer\$DatabaseInstance" -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath -Force
+        Import-NAVData -ApplicationDatabaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseServer "$DatabaseServer\$DatabaseInstance" -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath -Force
         Write-Host "Stop server instance"
         Stop-NAVServerInstance BC
         Write-Host "Replace CRONUS database"
