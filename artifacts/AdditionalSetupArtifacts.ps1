@@ -437,7 +437,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Importing License to new tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
-    Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile "$runPath\license.flf" -Database Tenant
+    Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile "c:\license.flf" -Database Tenant
     Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
 }
 
