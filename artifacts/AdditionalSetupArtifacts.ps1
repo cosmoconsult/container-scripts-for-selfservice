@@ -215,7 +215,7 @@ try {
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
         -SyncMode        $SyncMode `
-        -Scope           $Scope `
+        -Scope           "Global" `
         -telemetryClient $telemetryClient `
         -ErrorAction     SilentlyContinue 
 
