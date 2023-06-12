@@ -445,8 +445,16 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Importing License to new tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
-    Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile "c:\license.flf" -Database Tenant
-    Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
+    $licenseFilePath = "c:\license.flf"
+    if (-not Test-Path $licenseFilePath) {
+        $licenseFilePath = "C:\license.bclicense"
+    }
+    if (Test-Path $licenseFilePath) {
+        Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile $licenseFilePath -Database Tenant
+        Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
+    } else {
+        Write-Host "   Couldn't find license file"
+    }
 }
 
 Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
