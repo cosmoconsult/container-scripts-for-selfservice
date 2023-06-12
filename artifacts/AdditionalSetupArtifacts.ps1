@@ -60,6 +60,8 @@ function Move-Database {
 
 }
 
+$blackListedApps = @([pscustomobject]@{Name="CKL Monetization";Id='2d648cd3-1779-449a-b0eb-23a98267d85e';Reason="works only on SaaS"})
+
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
     if (!$TenantId) { $TenantId = "default" }
@@ -340,6 +342,12 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     $diffPackageIds = Invoke-Sqlcmd -Query "select da.[App ID], da.[Package ID] FROM [default].[dbo].[NAV App Installed App] da JOIN [$tenantId].[dbo].[NAV App Installed App] ta ON da.[App ID] = ta.[App ID] AND da.[Version Major] = ta.[Version Major] AND da.[Version Minor] = ta.[Version Minor] AND da.[Version Build] = ta.[Version Build] AND da.[Version Revision] = ta.[Version Revision] AND da.[Package ID] != ta.[Package ID]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     foreach ($app in $diffPackageIds) {
         Invoke-Sqlcmd -Database $tenantId -Query "UPDATE [dbo].[NAV App Installed App] SET [Package ID] = '$($app.'Package ID')' WHERE [App ID] = '$($app.'App ID')'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+    }
+
+    foreach ($blackListedApp in $blackListedApps) {
+        Write-Host "   - Removing app '$($blackListedApp.Name)' if installed, reason '$($blackListedApp.Reason)', id '$($blackListedApp.Id)'"
+        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Published App] WHERE [App ID] = '$($blackListedApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Installed App] WHERE [App ID] = '$($blackListedApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
 
     Write-Host " - Replacing default tenant database with new SaaS database"
