@@ -446,7 +446,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Write-Host " - Importing License to new tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     $licenseFilePath = "c:\license.flf"
-    if (-not Test-Path $licenseFilePath) {
+    if (!(Test-Path $licenseFilePath)) {
         $licenseFilePath = "C:\license.bclicense"
     }
     if (Test-Path $licenseFilePath) {
