@@ -29,7 +29,7 @@ try {
         $fullPath = Join-Path $folder $filename
         Invoke-WebRequest -Uri $AppToDeploy -Method GET -Headers $headers -OutFile $fullPath
         if (-not (Test-Path $fullPath)) {
-            Write-Error "Failed to download the file from $AppToDeploy"
+            Write-Host "Failed to download the file from $AppToDeploy"
             exit
         }
 
@@ -37,7 +37,7 @@ try {
             Expand-Archive $fullPath -DestinationPath $folder
             $AppToDeploy = Join-Path $folder $PathInZip
             if (-not (Test-Path $AppToDeploy)) {
-                Write-Error "Couldn't find $PathInZip in $AppToDeploy"
+                Write-Host "Couldn't find $PathInZip in $AppToDeploy"
                 exit
             }
         } else {
@@ -56,15 +56,15 @@ try {
     if($oldApp -and $oldApp.IsInstalled) {
         try {
             $started1 = Get-Date -Format "o"
-            Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant $Tenant -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+            Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" }
             $warn | foreach { Write-Host "$_" }
-            $err  | foreach { Write-Error "$_" }
+            $err  | foreach { Write-Host "$_" }
             $success = ! $err
             if ($success) { Write-Host "Uninstall old App successful" }
             $runDataUpgrade = $true
         } catch {
-            Write-Error "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
+            Write-Host "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
             $success = $false
         }
     } else {
@@ -81,14 +81,14 @@ try {
         try {
             $started2 = Get-Date -Format "o"
             Write-Host "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..."
-            Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope tenant -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+            Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope tenant -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" }
             $warn | foreach { Write-Host "$_" }
-            $err  | foreach { Write-Error "$_" }
+            $err  | foreach { Write-Host "$_" }
             $success = ! $err
             if ($success) { Write-Host "Publish App successful" }
         } catch {
-            Write-Error "Publish App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
+            Write-Host "Publish App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
             $success = $false
         }
     }
@@ -149,11 +149,11 @@ try {
             Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" }
             $warn | foreach { Write-Host "$_" }
-            $err  | foreach { Write-Error "$_" }
+            $err  | foreach { Write-Host "$_" }
             $success = ! $err
             if ($success) { Write-Host "Install App ... successful" }
         } catch {        
-            Write-Error "Install App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
+            Write-Host "Install App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
             $success = $false
         }
     }
@@ -164,9 +164,9 @@ try {
         $result = $result | Select-Object -First 1
         Write-Host "App Status $($app.Name) $($app.Publisher) $($app.Version) ... Published: $($result.IsPublished) Installed: $($result.IsInstalled) SyncState: $($result.SyncState) "
     } else {
-        Write-Error "Import App $($app.Name) $($app.Publisher) $($app.Version) failed"
+        Write-Host "Import App $($app.Name) $($app.Publisher) $($app.Version) failed"
     }
 }
 catch {
-    Write-Error "$_"
+    Write-Host "$_"
 }
