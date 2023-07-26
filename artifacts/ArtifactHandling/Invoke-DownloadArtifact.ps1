@@ -82,6 +82,12 @@ function Invoke-DownloadArtifact {
     }
     
     process {
+        # check restart
+        if (($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
+            Add-ArtifactsLog -message "Skipping $target download because this seems to be a service restart"
+            return
+        }
+
         # Download from given URL
         if (Test-Path "$tempArchive" -ErrorAction SilentlyContinue) { Remove-Item "$tempArchive" -Force -ErrorAction SilentlyContinue }
 

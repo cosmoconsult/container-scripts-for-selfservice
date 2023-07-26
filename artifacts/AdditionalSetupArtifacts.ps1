@@ -184,70 +184,68 @@ $properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
-if ($env:cosmoServiceRestart -eq $false) {
-    # Download Artifacts
-    try {
-        $started = Get-Date -Format "o"
-        $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-        $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-        $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+# Download Artifacts
+try {
+    $started = Get-Date -Format "o"
+    $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
-        $properties["artifats"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
-        Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
-    }
-    catch {
-        Add-ArtifactsLog -message "Donwload Artifacts Error: $($_.Exception.Message)" -severity Error
-    }
-    finally {
-        Add-ArtifactsLog -message "Donwload Artifacts done."
-    }
+    $properties["artifats"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
+    Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
+}
+catch {
+    Add-ArtifactsLog -message "Donwload Artifacts Error: $($_.Exception.Message)" -severity Error
+}
+finally {
+    Add-ArtifactsLog -message "Donwload Artifacts done."
+}
 
-    # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
-    if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
-        Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
-        Unpublish-AllNavAppsInServerInstance
-        $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-        Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
-        Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-        Write-Host "  Sync the system application"
-        Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
-        Write-Host "  Install the system application"
-        Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
-    }
+# If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
+if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
+    Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
+    Unpublish-AllNavAppsInServerInstance
+    $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
+    Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Sync the system application"
+    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Write-Host "  Install the system application"
+    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+}
 
-    # Import Artifacts
-    try {
-        $SyncMode = $env:IMPORT_SYNC_MODE
-        $Scope = $env:IMPORT_SCOPE
-        if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
-        if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
+# Import Artifacts
+try {
+    $SyncMode = $env:IMPORT_SYNC_MODE
+    $Scope = $env:IMPORT_SCOPE
+    if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
+    if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
 
-        Import-Artifacts `
-            -Path            $targetDirManuallySorted `
-            -NavServiceName  $NavServiceName `
-            -ServerInstance  $ServerInstance `
-            -Tenant          $TenantId `
-            -SyncMode        $SyncMode `
-            -Scope           $Scope `
-            -telemetryClient $telemetryClient `
-            -ErrorAction     SilentlyContinue 
+    Import-Artifacts `
+        -Path            $targetDirManuallySorted `
+        -NavServiceName  $NavServiceName `
+        -ServerInstance  $ServerInstance `
+        -Tenant          $TenantId `
+        -SyncMode        $SyncMode `
+        -Scope           $Scope `
+        -telemetryClient $telemetryClient `
+        -ErrorAction     SilentlyContinue 
 
-        Import-Artifacts `
-            -Path            $targetDir `
-            -NavServiceName  $NavServiceName `
-            -ServerInstance  $ServerInstance `
-            -Tenant          $TenantId `
-            -SyncMode        $SyncMode `
-            -Scope           $Scope `
-            -telemetryClient $telemetryClient `
-            -ErrorAction     SilentlyContinue
-    }
-    catch {
-        Write-Host "Import Artifacts Error: $($_.Exception.Message)" -f Red
-    }
-    finally {
-        Write-Host "Import Artifacts done."
-    }
+    Import-Artifacts `
+        -Path            $targetDir `
+        -NavServiceName  $NavServiceName `
+        -ServerInstance  $ServerInstance `
+        -Tenant          $TenantId `
+        -SyncMode        $SyncMode `
+        -Scope           $Scope `
+        -telemetryClient $telemetryClient `
+        -ErrorAction     SilentlyContinue
+}
+catch {
+    Write-Host "Import Artifacts Error: $($_.Exception.Message)" -f Red
+}
+finally {
+    Write-Host "Import Artifacts done."
 }
 
 $artifactSettings = "c:\run\ArtifactSettings.ps1"
