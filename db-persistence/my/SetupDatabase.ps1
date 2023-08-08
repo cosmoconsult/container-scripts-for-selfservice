@@ -9,7 +9,7 @@ if ($restartingInstance) {
 
     # Nothing to do
 
-} elseif ($volPath -ne "") {
+} elseif (($volPath -ne "") -and (Test-Path $volPath)) {
     # database volume path is provided, check if the database is already there or not
 
     if ((Get-ChildItem $volPath).Count -eq 0) {

@@ -4,7 +4,7 @@ function Move-Database {
     )
 
     Write-Host " - Moving SaaS database to volume"
-    if ($env:volPath -ne "") {
+    if (($env:volPath -ne "") -and (Test-Path $env:volPath)) {
         $volPath = $env:volPath
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Common") | Out-Null
@@ -91,6 +91,17 @@ if ($env:cosmoUpgradeSysApp) {
     Write-Host    "Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
     Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($sysAppInfoFS.Version)"
+
+    if ($env:mode -ne "4ps") {
+        Write-Host " - Syncing all apps"
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
+    
+        Write-Host " - Upgrading all apps"
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+
+        Write-Host " - Installing all apps"
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Install-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+    }
 }
 
 # Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
@@ -174,70 +185,69 @@ $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
 $properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
-if ($env:cosmoServiceRestart -eq $false) {
-    # Download Artifacts
-    try {
-        $started = Get-Date -Format "o"
-        $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-        $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-        $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    
-        $properties["artifats"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
-        Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
-    }
-    catch {
-        Add-ArtifactsLog -message "Donwload Artifacts Error: $($_.Exception.Message)" -severity Error
-    }
-    finally {
-        Add-ArtifactsLog -message "Donwload Artifacts done."
-    }
-    
-    # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
-    if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
-        Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
-        Unpublish-AllNavAppsInServerInstance
-        $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-        Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
-        Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-        Write-Host "  Sync the system application"
-        Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
-        Write-Host "  Install the system application"
-        Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
-    }
-    
-    # Import Artifacts
-    try {
-        $SyncMode = $env:IMPORT_SYNC_MODE
-        $Scope = $env:IMPORT_SCOPE
-        if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
-        if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
-    
-        Import-Artifacts `
-            -Path            $targetDirManuallySorted `
-            -NavServiceName  $NavServiceName `
-            -ServerInstance  $ServerInstance `
-            -Tenant          $TenantId `
-            -SyncMode        $SyncMode `
-            -Scope           "Global" `
-            -telemetryClient $telemetryClient `
-            -ErrorAction     SilentlyContinue 
-    
-        Import-Artifacts `
-            -Path            $targetDir `
-            -NavServiceName  $NavServiceName `
-            -ServerInstance  $ServerInstance `
-            -Tenant          $TenantId `
-            -SyncMode        $SyncMode `
-            -Scope           $Scope `
-            -telemetryClient $telemetryClient `
-            -ErrorAction     SilentlyContinue
-    }
-    catch {
-        Write-Host "Import Artifacts Error: $($_.Exception.Message)" -f Red
-    }
-    finally {
-        Write-Host "Import Artifacts done."
-    }
+
+# Download Artifacts
+try {
+    $started = Get-Date -Format "o"
+    $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+
+    $properties["artifats"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
+    Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
+}
+catch {
+    Add-ArtifactsLog -message "Donwload Artifacts Error: $($_.Exception.Message)" -severity Error
+}
+finally {
+    Add-ArtifactsLog -message "Donwload Artifacts done."
+}
+
+# If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
+if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
+    Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
+    Unpublish-AllNavAppsInServerInstance
+    $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
+    Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Sync the system application"
+    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Write-Host "  Install the system application"
+    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+}
+
+# Import Artifacts
+try {
+    $SyncMode = $env:IMPORT_SYNC_MODE
+    $Scope = $env:IMPORT_SCOPE
+    if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
+    if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
+
+    Import-Artifacts `
+        -Path            $targetDirManuallySorted `
+        -NavServiceName  $NavServiceName `
+        -ServerInstance  $ServerInstance `
+        -Tenant          $TenantId `
+        -SyncMode        $SyncMode `
+        -Scope           "Global" `
+        -telemetryClient $telemetryClient `
+        -ErrorAction     SilentlyContinue 
+
+    Import-Artifacts `
+        -Path            $targetDir `
+        -NavServiceName  $NavServiceName `
+        -ServerInstance  $ServerInstance `
+        -Tenant          $TenantId `
+        -SyncMode        $SyncMode `
+        -Scope           $Scope `
+        -telemetryClient $telemetryClient `
+        -ErrorAction     SilentlyContinue
+}
+catch {
+    Write-Host "Import Artifacts Error: $($_.Exception.Message)" -f Red
+}
+finally {
+    Write-Host "Import Artifacts done."
 }
 
 $artifactSettings = "c:\run\ArtifactSettings.ps1"
@@ -447,11 +457,13 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Importing License to new tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
-    $licenseFilePath = "c:\license.flf"
-    if (!(Test-Path $licenseFilePath)) {
-        $licenseFilePath = "C:\license.bclicense"
+    if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
+        $licenseToImport = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Cronus.*").FullName
+    } else {
+        $licenseToImport = $env:licensefile
     }
-    if (Test-Path $licenseFilePath) {
+    
+    if (Test-Path $licenseToImport) {
         Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile $licenseFilePath -Database Tenant
         Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
     } else {
