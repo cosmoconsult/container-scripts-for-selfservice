@@ -7,7 +7,7 @@ param (
     [string]$PathInZip = "",
     [Parameter(Mandatory=$false)]
     [ValidateSet('Global','Tenant','Dev')]
-    [string] $Scope = "Tenant",
+    [string] $Scope = "Tenant"
 )
 
 c:\run\prompt.ps1
@@ -89,8 +89,14 @@ try {
     if ($success) {
         try {
             $started2 = Get-Date -Format "o"
-            Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default"
-            Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+            
+            if ($Scope -eq "Global") {
+                Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope"
+                Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+            } elseif ($Scope -eq "Tenant") {
+                Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default"
+                Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+            }
             $info | foreach { Write-Host "$_" }
             $warn | foreach { Write-Host "$_" }
             $err  | foreach { Write-Host "$_" }
