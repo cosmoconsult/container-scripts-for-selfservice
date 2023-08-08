@@ -64,6 +64,7 @@ try {
     if($oldApp -and $oldApp.IsInstalled) {
         try {
             $started1 = Get-Date -Format "o"
+            Write-Host "Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $($oldApp.Name) -Publisher $($oldApp.Publisher) -Version $($oldApp.Version) -Force"
             Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" }
             $warn | foreach { Write-Host "$_" }
@@ -88,7 +89,7 @@ try {
     if ($success) {
         try {
             $started2 = Get-Date -Format "o"
-            Write-Host "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..."
+            Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default"
             Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" }
             $warn | foreach { Write-Host "$_" }
@@ -106,7 +107,7 @@ try {
         $skipInstall = ! $success
         try {
             $started2 = Get-Date -Format "o"
-            Write-Host "Sync App $($app.Name) $($app.Publisher) $($app.Version)..."
+            Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
             Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" }
             $warn | foreach { Write-Host "$_" }
@@ -131,7 +132,7 @@ try {
     if ((! $skipInstall) -and ($runDataUpgrade)) {
         try {
             $started2 = Get-Date -Format "o"
-            Write-Host "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version)..."
+            Write-Host "Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
             
             Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" }
@@ -153,7 +154,7 @@ try {
     if (! $skipInstall) {
         try {
             $started3 = Get-Date -Format "o"
-            Write-Host "Install App $($app.Name) $($app.Publisher) $($app.Version)..."
+            Write-Host "Install-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version)"
             Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" }
             $warn | foreach { Write-Host "$_" }
