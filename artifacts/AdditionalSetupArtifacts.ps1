@@ -60,6 +60,8 @@ function Move-Database {
 
 }
 
+$blackListedApps = @([pscustomobject]@{Name="CKL Monetization";Id='2d648cd3-1779-449a-b0eb-23a98267d85e';Reason="works only on SaaS"})
+
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
     if (!$TenantId) { $TenantId = "default" }
@@ -202,7 +204,7 @@ finally {
 }
 
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
-if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
+if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
     Unpublish-AllNavAppsInServerInstance
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
@@ -227,7 +229,7 @@ try {
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
         -SyncMode        $SyncMode `
-        -Scope           $Scope `
+        -Scope           "Global" `
         -telemetryClient $telemetryClient `
         -ErrorAction     SilentlyContinue 
 
@@ -354,6 +356,12 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Invoke-Sqlcmd -Database $tenantId -Query "UPDATE [dbo].[NAV App Installed App] SET [Package ID] = '$($app.'Package ID')' WHERE [App ID] = '$($app.'App ID')'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
 
+    foreach ($blackListedApp in $blackListedApps) {
+        Write-Host "   - Removing app '$($blackListedApp.Name)' if installed, reason '$($blackListedApp.Reason)', id '$($blackListedApp.Id)'"
+        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Published App] WHERE [App ID] = '$($blackListedApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Installed App] WHERE [App ID] = '$($blackListedApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+    }
+
     Write-Host " - Replacing default tenant database with new SaaS database"
     Dismount-NAVTenant -ServerInstance $ServerInstance -Tenant "default" -Force
     Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
@@ -372,11 +380,11 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host "Change collation to $collation"
         $navDataFilePath = (Join-Path $volPath "export.navdata")
         Write-Host "Export NAVData"
-        Export-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
+        Export-NAVData -ApplicationDatabaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseServer "$DatabaseServer\$DatabaseInstance" -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
         Write-Host "Create new database with collation $collation"
         Invoke-SqlCmd -Query "CREATE DATABASE [CronusNew] COLLATE $collation" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Write-Host "Import NAVData"
-        Import-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath -Force
+        Import-NAVData -ApplicationDatabaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseServer "$DatabaseServer\$DatabaseInstance" -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath -Force
         Write-Host "Stop server instance"
         Stop-NAVServerInstance BC
         Write-Host "Replace CRONUS database"
@@ -449,15 +457,18 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Importing License to new tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
-
     if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
         $licenseToImport = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Cronus.*").FullName
     } else {
         $licenseToImport = $env:licensefile
     }
-
-    Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile $licenseToImport -Database Tenant
-    Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
+    
+    if (Test-Path $licenseToImport) {
+        Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile $licenseFilePath -Database Tenant
+        Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
+    } else {
+        Write-Host "   Couldn't find license file"
+    }
 }
 
 Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
@@ -470,5 +481,3 @@ if (!(Test-Path "C:\CosmoSetupCompleted.txt"))
    Write-Host "Set marker for health check"
 }
 Write-Host ""
-
-Invoke-4PSPostStartupHandling

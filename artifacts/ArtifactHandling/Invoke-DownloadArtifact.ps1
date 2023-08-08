@@ -140,7 +140,7 @@ function Invoke-DownloadArtifact {
                     Add-ArtifactsLog -message "Download Artifact from $($sourceUri)"
                 }
             } else {
-                Add-ArtifactsLog -message "Get Artifact from $sourceUri"
+                Add-ArtifactsLog -message "Copy Artifact from $sourceUri"
             }
 
             try {
@@ -153,7 +153,7 @@ function Invoke-DownloadArtifact {
                     }
                 } else {
                     if (Test-Path $sourceUri) {
-                        Add-ArtifactsLog -message "Get Artifact from $sourceUri"
+                        Add-ArtifactsLog -message "Found Artifact at $sourceUri"
                     } else {
                         Add-ArtifactsLog -message "No Artifact found at $sourceUri"
                     }                    
