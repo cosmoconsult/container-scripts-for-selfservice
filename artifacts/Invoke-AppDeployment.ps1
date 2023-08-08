@@ -4,12 +4,20 @@ param (
     [string]$Username,  # ignored
     [string]$Password,  # ignored
     [string]$BearerToken = "",
-    [string]$PathInZip = ""
+    [string]$PathInZip = "",
+    [Parameter(Mandatory=$false)]
+    [ValidateSet('Global','Tenant','Dev')]
+    [string] $Scope = "Tenant",
 )
 
 c:\run\prompt.ps1
 try {
     $started = Get-Date -Format "o"
+
+    if ($Scope -eq 'Dev') {
+        Write-Host "Deployment to the dev endpoint is not yet supported"
+        return
+    }
 
     if ($AppToDeploy.StartsWith("http")) {
         # given a URL, so need to download
@@ -81,7 +89,7 @@ try {
         try {
             $started2 = Get-Date -Format "o"
             Write-Host "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..."
-            Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope tenant -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+            Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
             $info | foreach { Write-Host "$_" }
             $warn | foreach { Write-Host "$_" }
             $err  | foreach { Write-Host "$_" }
