@@ -1,23 +1,19 @@
 [CmdletBinding()]
 param (
     [string]$AppToDeploy,
-    [string]$Username,  # ignored
-    [string]$Password,  # ignored
+    [string]$Username,
+    [string]$Password,
     [string]$BearerToken = "",
     [string]$PathInZip = "",
     [Parameter(Mandatory=$false)]
     [ValidateSet('Global','Tenant','Dev')]
-    [string] $Scope = "Tenant"
+    [string] $Scope = "Tenant",
+    [string] $ContainerId
 )
 
 c:\run\prompt.ps1
 try {
     $started = Get-Date -Format "o"
-
-    if ($Scope -eq 'Dev') {
-        Write-Host "Deployment to the dev endpoint is not yet supported"
-        return
-    }
 
     if ($AppToDeploy.StartsWith("http")) {
         # given a URL, so need to download
@@ -57,121 +53,176 @@ try {
     $Path = $AppToDeploy
     $app     = (Get-NAVAppInfo -Path $Path) 
 
-    # Check if app is already published with another version
-    $oldApp = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -ErrorAction SilentlyContinue) | Select-Object -First 1
-    
-    # Uninstall old NAVApp, when present
-    if($oldApp -and $oldApp.IsInstalled) {
-        try {
-            $started1 = Get-Date -Format "o"
-            Write-Host "Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $($oldApp.Name) -Publisher $($oldApp.Publisher) -Version $($oldApp.Version) -Force"
-            Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-            $info | foreach { Write-Host "$_" }
-            $warn | foreach { Write-Host "$_" }
-            $err  | foreach { Write-Host "$_" }
-            $success = ! $err
-            if ($success) { Write-Host "Uninstall old App successful" }
-            $runDataUpgrade = $true
-        } catch {
-            Write-Host "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-            $success = $false
-        }
-    } else {
-        if ($oldApp) {
-            $runDataUpgrade = $true
-        } else {
-            $runDataUpgrade = $false
-        } 
-        $success = $true
-    }
-
-    # Publish NAVApp
-    if ($success) {
-        try {
-            $started2 = Get-Date -Format "o"
-            
-            if ($Scope -eq "Global") {
-                Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope"
-                Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-            } elseif ($Scope -eq "Tenant") {
-                Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default"
-                Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+    if ($Scope -ne 'Dev') {
+        # Check if app is already published with another version
+        $oldApp = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -ErrorAction SilentlyContinue) | Select-Object -First 1
+        
+        # Uninstall old NAVApp, when present
+        if($oldApp -and $oldApp.IsInstalled) {
+            try {
+                $started1 = Get-Date -Format "o"
+                Write-Host "Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $($oldApp.Name) -Publisher $($oldApp.Publisher) -Version $($oldApp.Version) -Force"
+                Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                $info | foreach { Write-Host "$_" }
+                $warn | foreach { Write-Host "$_" }
+                $err  | foreach { Write-Host "$_" }
+                $success = ! $err
+                if ($success) { Write-Host "Uninstall old App successful" }
+                $runDataUpgrade = $true
+            } catch {
+                Write-Host "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
+                $success = $false
             }
-            $info | foreach { Write-Host "$_" }
-            $warn | foreach { Write-Host "$_" }
-            $err  | foreach { Write-Host "$_" }
-            $success = ! $err
-            if ($success) { Write-Host "Publish App successful" }
-        } catch {
-            Write-Host "Publish App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-            $success = $false
+        } else {
+            if ($oldApp) {
+                $runDataUpgrade = $true
+            } else {
+                $runDataUpgrade = $false
+            } 
+            $success = $true
         }
-    }
 
-    # Sync NAVApp
-    if ($success) {
-        $skipInstall = ! $success
+        # Publish NAVApp
+        if ($success) {
+            try {
+                $started2 = Get-Date -Format "o"
+                
+                if ($Scope -eq "Global") {
+                    Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope"
+                    Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                } elseif ($Scope -eq "Tenant") {
+                    Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default"
+                    Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                }
+                $info | foreach { Write-Host "$_" }
+                $warn | foreach { Write-Host "$_" }
+                $err  | foreach { Write-Host "$_" }
+                $success = ! $err
+                if ($success) { Write-Host "Publish App successful" }
+            } catch {
+                Write-Host "Publish App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
+                $success = $false
+            }
+        }
+
+        # Sync NAVApp
+        if ($success) {
+            $skipInstall = ! $success
+            try {
+                $started2 = Get-Date -Format "o"
+                Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
+                Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                $info | foreach { Write-Host "$_" }
+                $warn | foreach { Write-Host "$_" }
+                $err  | foreach { Write-Host "$_" }
+                $success = ! $err
+                if ($success) { Write-Host "Sync App ... successful" }
+            } catch {
+                Write-Host "Sync App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
+                $success = $false
+            }
+            $skipInstall = ! $success
+        }
+
+        # If extension data version is older than extension version, that should also trigger the data upgrade
+        $appInfo = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue) | Select-Object -First 1
+        if ((! $skipInstall) -and ($appInfo.ExtensionDataVersion) -and [System.Version]$appInfo.ExtensionDataVersion -lt [System.Version]$appInfo.Version) {
+            Write-Host "Identified lower extension data version ($($appInfo.ExtensionDataVersion)) than extension version ($($appInfo.Version)), need to run data upgrade"
+            $runDataUpgrade = $true
+        }
+
+        # Check for Data Upgrade
+        if ((! $skipInstall) -and ($runDataUpgrade)) {
+            try {
+                $started2 = Get-Date -Format "o"
+                Write-Host "Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
+                
+                Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                $info | foreach { Write-Host "$_" }
+                $warn | foreach { Write-Host "$_" }
+                $err  | foreach { Write-Host "$_" }
+                $success     = ! $err
+                if ($success) { Write-Host "App Data Upgrade ... successful" }
+                # Check, if the new App is correct installed
+                $result = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -ErrorAction SilentlyContinue) | Select-Object -First 1
+                $skipInstall = $result -and $result.IsInstalled  
+            } catch {
+                Write-Host "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
+                $success     = $false
+                $skipInstall = $true
+            }
+        }
+
+        # Install NAVApp
+        if (! $skipInstall) {
+            try {
+                $started3 = Get-Date -Format "o"
+                Write-Host "Install-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version)"
+                Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                $info | foreach { Write-Host "$_" }
+                $warn | foreach { Write-Host "$_" }
+                $err  | foreach { Write-Host "$_" }
+                $success = ! $err
+                if ($success) { Write-Host "Install App ... successful" }
+            } catch {        
+                Write-Host "Install App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
+                $success = $false
+            }
+        }
+        
+    } else {
+        # Scope is dev
+        Import-Module (Join-Path $PSScriptRoot "helper\k8s-bc-helper.psd1")
+        Import-Module "c:\run\helper\k8s-bc-helper.psd1"
+
+        $handler = New-Object System.Net.Http.HttpClientHandler
+        $HttpClient = [System.Net.Http.HttpClient]::new($handler)
+        $pair = "$($Username):$Password"
+        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
+        $base64 = [System.Convert]::ToBase64String($bytes)
+        $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64)
+        $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+        $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
+        $devServerUrl = "https://fps-alpaca.westeurope.cloudapp.azure.com/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+
+        $appName = [System.IO.Path]::GetFileName($Path)      
+        $multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
+        $FileStream = [System.IO.FileStream]::new($Path, [System.IO.FileMode]::Open)
         try {
-            $started2 = Get-Date -Format "o"
-            Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
-            Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-            $info | foreach { Write-Host "$_" }
-            $warn | foreach { Write-Host "$_" }
-            $err  | foreach { Write-Host "$_" }
-            $success = ! $err
-            if ($success) { Write-Host "Sync App ... successful" }
-        } catch {
-            Write-Host "Sync App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-            $success = $false
+            $fileHeader = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
+            $fileHeader.Name = "$appName"
+            $fileHeader.FileName = "$appName"
+            $fileHeader.FileNameStar = "$appName"
+            $fileContent = [System.Net.Http.StreamContent]::new($FileStream)
+            $fileContent.Headers.ContentDisposition = $fileHeader
+            $multipartContent.Add($fileContent)
+            Write-Host "Publishing $appName to $devServerUrl"
+            $result = $HttpClient.PostAsync($devServerUrl, $multipartContent).GetAwaiter().GetResult()
+            if (!$result.IsSuccessStatusCode) {
+                $message = "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
+                try {
+                    $resultMsg = $result.Content.ReadAsStringAsync().Result
+                    try {
+                        $json = $resultMsg | ConvertFrom-Json
+                        $message += "`n$($json.Message)"
+                    }
+                    catch {
+                        $message += "`n$resultMsg"
+                    }
+                }
+                catch {}
+                throw $message
+            }
         }
-        $skipInstall = ! $success
-    }
-
-    # If extension data version is older than extension version, that should also trigger the data upgrade
-    $appInfo = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue) | Select-Object -First 1
-    if ((! $skipInstall) -and ($appInfo.ExtensionDataVersion) -and [System.Version]$appInfo.ExtensionDataVersion -lt [System.Version]$appInfo.Version) {
-        Write-Host "Identified lower extension data version ($($appInfo.ExtensionDataVersion)) than extension version ($($appInfo.Version)), need to run data upgrade"
-        $runDataUpgrade = $true
-    }
-
-    # Check for Data Upgrade
-    if ((! $skipInstall) -and ($runDataUpgrade)) {
-        try {
-            $started2 = Get-Date -Format "o"
-            Write-Host "Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
-            
-            Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-            $info | foreach { Write-Host "$_" }
-            $warn | foreach { Write-Host "$_" }
-            $err  | foreach { Write-Host "$_" }
-            $success     = ! $err
-            if ($success) { Write-Host "App Data Upgrade ... successful" }
-            # Check, if the new App is correct installed
-            $result = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -ErrorAction SilentlyContinue) | Select-Object -First 1
-            $skipInstall = $result -and $result.IsInstalled  
-        } catch {
-            Write-Host "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-            $success     = $false
-            $skipInstall = $true
+        catch {
+            Get-ExtendedErrorMessage -errorRecord $_ | Out-Host
+            throw
+        }
+        finally {
+            $FileStream.Close()
         }
     }
 
-    # Install NAVApp
-    if (! $skipInstall) {
-        try {
-            $started3 = Get-Date -Format "o"
-            Write-Host "Install-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version)"
-            Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-            $info | foreach { Write-Host "$_" }
-            $warn | foreach { Write-Host "$_" }
-            $err  | foreach { Write-Host "$_" }
-            $success = ! $err
-            if ($success) { Write-Host "Install App ... successful" }
-        } catch {        
-            Write-Host "Install App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-            $success = $false
-        }
-    }
     # Check Result
     $result = Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -ErrorAction SilentlyContinue
     if ($result) { 

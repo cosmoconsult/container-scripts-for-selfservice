@@ -27,7 +27,8 @@
 
     NestedModules = @('Backup-Databases.psm1',
                       'Copy-EventLog.psm1',
-                      'Install-OpenSSH.psm1')
+                      'Install-OpenSSH.psm1',
+                      'Get-ExtendedErrorMessage.psm1')
 
     # Functions to export from this module
     FunctionsToExport = '*'
