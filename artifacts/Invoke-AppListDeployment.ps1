@@ -1,13 +1,14 @@
 [CmdletBinding()]
 param (
     [string[]]$AppsToDeploy,
-    [string]$Username,  # ignored
-    [string]$Password,  # ignored
+    [string]$Username,
+    [string]$Password,
     [string]$BearerToken = "",
     [string]$PathInZip = "",
     [Parameter(Mandatory=$false)]
     [ValidateSet('Global','Tenant','Dev')]
-    [string] $Scope = "Tenant"
+    [string] $Scope = "Tenant",
+    [string] $ContainerId
 )
 
 c:\run\prompt.ps1
@@ -76,7 +77,7 @@ try {
     # now deploy them
     $orderedApps | % {
         #Write-Host $_
-        c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope 2>&1
+        c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -Username $Username -Password $Password -ContainerId $ContainerId 2>&1
     }
 }
 catch {
