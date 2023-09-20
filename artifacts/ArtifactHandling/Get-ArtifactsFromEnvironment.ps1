@@ -61,6 +61,13 @@ function Get-ArtifactsFromEnvironment {
                 } else {
                     $artifactJson = '{"artifacts":[]}'
                 }
+
+                if ($env:IsBuildContainer) {
+                    $artifactJson = $artifactJson | Where-Object { -not ($_.ignorein -match "build") }
+                } else {
+                    $artifactJson = $artifactJson | Where-Object { -not ($_.ignorein -match "dev") }
+                }
+                            
                 Write-Host "Artifacts: $artifactJson"
                 $envArtifacts = ($artifactJson | ConvertFrom-Json -ErrorAction SilentlyContinue)
                 $artifacts = $envArtifacts.artifacts
