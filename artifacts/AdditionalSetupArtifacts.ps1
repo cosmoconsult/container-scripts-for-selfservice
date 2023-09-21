@@ -193,14 +193,14 @@ try {
     $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
-    $properties["artifats"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
+    $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
 }
 catch {
-    Add-ArtifactsLog -message "Donwload Artifacts Error: $($_.Exception.Message)" -severity Error
+    Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
 }
 finally {
-    Add-ArtifactsLog -message "Donwload Artifacts done."
+    Add-ArtifactsLog -message "Download Artifacts done."
 }
 
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
