@@ -38,7 +38,7 @@ if (Test-Path $assemblyArchive) {
   # Copy all DLLs from folders to new directory (because some were in use and couldn't be zipped right away)
   Copy-Item -Path "C:\Program Files\Microsoft Dynamics*\*\Service\*" -Destination $serviceFolderTarget -Recurse
   if ($twentyTwoOrLater) {
-    Copy-Item -Path "C:\Program Files\dotnet\shared\*" -Destination $sharedFolderTarget -Recurse
+    get-childitem -Directory 'C:\Program Files\dotnet\shared\' | % { Get-ChildItem -Directory $_.FullName | Sort-Object Name -Descending | Select-Object -First 1 } | % { New-Item -Force -ItemType Directory (Join-Path $sharedFolderTarget $_.FullName.SubString(31)); Copy-Item -Recurse $_.FullName (Join-Path $sharedFolderTarget $_.FullName.SubString(31)) }
   } else {
     Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics*\*\RoleTailored Client\*" -Destination $rtcFolderTarget -Recurse
     Copy-Item -Path "C:\Windows\Microsoft.NET\Framework64\v4.0.*\*" -Destination $netFolderTarget -Recurse
