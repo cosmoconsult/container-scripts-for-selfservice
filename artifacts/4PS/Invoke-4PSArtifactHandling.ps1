@@ -22,6 +22,8 @@ function Invoke-4PSArtifactHandling {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
             } elseif ("CRONUS" -eq $appDatabaseName -or "default" -eq $appDatabaseName) {
                 Write-Host "4PS initialization skipped as this seems to be a Microsoft standard database"
+            } elseif ($env:AZP_SERVICE_DISPLAYNAME -like "*Skip4PSInitializer*") {
+                Write-Host "4PS initialization skipped because the display name contains Skip4PSInitializer"
             } else {
                 Write-Host "4PS initialization starts"
                 $startTime4PS = [DateTime]::Now
