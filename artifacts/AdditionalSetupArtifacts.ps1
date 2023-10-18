@@ -454,8 +454,12 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         }
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
     }
+}
 
-    Write-Host " - Importing License to new tenant"
+if (![string]::IsNullOrEmpty($env:saasbakfile))
+{
+    # license import also needs to happen on restart in case we got a new license
+    Write-Host " - Importing License to tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
         $licenseToImport = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Cronus.*").FullName
