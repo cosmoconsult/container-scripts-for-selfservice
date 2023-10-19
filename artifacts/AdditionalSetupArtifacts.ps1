@@ -468,7 +468,7 @@ if (![string]::IsNullOrEmpty($env:saasbakfile))
     }
     
     if (Test-Path $licenseToImport) {
-        Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile $licenseFilePath -Database Tenant
+        Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile $licenseToImport -Database Tenant
         Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
     } else {
         Write-Host "   Couldn't find license file"
