@@ -170,7 +170,7 @@ function Invoke-4PSArtifactHandling {
                                         -CodeunitId 50189 `
                                         -MethodName CreateLicenses
                                 }
-
+                                
                                 Set-NAVServerConfiguration -KeyName "ServicesDefaultCompany" -KeyValue "$companyName" -ServerInstance BC
                                 
                                 $firstRun = $false
