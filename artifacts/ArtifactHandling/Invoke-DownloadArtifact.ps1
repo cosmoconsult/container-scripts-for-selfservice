@@ -82,6 +82,12 @@ function Invoke-DownloadArtifact {
     }
     
     process {
+        # check restart
+        if (($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
+            Add-ArtifactsLog -message "Skipping $target download because this seems to be a service restart"
+            return
+        }
+
         # Download from given URL
         if (Test-Path "$tempArchive" -ErrorAction SilentlyContinue) { Remove-Item "$tempArchive" -Force -ErrorAction SilentlyContinue }
 
@@ -134,7 +140,7 @@ function Invoke-DownloadArtifact {
                     Add-ArtifactsLog -message "Download Artifact from $($sourceUri)"
                 }
             } else {
-                Add-ArtifactsLog -message "Get Artifact from $sourceUri"
+                Add-ArtifactsLog -message "Copy Artifact from $sourceUri"
             }
 
             try {
@@ -147,7 +153,7 @@ function Invoke-DownloadArtifact {
                     }
                 } else {
                     if (Test-Path $sourceUri) {
-                        Add-ArtifactsLog -message "Get Artifact from $sourceUri"
+                        Add-ArtifactsLog -message "Found Artifact at $sourceUri"
                     } else {
                         Add-ArtifactsLog -message "No Artifact found at $sourceUri"
                     }                    

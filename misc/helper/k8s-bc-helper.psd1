@@ -20,13 +20,15 @@
     CompanyName = 'Cosmo Consult SSC'
     
     # Copyright statement for this module
-    Copyright = '© 2022 Cosmo Consult SSC. All rights reserved.'
+    Copyright = 'ï¿½ 2022 Cosmo Consult SSC. All rights reserved.'
     
     # Description of the functionality provided by this module
     Description = 'Cosmo Consult k8s BC helper library'
 
     NestedModules = @('Backup-Databases.psm1',
-                      'Copy-EventLog.psm1')
+                      'Copy-EventLog.psm1',
+                      'Install-OpenSSH.psm1',
+                      'Get-ExtendedErrorMessage.psm1')
 
     # Functions to export from this module
     FunctionsToExport = '*'

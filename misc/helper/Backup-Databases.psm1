@@ -72,7 +72,7 @@ function Backup-BCDatabases {
         } else {
             Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database" -databasecredential $databasecredential -compress:$compress
         }
-
+        Write-Host 'backup finished'
 }
 
 

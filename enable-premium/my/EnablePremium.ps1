@@ -1,6 +1,3 @@
-# Invoke default behavior
-. (Join-Path $runPath $MyInvocation.MyCommand.Name)
-
 if ([string]::IsNullOrEmpty($env:enablePremium) -or $($env:enablePremium).ToLower() -ne "true") {
     return;
 }

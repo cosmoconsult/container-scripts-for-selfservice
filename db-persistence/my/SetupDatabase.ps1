@@ -9,10 +9,10 @@ if ($restartingInstance) {
 
     # Nothing to do
 
-} elseif ($volPath -ne "") {
+} elseif (($volPath -ne "") -and (Test-Path $volPath)) {
     # database volume path is provided, check if the database is already there or not
 
-    if ((Get-Item -path $volPath).GetFileSystemInfos().Count -eq 0) {
+    if ((Get-ChildItem $volPath).Count -eq 0) {
         # folder is empty, try to move the existing database to the db volume path
 
         Write-Host "Setting up database with default script"
@@ -26,7 +26,7 @@ if ($restartingInstance) {
 
         $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
 
-        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
+        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection -ArgumentList "$DatabaseServer\$DatabaseInstance"
 
         $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
         
@@ -38,11 +38,11 @@ if ($restartingInstance) {
 
                 # set recovery mode and shrink log
                 $sqlcmd = "ALTER DATABASE [$($_.Name)] SET RECOVERY SIMPLE WITH NO_WAIT"
-                & sqlcmd -Q $sqlcmd
+                & sqlcmd -Q $sqlcmd -S "$DatabaseServer\$DatabaseInstance"
                 $shrinkCmd = "USE [$($_.Name)]; "
                 $_.LogFiles | ForEach-Object {
                     $shrinkCmd += "DBCC SHRINKFILE (N'$($_.Name)' , 10) WITH NO_INFOMSGS"
-                    & sqlcmd -Q $shrinkCmd
+                    & sqlcmd -Q $shrinkCmd -S "$DatabaseServer\$DatabaseInstance"
                 }
             
                 Write-Host "- Moving $($_.Name)"
@@ -90,45 +90,51 @@ if ($restartingInstance) {
             Write-Host "Attach database $database"
 
             $sqlcmd = "DROP DATABASE IF EXISTS [$database]"
-            & sqlcmd -Q $sqlcmd
+            & sqlcmd -Q $sqlcmd -S "$DatabaseServer\$DatabaseInstance"
 
             $dbPath = (Join-Path $volPath $database)
             $files = Get-ChildItem $dbPath -File
             $joinedFiles = $files.Name -join "'), (FILENAME = '$dbPath\"
             $sqlcmd = "CREATE DATABASE [$database] ON (FILENAME = '$dbPath\$joinedFiles') FOR ATTACH;"
-            & sqlcmd -Q $sqlcmd
+            & sqlcmd -Q $sqlcmd -S "$DatabaseServer\$DatabaseInstance"
         }
 
         $appDatabaseName = Get-AppDatabaseName
 
         Write-Host "Check database $appDatabaseName and container version to identify need for upgrade"
-        c:\run\prompt.ps1
-        $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-        $sysAppInfoDB = (Invoke-Sqlcmd -database $appDatabaseName -Query "select * FROM [dbo].[NAV App Installed App] WHERE Publisher='Microsoft' and Name='System Application'")
+        $sysAppPath = 'C:\Applications\system application\source\Microsoft_System Application.app'
+        if (Test-Path $sysAppPath)
+        {
+            c:\run\prompt.ps1
+            $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath
+            $sysAppInfoDB = (Invoke-Sqlcmd -database $appDatabaseName -Query "select * FROM [dbo].[NAV App Installed App] WHERE Publisher='Microsoft' and Name='System Application'" -ServerInstance "$DatabaseServer\$DatabaseInstance")
 
-        $sysAppVersionFS = $sysAppInfoFS.Version
-        Write-Host "Trying to parse $($sysAppInfoDB.'Version Major').$($sysAppInfoDB.'Version Minor').$($sysAppInfoDB.'Version Build').$($sysAppInfoDB.'Version Revision') for the database version"
-        $sysAppVersionDB = [Version]::new()
-        $canParseVersionDB = [Version]::TryParse("$($sysAppInfoDB.'Version Major').$($sysAppInfoDB.'Version Minor').$($sysAppInfoDB.'Version Build').$($sysAppInfoDB.'Version Revision')", [ref]$sysAppVersionDB)
-        if (-not $canParseVersionDB) {
-            Write-Host "  Unable to parse the version in the database, trying to convert and hoping for the best..."
-            Write-Host "  Found in FS:"
-            $sysAppInfoFS
-            Write-Host "  Found in DB:"
-            $sysAppInfoDB
-            Invoke-NAVApplicationDatabaseConversion -databaseServer "localhost" -DatabaseName "$databaseName" -Force
-            $env:cosmoUpgradeSysApp = $true
-        } else {
-            Write-Host "  Found version $sysAppVersionFS for the container and $sysAppVersionDB for the database"
-            if ($sysAppVersionDB -gt $sysAppVersionFS) {
-                Write-Error "  Database version is newer than container version, this probably won't work"
-            } elseif ($sysAppVersionFS -gt $sysAppVersionDB) {
-                Write-Host "  Container version is newer than database version, trying to convert"
-                Invoke-NAVApplicationDatabaseConversion -databaseServer "localhost" -DatabaseName "$databaseName" -Force
+            $sysAppVersionFS = $sysAppInfoFS.Version
+            Write-Host "Trying to parse $($sysAppInfoDB.'Version Major').$($sysAppInfoDB.'Version Minor').$($sysAppInfoDB.'Version Build').$($sysAppInfoDB.'Version Revision') for the database version"
+            $sysAppVersionDB = [Version]::new()
+            $canParseVersionDB = [Version]::TryParse("$($sysAppInfoDB.'Version Major').$($sysAppInfoDB.'Version Minor').$($sysAppInfoDB.'Version Build').$($sysAppInfoDB.'Version Revision')", [ref]$sysAppVersionDB)
+            if (-not $canParseVersionDB) {
+                Write-Host "  Unable to parse the version in the database, trying to convert and hoping for the best..."
+                Write-Host "  Found in FS:"
+                $sysAppInfoFS
+                Write-Host "  Found in DB:"
+                $sysAppInfoDB
+                Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
                 $env:cosmoUpgradeSysApp = $true
             } else {
-                Write-Host "  Versions are identical, this should work"
+                Write-Host "  Found version $sysAppVersionFS for the container and $sysAppVersionDB for the database"
+                if ($sysAppVersionDB -gt $sysAppVersionFS) {
+                    Write-Error "  Database version is newer than container version, this probably won't work"
+                } elseif ($sysAppVersionFS -gt $sysAppVersionDB) {
+                    Write-Host "  Container version is newer than database version, trying to convert"
+                    Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
+                    $env:cosmoUpgradeSysApp = $true
+                } else {
+                    Write-Host "  Versions are identical, this should work"
+                }
             }
+        } else {
+            Write-Host "Can't upgrade database because System App not available (likely old BC version)"
         }
     }
 } else {

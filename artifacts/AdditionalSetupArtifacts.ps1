@@ -4,12 +4,12 @@ function Move-Database {
     )
 
     Write-Host " - Moving SaaS database to volume"
-    if ($env:volPath -ne "") {
+    if (($env:volPath -ne "") -and (Test-Path $env:volPath)) {
         $volPath = $env:volPath
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Smo") | Out-Null
         [reflection.assembly]::LoadWithPartialName("Microsoft.SqlServer.Common") | Out-Null
         $dummy = new-object Microsoft.SqlServer.Management.SMO.Server
-        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection
+        $sqlConn = new-object Microsoft.SqlServer.Management.Common.ServerConnection -ArgumentList "$DatabaseServer\$DatabaseInstance"
         $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
         $smo.Databases | Where-Object { $_.Name -eq $databaseToMove } | ForEach-Object {
             # set recovery mode and shrink log
@@ -60,12 +60,15 @@ function Move-Database {
 
 }
 
+$blackListedApps = @([pscustomobject]@{Name="CKL Monetization";Id='2d648cd3-1779-449a-b0eb-23a98267d85e';Reason="works only on SaaS"})
+
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
+    if (!$TenantId) { $TenantId = "default" }
     $sysAppInstallInfo = Get-NAVAppInfo -ServerInstance BC -Name "System Application" -Publisher "Microsoft"
     if ($sysAppInstallInfo) {
         Write-Host "  Uninstall the previous system application with dependencies"
-        Uninstall-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Force
+        Uninstall-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Force -Tenant $TenantId
     } else {
         Write-Host "  No previous system application found"
     }
@@ -73,21 +76,32 @@ if ($env:cosmoUpgradeSysApp) {
     Write-Host "  Publish the new system application $($sysAppInfoFS.Version)"
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Sync the new system application"
-    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Tenant $TenantId
     Write-Host "  Start data upgrade for the system application"
-    Start-NAVAppDataUpgrade -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Start-NAVAppDataUpgrade -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Tenant $TenantId
     Write-Host "  Install the new system application"
-    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Tenant $TenantId
 
     Write-Host    "Set NAVApplication version '$($sysAppInfoFS.Version)' in Serverinstance 'BC'."
     Set-NAVApplication -ApplicationVersion "$($sysAppInfoFS.Version)" -ServerInstance BC -Force -ErrorAction Stop
-    Sync-NAVTenant -ServerInstance BC -Mode Sync -Force -ErrorAction Stop
-    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop 
-    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop 
+    Sync-NAVTenant -ServerInstance BC -Mode Sync -Force -ErrorAction Stop -Tenant $TenantId
+    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
+    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
 
     Write-Host    "Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
     Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($sysAppInfoFS.Version)"
+
+    if ($env:mode -ne "4ps") {
+        Write-Host " - Syncing all apps"
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
+    
+        Write-Host " - Upgrading all apps"
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+
+        Write-Host " - Installing all apps"
+        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Install-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+    }
 }
 
 # Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
@@ -96,7 +110,7 @@ if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
     Write-Host "=== Additional Setup Freddy ==="
     
     if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
-        sqlcmd -S 'localhost\SQLEXPRESS' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
+        & sqlcmd -S 'localhost\SQLEXPRESS' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
     }
 
     if (!(Test-Path "c:\navpfiles\*")) {
@@ -145,8 +159,13 @@ if (-not $ppiau) {
 if (Test-Path "$serviceTierFolder") {
     Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.psd1"
     Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psd1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
-    Write-Host "Import App Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
-    Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
+    if (Test-Path "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
+        Write-Host "Import App Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
+        Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
+    } elseif (Test-Path "$serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
+        Write-Host "Import App Management Utils from $serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1"
+        Import-Module "$serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
+    }
 }
 if (Test-Path "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1") {
     Write-Host "Import Nav IDE from $roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1"
@@ -166,6 +185,7 @@ $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
 $properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
+
 # Download Artifacts
 try {
     $started = Get-Date -Format "o"
@@ -173,18 +193,18 @@ try {
     $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
-    $properties["artifats"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
+    $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
 }
 catch {
-    Add-ArtifactsLog -message "Donwload Artifacts Error: $($_.Exception.Message)" -severity Error
+    Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
 }
 finally {
-    Add-ArtifactsLog -message "Donwload Artifacts done."
+    Add-ArtifactsLog -message "Download Artifacts done."
 }
 
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
-if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps") {
+if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
     Unpublish-AllNavAppsInServerInstance
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
@@ -209,7 +229,7 @@ try {
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
         -SyncMode        $SyncMode `
-        -Scope           $Scope `
+        -Scope           "Global" `
         -telemetryClient $telemetryClient `
         -ErrorAction     SilentlyContinue 
 
@@ -331,15 +351,21 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
                         -Timeout $SqlTimeout -Force | out-null
     
     Write-Host " - Adapting package IDs"
-    $diffPackageIds = Invoke-Sqlcmd -Query "select da.[App ID], da.[Package ID] FROM [default].[dbo].[NAV App Installed App] da JOIN [$tenantId].[dbo].[NAV App Installed App] ta ON da.[App ID] = ta.[App ID] AND da.[Version Major] = ta.[Version Major] AND da.[Version Minor] = ta.[Version Minor] AND da.[Version Build] = ta.[Version Build] AND da.[Version Revision] = ta.[Version Revision] AND da.[Package ID] != ta.[Package ID]"
+    $diffPackageIds = Invoke-Sqlcmd -Query "select da.[App ID], da.[Package ID] FROM [default].[dbo].[NAV App Installed App] da JOIN [$tenantId].[dbo].[NAV App Installed App] ta ON da.[App ID] = ta.[App ID] AND da.[Version Major] = ta.[Version Major] AND da.[Version Minor] = ta.[Version Minor] AND da.[Version Build] = ta.[Version Build] AND da.[Version Revision] = ta.[Version Revision] AND da.[Package ID] != ta.[Package ID]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     foreach ($app in $diffPackageIds) {
-        Invoke-Sqlcmd -Database $tenantId -Query "UPDATE [dbo].[NAV App Installed App] SET [Package ID] = '$($app.'Package ID')' WHERE [App ID] = '$($app.'App ID')'"
+        Invoke-Sqlcmd -Database $tenantId -Query "UPDATE [dbo].[NAV App Installed App] SET [Package ID] = '$($app.'Package ID')' WHERE [App ID] = '$($app.'App ID')'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+    }
+
+    foreach ($blackListedApp in $blackListedApps) {
+        Write-Host "   - Removing app '$($blackListedApp.Name)' if installed, reason '$($blackListedApp.Reason)', id '$($blackListedApp.Id)'"
+        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Published App] WHERE [App ID] = '$($blackListedApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Installed App] WHERE [App ID] = '$($blackListedApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
 
     Write-Host " - Replacing default tenant database with new SaaS database"
     Dismount-NAVTenant -ServerInstance $ServerInstance -Tenant "default" -Force
-    Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]"
-    Invoke-SqlCmd -Query "ALTER DATABASE $tenantId SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE $tenantId MODIFY NAME = [default]; ALTER DATABASE [default] SET MULTI_USER"
+    Invoke-SqlCmd -Query "alter database [default] set single_user with rollback immediate; DROP DATABASE [default]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+    Invoke-SqlCmd -Query "ALTER DATABASE $tenantId SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE $tenantId MODIFY NAME = [default]; ALTER DATABASE [default] SET MULTI_USER" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     $tenantId = "default"
 
     # move database to volume
@@ -354,16 +380,16 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host "Change collation to $collation"
         $navDataFilePath = (Join-Path $volPath "export.navdata")
         Write-Host "Export NAVData"
-        Export-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
+        Export-NAVData -ApplicationDatabaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseServer "$DatabaseServer\$DatabaseInstance" -ApplicationDatabaseName "CRONUS" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath
         Write-Host "Create new database with collation $collation"
-        Invoke-SqlCmd -Query "CREATE DATABASE [CronusNew] COLLATE $collation"
+        Invoke-SqlCmd -Query "CREATE DATABASE [CronusNew] COLLATE $collation" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Write-Host "Import NAVData"
-        Import-NAVData -ApplicationDatabaseServer $DatabaseServer -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath -Force
+        Import-NAVData -ApplicationDatabaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseServer "$DatabaseServer\$DatabaseInstance" -ApplicationDatabaseName "CronusNew" -IncludeApplication -IncludeApplicationData -FilePath $navDataFilePath -Force
         Write-Host "Stop server instance"
         Stop-NAVServerInstance BC
         Write-Host "Replace CRONUS database"
-        Invoke-SqlCmd -Query "alter database [CRONUS] set single_user with rollback immediate; DROP DATABASE [CRONUS]"
-        Invoke-SqlCmd -Query "ALTER DATABASE CronusNew SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE CronusNew MODIFY NAME = [CRONUS]; ALTER DATABASE [CRONUS] SET MULTI_USER"
+        Invoke-SqlCmd -Query "alter database [CRONUS] set single_user with rollback immediate; DROP DATABASE [CRONUS]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+        Invoke-SqlCmd -Query "ALTER DATABASE CronusNew SET SINGLE_USER WITH ROLLBACK IMMEDIATE; ALTER DATABASE CronusNew MODIFY NAME = [CRONUS]; ALTER DATABASE [CRONUS] SET MULTI_USER" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Remove-Item (Join-Path $volPath "CRONUS") -recurse -force
         Move-Database -databaseToMove "CRONUS"
         Write-Host "Start server instance"
@@ -395,6 +421,12 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Write-Host " - Upgrading all apps"
     Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
 
+    Write-Host " - Syncing new tenant"
+    Sync-NavTenant `
+        -ServerInstance $ServerInstance `
+        -Tenant $tenantId `
+        -Force
+
     Write-Host " - Upgrading tenant"
     Start-NAVDataUpgrade `
             -ServerInstance $ServerInstance `
@@ -415,14 +447,32 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Create user in new tenant (if not exists)"
     if(!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() })) {
-        New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -AuthenticationEMail $env:username -ErrorAction Continue
+        if ($($env:username).indexOf("@") -gt 0) {
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -AuthenticationEMail $env:username -ErrorAction Continue
+        } else {
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
+        }
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
     }
+}
 
-    Write-Host " - Importing License to new tenant"
-    Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]"
-    Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile "$runPath\license.flf" -Database Tenant
-    Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
+if (![string]::IsNullOrEmpty($env:saasbakfile))
+{
+    # license import also needs to happen on restart in case we got a new license
+    Write-Host " - Importing License to tenant"
+    Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+    if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
+        $licenseToImport = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Cronus.*").FullName
+    } else {
+        $licenseToImport = $env:licensefile
+    }
+    
+    if (Test-Path $licenseToImport) {
+        Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile $licenseToImport -Database Tenant
+        Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
+    } else {
+        Write-Host "   Couldn't find license file"
+    }
 }
 
 Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
@@ -435,5 +485,3 @@ if (!(Test-Path "C:\CosmoSetupCompleted.txt"))
    Write-Host "Set marker for health check"
 }
 Write-Host ""
-
-Invoke-4PSPostStartupHandling
