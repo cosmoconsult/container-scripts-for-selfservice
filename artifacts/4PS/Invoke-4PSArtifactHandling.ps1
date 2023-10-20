@@ -72,6 +72,8 @@ function Invoke-4PSArtifactHandling {
                     Publish-NAVApp -ServerInstance BC -Path $initializerPath -SkipVerification -Scope Tenant
                     Sync-NAVApp -ServerInstance BC -Name 'Container initializer'
                     Install-NAVApp -ServerInstance BC -Name 'Container initializer'
+                } else {
+                    Write-Host "Skipping installation of container initializer app at $initializerPath as it's disabled by environment variable"
                 }
 
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
@@ -167,11 +169,11 @@ function Invoke-4PSArtifactHandling {
                                         -CodeunitId 50189 `
                                         -MethodName CreateLicenses
                                 }
-                                
-                                Set-NAVServerConfiguration -KeyName "ServicesDefaultCompany" -KeyValue "$companyName" -ServerInstance BC
-                                
-                                $firstRun = $false
                             }
+                            Set-NAVServerConfiguration -KeyName "ServicesDefaultCompany" -KeyValue "$companyName" -ServerInstance BC
+                                
+                            $firstRun = $false
+                            
                             if ($use4PSContainerInitializer) {
                                 Write-Host "    Initialize General User ($username / $unsecurepassword) in $companyName"
                                 Invoke-NAVCodeunit `
