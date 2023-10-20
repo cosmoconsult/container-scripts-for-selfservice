@@ -73,6 +73,9 @@ function Invoke-4PSArtifactHandling {
                     Sync-NAVApp -ServerInstance BC -Name 'Container initializer'
                     Install-NAVApp -ServerInstance BC -Name 'Container initializer'
                 }
+                else {
+                    Write-Host "Skipping installation of container initializer app at $initializerPath as it's disabled by environment variable"
+                }
 
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
@@ -211,7 +214,7 @@ function Invoke-4PSArtifactHandling {
                         }
                     }
                 }
-                if ($firstRun) {
+                if ($firstRun -and $use4PSContainerInitializer) {
                     Write-Host "  Looks like no company has been created from demo data, creating an empty one"
                     New-NAVCompany -CompanyName "Empty Company" -ServerInstance BC
                 }
