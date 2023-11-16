@@ -67,6 +67,7 @@ function Import-Artifacts {
             Depth = $maxDepth
             Filter = "*.app"            
         }
+        Write-Host "Checking AppExcludeExpr: $($env:AppExcludeExpr)"
         if ($null -ne $env:AppExcludeExpr)
         {
             Write-Host ("Found App expression override {0}" -f $env:AppExcludeExpr)
