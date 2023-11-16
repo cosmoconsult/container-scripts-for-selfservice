@@ -222,6 +222,9 @@ try {
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
+    if ($env:mode -eq "4ps") {
+        $env:AppExcludeExpr = ""
+    }
 
     Import-Artifacts `
         -Path            $targetDirManuallySorted `
