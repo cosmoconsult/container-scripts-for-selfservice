@@ -225,7 +225,7 @@ try {
     Write-Host "Checking mode: $($env:mode)"
     if ($env:mode -eq "4ps") {
         Write-Host "found 4PS mode, setting AppExcludeExpr"
-        $env:AppExcludeExpr = ""
+        $env:AppExcludeExpr = "I_DONT_WANT_TO_EXCLUDE_ANYTHING"
     }
 
     Import-Artifacts `
