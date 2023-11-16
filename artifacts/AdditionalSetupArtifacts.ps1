@@ -222,9 +222,7 @@ try {
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
-    Write-Host "Checking mode: $($env:mode)"
     if ($env:mode -eq "4ps") {
-        Write-Host "found 4PS mode, setting AppExcludeExpr"
         $env:AppExcludeExpr = "I_DONT_WANT_TO_EXCLUDE_ANYTHING"
     }
 
