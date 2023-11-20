@@ -203,6 +203,20 @@ finally {
     Add-ArtifactsLog -message "Download Artifacts done."
 }
 
+# Initialize company
+if ($env:mode -eq "4ps") {
+    $files = Get-DemoDataFiles
+    foreach ($demoDataFile in $files) {
+        $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
+        "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
+        if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
+            $companyName = $Matches[1]
+            Write-Host "  Create company $companyName"
+            New-NAVCompany -CompanyName $companyName -ServerInstance BC
+        }
+    }
+}
+
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
 if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"

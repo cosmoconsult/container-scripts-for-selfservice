@@ -81,135 +81,124 @@ function Invoke-4PSArtifactHandling {
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
                 $firstRun = $true
-                if (Test-Path -Path "c:\demodata") {
-                    $files = Get-ChildItem "c:\demodata" -Filter *.xml |
-                    Where-Object { 
-                        if ($env:IsBuildContainer -and !$_.Name.Contains('Test Automation')) {
-                            "Skipping XML file {0} as it's no Test Automation database and it seems to be a build container" -f $_.FullName | Write-Host
-                            return $false;
-                        }
-                        return $true;
-                    } | Sort-Object Name -Descending
-                    foreach ($demoDataFile in $files) {
-                        $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
-                        "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
-                        if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
-                            $companyName = $Matches[1]
-                            Write-Host "  Create and initialize company $companyName"
-                            New-NAVCompany -CompanyName $companyName -ServerInstance BC
-
-                            Write-Host "    Init setup tables"
-                            Invoke-NavCodeunit `
-                                -ServerInstance BC `
-                                -CompanyName $companyName `
-                                -Codeunitid 2 `
-                                -MethodName 'InitSetupTables' `
-                                -TimeZone ServicesDefaultTimeZone `
-                                -ErrorAction SilentlyContinue 
-                            
-                            Write-Host "    Import setup data from XML file"
-                            Invoke-NavCodeunit `
-                                -ServerInstance BC `
-                                -CompanyName $companyName `
-                                -CodeunitId 11012268 `
-                                -MethodName ImportSetupDataFromXmlFile `
-                                -Argument "$($demoDataFile.FullName)"
-                            
-                            if ($use4PSContainerInitializer) {
-                                if ($sysAppInfoFS.Version.Major -le 20) {
-                                    # Only required on 20 and older
-                                    Write-Host "    Run manual data upgrade 4PS"
-                                    Invoke-NavCodeunit `
-                                        -ServerInstance BC `
-                                        -CompanyName $companyName `
-                                        -CodeunitId 50189 `
-                                        -MethodName RunManualDataUpgrade `
-                                        -Argument "$firstRun"
-                                }   
-
-                                Write-Host "    Initialize FSA setup"
+                $files = Get-DemoDataFiles
+                foreach ($demoDataFile in $files) {
+                    $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
+                    "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
+                    if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
+                        $companyName = $Matches[1]
+                        Write-Host "  Initialize company $companyName"
+                        Write-Host "    Init setup tables"
+                        Invoke-NavCodeunit `
+                            -ServerInstance BC `
+                            -CompanyName $companyName `
+                            -Codeunitid 2 `
+                            -MethodName 'InitSetupTables' `
+                            -TimeZone ServicesDefaultTimeZone `
+                            -ErrorAction SilentlyContinue 
+                        
+                        Write-Host "    Import setup data from XML file"
+                        Invoke-NavCodeunit `
+                            -ServerInstance BC `
+                            -CompanyName $companyName `
+                            -CodeunitId 11012268 `
+                            -MethodName ImportSetupDataFromXmlFile `
+                            -Argument "$($demoDataFile.FullName)"
+                        
+                        if ($use4PSContainerInitializer) {
+                            if ($sysAppInfoFS.Version.Major -le 20) {
+                                # Only required on 20 and older
+                                Write-Host "    Run manual data upgrade 4PS"
                                 Invoke-NavCodeunit `
                                     -ServerInstance BC `
                                     -CompanyName $companyName `
                                     -CodeunitId 50189 `
-                                    -MethodName InitializeFSASetup
+                                    -MethodName RunManualDataUpgrade `
+                                    -Argument "$firstRun"
+                            }   
 
-                                Write-Host "    Initialize OSA setup"
+                            Write-Host "    Initialize FSA setup"
+                            Invoke-NavCodeunit `
+                                -ServerInstance BC `
+                                -CompanyName $companyName `
+                                -CodeunitId 50189 `
+                                -MethodName InitializeFSASetup
+
+                            Write-Host "    Initialize OSA setup"
+                            Invoke-NavCodeunit `
+                                -ServerInstance BC `
+                                -CompanyName $companyName `
+                                -CodeunitId 50189 `
+                                -MethodName InitializeOSASetup
+
+                            if ($firstRun) {
+                                Write-Host "    Initialize WebServices"
                                 Invoke-NavCodeunit `
                                     -ServerInstance BC `
                                     -CompanyName $companyName `
                                     -CodeunitId 50189 `
-                                    -MethodName InitializeOSASetup
+                                    -MethodName PublishAllWebServices
 
-                                if ($firstRun) {
-                                    Write-Host "    Initialize WebServices"
-                                    Invoke-NavCodeunit `
-                                        -ServerInstance BC `
-                                        -CompanyName $companyName `
-                                        -CodeunitId 50189 `
-                                        -MethodName PublishAllWebServices
+                                Write-Host "    Initialize FSA"
+                                Invoke-NavCodeunit `
+                                    -ServerInstance BC `
+                                    -CompanyName $companyName `
+                                    -CodeunitId 50189 `
+                                    -MethodName InitializeFSA
 
-                                    Write-Host "    Initialize FSA"
-                                    Invoke-NavCodeunit `
-                                        -ServerInstance BC `
-                                        -CompanyName $companyName `
-                                        -CodeunitId 50189 `
-                                        -MethodName InitializeFSA
+                                Write-Host "    Initialize OSA"
+                                Invoke-NavCodeunit `
+                                    -ServerInstance BC `
+                                    -CompanyName $companyName `
+                                    -CodeunitId 11128546 `
+                                    -MethodName InitializeOSA
 
-                                    Write-Host "    Initialize OSA"
-                                    Invoke-NavCodeunit `
-                                        -ServerInstance BC `
-                                        -CompanyName $companyName `
-                                        -CodeunitId 11128546 `
-                                        -MethodName InitializeOSA
-
-                                    Write-Host "    Initialize License"
-                                    Invoke-NavCodeunit `
-                                        -ServerInstance BC `
-                                        -CompanyName $companyName `
-                                        -CodeunitId 50189 `
-                                        -MethodName CreateLicenses
-                                }
-                                
-                                Set-NAVServerConfiguration -KeyName "ServicesDefaultCompany" -KeyValue "$companyName" -ServerInstance BC
-                                
-                                $firstRun = $false
+                                Write-Host "    Initialize License"
+                                Invoke-NavCodeunit `
+                                    -ServerInstance BC `
+                                    -CompanyName $companyName `
+                                    -CodeunitId 50189 `
+                                    -MethodName CreateLicenses
                             }
-                            if ($use4PSContainerInitializer) {
-                                Write-Host "    Initialize General User ($username / $unsecurepassword) in $companyName"
+                            
+                            Set-NAVServerConfiguration -KeyName "ServicesDefaultCompany" -KeyValue "$companyName" -ServerInstance BC
+                            
+                            $firstRun = $false
+                        }
+                        if ($use4PSContainerInitializer) {
+                            Write-Host "    Initialize General User ($username / $unsecurepassword) in $companyName"
+                            Invoke-NAVCodeunit `
+                                -ServerInstance BC `
+                                -CompanyName $companyName `
+                                -CodeunitId 50189 `
+                                -MethodName CreateGeneralAppUser `
+                                -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
+
+                            Write-Host "    Initialize FSA User"
+                            Invoke-NAVCodeunit `
+                                -ServerInstance BC `
+                                -CompanyName $companyName `
+                                -CodeunitId 50189 `
+                                -MethodName CreateFSAUser `
+                                -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
+
+                            Write-Host "    Initialize OSA User"
+                            Invoke-NAVCodeunit `
+                                -ServerInstance BC `
+                                -CompanyName $companyName `
+                                -CodeunitId 50189 `
+                                -MethodName CreateOSAUser `
+                                -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
+
+                            if ($sysAppInfoFS.Version.Major -gt 20) {
+                                # Only available on 21 and newer
+                                Write-Host "    Initialize Container Information"
                                 Invoke-NAVCodeunit `
                                     -ServerInstance BC `
                                     -CompanyName $companyName `
                                     -CodeunitId 50189 `
-                                    -MethodName CreateGeneralAppUser `
-                                    -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
-
-                                Write-Host "    Initialize FSA User"
-                                Invoke-NAVCodeunit `
-                                    -ServerInstance BC `
-                                    -CompanyName $companyName `
-                                    -CodeunitId 50189 `
-                                    -MethodName CreateFSAUser `
-                                    -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
-
-                                Write-Host "    Initialize OSA User"
-                                Invoke-NAVCodeunit `
-                                    -ServerInstance BC `
-                                    -CompanyName $companyName `
-                                    -CodeunitId 50189 `
-                                    -MethodName CreateOSAUser `
-                                    -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
-
-                                if ($sysAppInfoFS.Version.Major -gt 20) {
-                                    # Only available on 21 and newer
-                                    Write-Host "    Initialize Container Information"
-                                    Invoke-NAVCodeunit `
-                                        -ServerInstance BC `
-                                        -CompanyName $companyName `
-                                        -CodeunitId 50189 `
-                                        -MethodName InitContainer `
-                                        -Argument "$($env:AZP_SERVICE_DISPLAYNAME)"
-                                }
+                                    -MethodName InitContainer `
+                                    -Argument "$($env:AZP_SERVICE_DISPLAYNAME)"
                             }
                         }
                     }
