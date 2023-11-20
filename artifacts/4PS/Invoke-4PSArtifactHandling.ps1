@@ -146,7 +146,7 @@ function Invoke-4PSArtifactHandling {
                                     -CodeunitId 50189 `
                                     -MethodName InitializeFSA
                                     
-                                Write-Hist "    Set FSA redirect URI"
+                                Write-Host "    Set FSA redirect URI"
                                 Invoke-NAVCodeunit `
                                     -ServerInstance BC `
                                     -CompanyName $companName `
