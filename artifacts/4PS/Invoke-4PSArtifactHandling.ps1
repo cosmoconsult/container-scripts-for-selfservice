@@ -149,7 +149,7 @@ function Invoke-4PSArtifactHandling {
                                 Write-Host "    Set FSA redirect URI"
                                 Invoke-NAVCodeunit `
                                     -ServerInstance BC `
-                                    -CompanyName $companName `
+                                    -CompanyName $companyName `
                                     -CodeunitId 50189 `
                                     -MethodName CreateRedirectUri `
                                     -Argument "http://fps-alpaca.westeurope.cloudapp.azure.com/$($(hostname).Split("-")[0])-fsa-generic-app/gapcheck/callback"
