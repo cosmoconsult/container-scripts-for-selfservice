@@ -25,3 +25,4 @@
 . (Join-Path $PSScriptRoot "4PS/Invoke-4PSArtifactHandling.ps1")
 . (Join-Path $PSScriptRoot "4PS/Get-AppDatabaseName.ps1")
 . (Join-Path $PSScriptRoot "4PS/Unpublish-AllNavAppsInServerInstance.ps1")
+. (Join-Path $PSScriptRoot "4PS/Get-DemoDataFiles.ps1")

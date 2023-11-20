@@ -186,6 +186,20 @@ $properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
+# Initialize company
+if ($env:mode -eq "4ps") {
+    $files = Get-DemoDataFiles
+    foreach ($demoDataFile in $files) {
+        $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
+        "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
+        if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
+            $companyName = $Matches[1]
+            Write-Host "  Create company $companyName"
+            New-NAVCompany -CompanyName $companyName -ServerInstance BC
+        }
+    }
+}
+
 # Download Artifacts
 try {
     $started = Get-Date -Format "o"
