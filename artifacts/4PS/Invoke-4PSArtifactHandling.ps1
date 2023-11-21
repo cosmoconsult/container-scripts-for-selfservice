@@ -152,7 +152,7 @@ function Invoke-4PSArtifactHandling {
                                     -CompanyName $companyName `
                                     -CodeunitId 50189 `
                                     -MethodName CreateRedirectUri `
-                                    -Argument "http://fps-alpaca.westeurope.cloudapp.azure.com/$($(hostname).Split("-")[0])-fsa-generic-app/gapcheck/callback"
+                                    -Argument "https://fps-alpaca.westeurope.cloudapp.azure.com/$($(hostname).Split("-")[0])-fsa-generic-app/gapcheck/callback"
 
                                 Write-Host "    Initialize OSA"
                                 Invoke-NavCodeunit `
