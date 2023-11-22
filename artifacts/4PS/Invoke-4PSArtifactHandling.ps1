@@ -197,8 +197,8 @@ function Invoke-4PSArtifactHandling {
                                 -CodeunitId 50189 `
                                 -MethodName CreateOSAUser `
                                 -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
-
-                            if ($sysAppInfoFS.Version.Major -gt 20) {
+                                
+                            if (($sysAppInfoFS.Version.Major -gt 20) -and (![String]::IsNullOrEmpty($env:AZP_SERVICE_DISPLAYNAME))) {
                                 # Only available on 21 and newer
                                 Write-Host "    Initialize Container Information"
                                 Invoke-NAVCodeunit `
@@ -207,6 +207,15 @@ function Invoke-4PSArtifactHandling {
                                     -CodeunitId 50189 `
                                     -MethodName InitContainer `
                                     -Argument "$($env:AZP_SERVICE_DISPLAYNAME)"
+                            }
+                            $ConstructBaseDETestInstalled = Get-NAVAppInfo -Id '39ea957f-9416-49f4-8b0a-08ba5bd0b790' -ServerInstance BC -TenantSpecificProperties -Tenant default | Where-Object { $_.IsInstalled -eq $true }
+                            if ($ConstructBaseDETestInstalled) {
+                                Write-Host "    Create W1 Test Suite"
+                                Invoke-NAVCodeunit `
+                                    -ServerInstance BC `
+                                    -CompanyName $companyName `
+                                    -CodeunitId 50000 `
+                                    -MethodName CreateW1TestSuite
                             }
                         }
                     }
