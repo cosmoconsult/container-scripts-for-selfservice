@@ -214,7 +214,7 @@ function Invoke-4PSArtifactHandling {
                                 Invoke-NAVCodeunit `
                                     -ServerInstance BC `
                                     -CompanyName $companyName `
-                                    -CodeunitId 50000 `
+                                    -CodeunitId 11071920 `
                                     -MethodName CreateW1TestSuite
                             }
                         }
