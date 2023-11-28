@@ -24,8 +24,13 @@ function Wait-DataUpgradeToFinish {
         if (!$Tenant) {
             $Tenant = 'default'
         }
-        
-        Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Progress
+
+        try {
+            Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Progress
+        }
+        catch { 
+            Write-Host "Couldn't get the progress of the NAVDataUpgrade, maybe none is running"
+        }
 
         # Make sure that Upgrade Process completed successfully.
         $errors = Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -ErrorOnly
@@ -33,12 +38,17 @@ function Wait-DataUpgradeToFinish {
         if(!$errors)
         {
 
-            # no errors detected - process has been completed successfully
+            Write-Host "no errors detected - process has been completed successfully"
             return;
         }
 
         # Stop the suspended process
-        Stop-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Force
+        try {
+            Stop-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Force
+        }
+        catch { 
+            Write-Host "Couldn't stop the NAVDataUpgrade, maybe none is running"
+        }
 
         $errorMessage = "Errors occurred during the Microsoft Dynamics NAV data upgrade process: " + [System.Environment]::NewLine
         foreach($nextErrorRecord in $errors)
