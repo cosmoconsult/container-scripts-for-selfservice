@@ -32,8 +32,13 @@ function Wait-DataUpgradeToFinish {
             Write-Host "Couldn't get the progress of the NAVDataUpgrade, maybe none is running"
         }
 
-        # Make sure that Upgrade Process completed successfully.
-        $errors = Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -ErrorOnly
+        try {
+            # Make sure that Upgrade Process completed successfully.
+            $errors = Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -ErrorOnly
+        }
+        catch { 
+            Write-Host "Couldn't get the errors of the NAVDataUpgrade, maybe none is running"
+        }
     
         if(!$errors)
         {
