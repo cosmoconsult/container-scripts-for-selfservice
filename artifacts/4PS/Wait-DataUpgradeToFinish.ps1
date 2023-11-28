@@ -24,21 +24,36 @@ function Wait-DataUpgradeToFinish {
         if (!$Tenant) {
             $Tenant = 'default'
         }
-        
-        Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Progress
 
-        # Make sure that Upgrade Process completed successfully.
-        $errors = Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -ErrorOnly
+        try {
+            Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Progress
+        }
+        catch { 
+            Write-Host "Couldn't get the progress of the NAVDataUpgrade, maybe none is running"
+        }
+
+        try {
+            # Make sure that Upgrade Process completed successfully.
+            $errors = Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -ErrorOnly
+        }
+        catch { 
+            Write-Host "Couldn't get the errors of the NAVDataUpgrade, maybe none is running"
+        }
     
         if(!$errors)
         {
 
-            # no errors detected - process has been completed successfully
+            Write-Host "no errors detected - process has been completed successfully"
             return;
         }
 
         # Stop the suspended process
-        Stop-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Force
+        try {
+            Stop-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Force
+        }
+        catch { 
+            Write-Host "Couldn't stop the NAVDataUpgrade, maybe none is running"
+        }
 
         $errorMessage = "Errors occurred during the Microsoft Dynamics NAV data upgrade process: " + [System.Environment]::NewLine
         foreach($nextErrorRecord in $errors)
@@ -46,7 +61,7 @@ function Wait-DataUpgradeToFinish {
             $errorMessage += ("Codeunit ID: " + $nextErrorRecord.CodeunitId + ", Function: " + $nextErrorRecord.FunctionName + ", Error: " + $nextErrorRecord.Error + ", Company: " + $nextErrorRecord.CompanyName + [System.Environment]::NewLine)
         }
 
-        Write-Error $errorMessage
+        Write-Host $errorMessage
     }
 }
 
