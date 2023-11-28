@@ -46,7 +46,7 @@ function Wait-DataUpgradeToFinish {
             $errorMessage += ("Codeunit ID: " + $nextErrorRecord.CodeunitId + ", Function: " + $nextErrorRecord.FunctionName + ", Error: " + $nextErrorRecord.Error + ", Company: " + $nextErrorRecord.CompanyName + [System.Environment]::NewLine)
         }
 
-        Write-Error $errorMessage
+        Write-Host $errorMessage
     }
 }
 
