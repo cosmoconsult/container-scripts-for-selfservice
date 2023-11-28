@@ -448,6 +448,9 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
     Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
 
+    Write-Host " - Check data upgrade is executed"
+    Set-NavServerInstance -ServerInstance BC -Restart
+    
     for ($i = 0; $i -lt 10; $i++) {
         $TenantState = (Get-NavTenant -ServerInstance BC -Tenant $TenantId).State
         if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
@@ -458,8 +461,6 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Start-Sleep -Seconds 10
     }
 
-    Write-Host " - Check data upgrade is executed"
-    Set-NavServerInstance -ServerInstance BC -Restart
     Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($env:cosmoBaseAppVersion)"
 
     Write-Host " - Deactivate all users to ensure license compliance"
