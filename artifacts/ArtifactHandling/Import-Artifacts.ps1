@@ -46,7 +46,7 @@ function Import-Artifacts {
                 Write-Host "Import $($items.Length) FOBs..."
 
                 # Import all FOBs
-                $items | Import-FobArtifact -NavServiceName $NavServiceName -ServerInstance $ServerInstance -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                $items | Import-FobArtifact -NavServiceName $NavServiceName -ServerInstance $ServerInstance -Tenant $Tenant -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import FOBs" -started $started -telemetryClient $telemetryClient -properties $properties
@@ -97,7 +97,7 @@ function Import-Artifacts {
 
                     $IsModifiedBaseApp = $item.Path.IndexOf("sortorder01") -gt -1
                         
-                    @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $SyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue -IsModifiedBaseApp:$IsModifiedBaseApp
+                    @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant $Tenant -Scope $importScope -SyncMode $SyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue -IsModifiedBaseApp:$IsModifiedBaseApp
                 }                
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
@@ -124,7 +124,7 @@ function Import-Artifacts {
                 Write-Host "Import $($items.Length) RapidStart packages..."
 
                 # Import all RIMs
-                $items | Import-RIMArtifact -ServerInstance $ServerInstance -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                $items | Import-RIMArtifact -ServerInstance $ServerInstance -Tenant $Tenant -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import RapidStart Packages" -started $started -telemetryClient $telemetryClient -properties $properties
@@ -148,7 +148,7 @@ function Import-Artifacts {
                 $started   = Get-Date -Format "o"
                 Write-Host "Import $($items.Length) Fonts..."
                 # Import all Fonts
-                Import-Fonts -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                Import-Fonts -NavServiceName $NavServiceName -Tenant $Tenant -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import Fonts" -started $started -telemetryClient $telemetryClient -properties $properties
