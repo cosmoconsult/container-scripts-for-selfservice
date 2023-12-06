@@ -138,9 +138,10 @@ function Import-Artifacts {
         } else {
             Write-Host "No RapidStart packages to import."
         }
+
         # Import Fonts
         $items = @()
-        if (Test-Path -LiteralPath "c:/fonts") {
+        if (Test-Path -LiteralPath "$Path" && Test-Path -LiteralPath "c:/fonts") {
             $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
         }
         if ($items) {
