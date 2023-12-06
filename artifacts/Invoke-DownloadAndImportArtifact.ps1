@@ -19,7 +19,6 @@ try {
     Write-Host "$([System.Environment]::NewLine)Download Artifact ..."
     Invoke-DownloadArtifact -url $url -destination $targetDir -accessToken $pat -telemetryClient $telemetryClient
     Write-Host "$([System.Environment]::NewLine)Import Artifact(s) ..."
-    Write-Host "[DEBUG] Import-Artifacts for Tenant $($Tenantid)"
     Import-Artifacts -Path $targetDir -NavServiceName $NavServiceName -ServerInstance $ServerInstance -Tenant $Tenantid -OperationScope "Download and Import Artifact - " -telemetryClient $telemetryClient
     Write-Host "Done"
     

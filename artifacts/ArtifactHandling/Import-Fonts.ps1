@@ -91,9 +91,6 @@ namespace FontResource
             Add-ArtifactsLog -message "Import Object Files"
         }
 
-        Write-Host "[DEBUG] Import-Fonts for Tenant $($Tenant)"
-
-
         $fontsFolderPath = "C:\Windows\Fonts"
         $ExistingFonts   = Get-ChildItem -LiteralPath $fontsFolderPath | % { $_.Name }
         
