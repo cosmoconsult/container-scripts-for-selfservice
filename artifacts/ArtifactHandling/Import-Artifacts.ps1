@@ -141,7 +141,7 @@ function Import-Artifacts {
 
         # Import Fonts
         $items = @()
-        if (Test-Path -LiteralPath "$Path" && Test-Path -LiteralPath "c:/fonts") {
+        if (Test-Path -LiteralPath "$Path" -and Test-Path -LiteralPath "c:/fonts") {
             $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
         }
         if ($items) {
