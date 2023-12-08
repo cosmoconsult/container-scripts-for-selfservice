@@ -131,6 +131,9 @@ namespace FontResource
         if ($importFiles) {
             Write-Host "Restart NAV service"
             Restart-Service -Name $NavServiceName
+            if ([string]::IsNullOrEmpty($Tenant)) {
+                $Tenant = "default"
+            }
             for ($i = 0; $i -lt 10; $i++) {
                 $TenantState = (Get-NavTenant -ServerInstance $NavServiceName -Tenant $Tenant).State
                 if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
