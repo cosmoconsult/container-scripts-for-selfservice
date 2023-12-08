@@ -231,7 +231,8 @@ try {
         -SyncMode        $SyncMode `
         -Scope           "Global" `
         -telemetryClient $telemetryClient `
-        -ErrorAction     SilentlyContinue 
+        -ErrorAction     SilentlyContinue `
+        -SkipFontImport  $true
 
     Import-Artifacts `
         -Path            $targetDir `

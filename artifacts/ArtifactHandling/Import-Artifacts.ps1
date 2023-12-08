@@ -21,7 +21,9 @@ function Import-Artifacts {
         [ValidateSet("Global", "Tenant")]
         [string]$Scope = "Global",    
         [Parameter(Mandatory=$false)]
-        [System.Object]$telemetryClient = $null
+        [System.Object]$telemetryClient = $null,
+        [Parameter(Mandatory=$false)]
+        [bool]$SkipFontImport = $false
     )
     
     begin {
@@ -141,7 +143,7 @@ function Import-Artifacts {
 
         # Import Fonts
         $items = @()
-        if ((Test-Path -LiteralPath "$Path") -and (Test-Path -LiteralPath "c:/fonts")) {
+        if ((-not $SkipFontImport) -and (Test-Path -LiteralPath "c:/fonts")) {
             $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
         }
         if ($items) {
