@@ -3,8 +3,8 @@ function Import-Fonts {
     param (
         [Parameter(Mandatory=$false)]
         [string]$Path = "c:/fonts",
-        [Parameter(Mandatory=$true)]
-        [string]$NavServiceName,
+        [Parameter(Mandatory=$false)]
+        [string]$ServerInstance = "NAV",
         [Parameter(Mandatory=$false)]
         [string]$Tenant = "default",
         [Parameter(Mandatory=$false)]
@@ -130,12 +130,9 @@ namespace FontResource
     end {
         if ($importFiles) {
             Write-Host "Restart NAV service"
-            Restart-Service -Name $NavServiceName
-            if ([string]::IsNullOrEmpty($Tenant)) {
-                $Tenant = "default"
-            }
+            Restart-Service -Name $ServerInstance
             for ($i = 0; $i -lt 10; $i++) {
-                $TenantState = (Get-NavTenant -ServerInstance $NavServiceName -Tenant $Tenant).State
+                $TenantState = (Get-NavTenant -ServerInstance $ServerInstance -Tenant $Tenant).State
                 if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
                     break;
                 }
