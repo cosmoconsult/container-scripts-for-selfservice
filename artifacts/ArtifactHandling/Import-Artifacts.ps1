@@ -141,6 +141,7 @@ function Import-Artifacts {
 
         # Import Fonts
         $items = @()
+        Write-Host "Font Imort; Path: $Path"
         if ((Test-Path -LiteralPath "$Path") -and (Test-Path -LiteralPath "c:/fonts")) {
             $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
         }
