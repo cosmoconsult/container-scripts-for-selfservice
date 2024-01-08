@@ -3,6 +3,10 @@ function Import-Fonts {
     param (
         [Parameter(Mandatory=$false)]
         [string]$Path = "c:/fonts",
+        [Parameter(Mandatory=$true)]
+        [string]$NavServiceName,
+        [Parameter(Mandatory=$false)]
+        [string]$Tenant = "default",
         [Parameter(Mandatory=$false)]
         [System.Object]$telemetryClient = $null
     )
@@ -106,11 +110,11 @@ namespace FontResource
                     # Import the font
                     Import-Font $WindowsFontPath -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
 
-                    $info | foreach { Add-ArtifactsLog -kind FOB -message "$_" -severity Info  -data $properties }
-                    $warn | foreach { Add-ArtifactsLog -kind FOB -message "$_" -severity Warn  -data $properties }
-                    $err  | foreach { Add-ArtifactsLog -kind FOB -message "$_" -severity Error -data $properties }
+                    $info | foreach { Add-ArtifactsLog -kind Font -message "$_" -severity Info  -data $properties }
+                    $warn | foreach { Add-ArtifactsLog -kind Font -message "$_" -severity Warn  -data $properties }
+                    $err  | foreach { Add-ArtifactsLog -kind Font -message "$_" -severity Error -data $properties }
                     $success = ! $err
-                    if ($success) { Add-ArtifactsLog -kind FOB -message "Import Font ... successful" -data $properties -success success }
+                    if ($success) { Add-ArtifactsLog -kind Font -message "Import Font ... successful" -data $properties -success success }
                 }
                 catch {
                     Add-ArtifactsLog -kind Font -message "Import FONT FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $properties -severity Error -success fail

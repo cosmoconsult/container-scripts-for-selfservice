@@ -21,7 +21,9 @@ function Import-Artifacts {
         [ValidateSet("Global", "Tenant")]
         [string]$Scope = "Global",    
         [Parameter(Mandatory=$false)]
-        [System.Object]$telemetryClient = $null
+        [System.Object]$telemetryClient = $null,
+        [Parameter(Mandatory=$false)]
+        [bool]$SkipFontImport = $false
     )
     
     begin {
@@ -138,9 +140,10 @@ function Import-Artifacts {
         } else {
             Write-Host "No RapidStart packages to import."
         }
+
         # Import Fonts
         $items = @()
-        if (Test-Path -LiteralPath "c:/fonts") {
+        if ((-not $SkipFontImport) -and (Test-Path -LiteralPath "c:/fonts")) {
             $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
         }
         if ($items) {
@@ -148,7 +151,7 @@ function Import-Artifacts {
                 $started   = Get-Date -Format "o"
                 Write-Host "Import $($items.Length) Fonts..."
                 # Import all Fonts
-                Import-Fonts -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                Import-Fonts -NavServiceName $NavServiceName -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import Fonts" -started $started -telemetryClient $telemetryClient -properties $properties
