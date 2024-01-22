@@ -60,7 +60,18 @@ function Move-Database {
 
 }
 
-$blackListedApps = @([pscustomobject]@{Name="CKL Monetization";Id='2d648cd3-1779-449a-b0eb-23a98267d85e';Reason="works only on SaaS"})
+$blackListedApps = @(
+    [pscustomobject]@{
+        Name="CKL Monetization";
+        Id='2d648cd3-1779-449a-b0eb-23a98267d85e';
+        Reason="works only on SaaS"
+    },
+    [pscustomobject]@{
+        Name="_Exclude_AnonymizedDataSharing_";
+        Id='063b3ac9-c464-4899-96e0-70d5425854e4';
+        Reason="works only on SaaS"
+    }
+)
 
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
