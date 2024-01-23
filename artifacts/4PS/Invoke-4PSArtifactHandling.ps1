@@ -2,15 +2,14 @@ function Invoke-4PSArtifactHandling {
     [cmdletbinding()]
     PARAM
     (
-        [parameter(Mandatory=$true)]
+        [parameter(Mandatory = $true)]
         [string]$username,
-        [parameter(Mandatory=$true)]
+        [parameter(Mandatory = $true)]
         [SecureString]$securepassword,
-        [parameter(Mandatory=$true)]
+        [parameter(Mandatory = $true)]
         [hashtable]$tenantParam
     )
-    PROCESS
-    {
+    PROCESS {
         if ($env:mode -eq "4ps") {
             Write-Host "4PS mode found"
             c:\Run\prompt.ps1
@@ -20,9 +19,11 @@ function Invoke-4PSArtifactHandling {
 
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
-            } elseif ("CRONUS" -eq $appDatabaseName -or "default" -eq $appDatabaseName) {
+            }
+            elseif ("CRONUS" -eq $appDatabaseName -or "default" -eq $appDatabaseName) {
                 Write-Host "4PS initialization skipped as this seems to be a Microsoft standard database"
-            } else {
+            }
+            else {
                 Write-Host "4PS initialization starts"
                 $startTime4PS = [DateTime]::Now
                 $me = whoami
@@ -43,65 +44,68 @@ function Invoke-4PSArtifactHandling {
                 New-NAVServerUserPermissionSet -ServerInstance BC -Username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 1
 
+                $use4PSContainerInitializer = $env:AZP_SERVICE_DISPLAYNAME -notlike "*Skip4PSContainerInitializer*"
                 $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-                $initializerVersion = ''
-                if ($sysAppInfoFS.Version.Major -eq 21) {
-                    $initializerVersion = "$($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor).2.0"
-                } elseif ($sysAppInfoFS.Version.Major -gt 21) {
-                    $initializerVersion = "$($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor).0.0"
-                } elseif ($sysAppInfoFS.Version.Major -eq 20) {
-                    $initializerVersion = '2.0.0.0'
-                } elseif ($sysAppInfoFS.Version.Major -eq 19) {
-                    $initializerVersion = '1.0.0.0'
-                } else {
-                    Write-Error "Container seems to have a version where we don't have a matching initializer app: $($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor)"
+
+                if ($use4PSContainerInitializer) {    
+                    $initializerVersion = ''
+                    if ($sysAppInfoFS.Version.Major -eq 21) {
+                        $initializerVersion = "$($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor).2.0"
+                    }
+                    elseif ($sysAppInfoFS.Version.Major -gt 21) {
+                        $initializerVersion = "$($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor).0.0"
+                    }
+                    elseif ($sysAppInfoFS.Version.Major -eq 20) {
+                        $initializerVersion = '2.0.0.0'
+                    }
+                    elseif ($sysAppInfoFS.Version.Major -eq 19) {
+                        $initializerVersion = '1.0.0.0'
+                    }
+                    else {
+                        Write-Error "Container seems to have a version where we don't have a matching initializer app: $($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor)"
+                    }
+
+                    $initializerPath = "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app"
+                    if (-not (Test-Path $initializerPath)) {
+                        Write-Error "Couldn't find the expected initializer app at $initializerPath"
+                    }
+                    Publish-NAVApp -ServerInstance BC -Path $initializerPath -SkipVerification -Scope Tenant
+                    Sync-NAVApp -ServerInstance BC -Name 'Container initializer'
+                    Install-NAVApp -ServerInstance BC -Name 'Container initializer'
                 }
-                $initializerPath = "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app"
-                if (-not (Test-Path $initializerPath)) {
-                    Write-Error "Couldn't find the expected initializer app at $initializerPath"
+                else {
+                    Write-Host "Skipping installation of container initializer app at $initializerPath as it's disabled by environment variable"
                 }
-                Publish-NAVApp -ServerInstance BC -Path $initializerPath -SkipVerification -Scope Tenant
-                Sync-NAVApp -ServerInstance BC -Name 'Container initializer'
-                Install-NAVApp -ServerInstance BC -Name 'Container initializer'
 
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
                 $firstRun = $true
-                if (Test-Path -Path "c:\demodata") {
-                    $files = Get-ChildItem "c:\demodata" -Filter *.xml |
-                        Where-Object { 
-                            if($env:IsBuildContainer -and !$_.Name.Contains('Test Automation')){
-                                "Skipping XML file {0} as it's no Test Automation database and it seems to be a build container" -f $_.FullName | Write-Host
-                                return $false;
-                            }
-                            return $true;
-                        } | Sort-Object Name -Descending
-                    foreach ($demoDataFile in $files) {
-                        $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
-                        "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
-                        if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
-                            $companyName = $Matches[1]
-                            Write-Host "  Create and initialize company $companyName"
-                            New-NAVCompany -CompanyName $companyName -ServerInstance BC
-
-                            Write-Host "    Init setup tables"
-                            Invoke-NavCodeunit `
-                                -ServerInstance BC `
-                                -CompanyName $companyName `
-                                -Codeunitid 2 `
-                                -MethodName 'InitSetupTables' `
-                                -TimeZone ServicesDefaultTimeZone `
-                                -ErrorAction SilentlyContinue 
-                            
-                            Write-Host "    Import setup data from XML file"
-                            Invoke-NavCodeunit `
-                                -ServerInstance BC `
-                                -CompanyName $companyName `
-                                -CodeunitId 11012268 `
-                                -MethodName ImportSetupDataFromXmlFile `
-                                -Argument "$($demoDataFile.FullName)"
-                                
+                $files = Get-DemoDataFiles
+                foreach ($demoDataFile in $files) {
+                    $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
+                    "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
+                    if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
+                        $companyName = $Matches[1]
+                        Write-Host "  Initialize company $companyName"
+                        Write-Host "    Init setup tables"
+                        Invoke-NavCodeunit `
+                            -ServerInstance BC `
+                            -CompanyName $companyName `
+                            -Codeunitid 2 `
+                            -MethodName 'InitSetupTables' `
+                            -TimeZone ServicesDefaultTimeZone `
+                            -ErrorAction SilentlyContinue 
+                        
+                        Write-Host "    Import setup data from XML file"
+                        Invoke-NavCodeunit `
+                            -ServerInstance BC `
+                            -CompanyName $companyName `
+                            -CodeunitId 11012268 `
+                            -MethodName ImportSetupDataFromXmlFile `
+                            -Argument "$($demoDataFile.FullName)"
+                        
+                        if ($use4PSContainerInitializer) {
                             if ($sysAppInfoFS.Version.Major -le 20) {
                                 # Only required on 20 and older
                                 Write-Host "    Run manual data upgrade 4PS"
@@ -112,7 +116,7 @@ function Invoke-4PSArtifactHandling {
                                     -MethodName RunManualDataUpgrade `
                                     -Argument "$firstRun"
                             }   
-                                
+
                             Write-Host "    Initialize FSA setup"
                             Invoke-NavCodeunit `
                                 -ServerInstance BC `
@@ -141,6 +145,14 @@ function Invoke-4PSArtifactHandling {
                                     -CompanyName $companyName `
                                     -CodeunitId 50189 `
                                     -MethodName InitializeFSA
+                                    
+                                Write-Host "    Set FSA redirect URI"
+                                Invoke-NAVCodeunit `
+                                    -ServerInstance BC `
+                                    -CompanyName $companyName `
+                                    -CodeunitId 50189 `
+                                    -MethodName CreateRedirectUri `
+                                    -Argument "https://fps-alpaca.westeurope.cloudapp.azure.com/$($(hostname).Split("-")[0])-fsa-generic-app/gapcheck/callback"
 
                                 Write-Host "    Initialize OSA"
                                 Invoke-NavCodeunit `
@@ -155,12 +167,13 @@ function Invoke-4PSArtifactHandling {
                                     -CompanyName $companyName `
                                     -CodeunitId 50189 `
                                     -MethodName CreateLicenses
-                                    
-                                Set-NAVServerConfiguration -KeyName "ServicesDefaultCompany" -KeyValue "$companyName" -ServerInstance BC
-                                
-                                $firstRun = $false
                             }
-
+                            
+                            Set-NAVServerConfiguration -KeyName "ServicesDefaultCompany" -KeyValue "$companyName" -ServerInstance BC
+                            
+                            $firstRun = $false
+                        }
+                        if ($use4PSContainerInitializer) {
                             Write-Host "    Initialize General User ($username / $unsecurepassword) in $companyName"
                             Invoke-NAVCodeunit `
                                 -ServerInstance BC `
@@ -184,8 +197,8 @@ function Invoke-4PSArtifactHandling {
                                 -CodeunitId 50189 `
                                 -MethodName CreateOSAUser `
                                 -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
-
-                            if ($sysAppInfoFS.Version.Major -gt 20) {
+                                
+                            if (($sysAppInfoFS.Version.Major -gt 20) -and (![String]::IsNullOrEmpty($env:AZP_SERVICE_DISPLAYNAME))) {
                                 # Only available on 21 and newer
                                 Write-Host "    Initialize Container Information"
                                 Invoke-NAVCodeunit `
@@ -195,10 +208,19 @@ function Invoke-4PSArtifactHandling {
                                     -MethodName InitContainer `
                                     -Argument "$($env:AZP_SERVICE_DISPLAYNAME)"
                             }
+                            $ConstructBaseDETestInstalled = Get-NAVAppInfo -Id '39ea957f-9416-49f4-8b0a-08ba5bd0b790' -ServerInstance BC -TenantSpecificProperties -Tenant default | Where-Object { $_.IsInstalled -eq $true }
+                            if ($ConstructBaseDETestInstalled) {
+                                Write-Host "    Create W1 Test Suite"
+                                Invoke-NAVCodeunit `
+                                    -ServerInstance BC `
+                                    -CompanyName $companyName `
+                                    -CodeunitId 11071920 `
+                                    -MethodName CreateW1TestSuite
+                            }
                         }
                     }
                 }
-                if ($firstRun) {
+                if ($firstRun -and $use4PSContainerInitializer) {
                     Write-Host "  Looks like no company has been created from demo data, creating an empty one"
                     New-NAVCompany -CompanyName "Empty Company" -ServerInstance BC
                 }
@@ -208,7 +230,8 @@ function Invoke-4PSArtifactHandling {
                     # in 4PS mode, we assume .bak with modified base app, so we push the password again as the standard user setup script would ignore this
                     if ($env:Auth -eq "aad") {
                         Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword -AuthenticationEMail $authenticationEMail
-                    } else {
+                    }
+                    else {
                         Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword 
                     }
                 }

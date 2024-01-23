@@ -206,6 +206,7 @@ try {
 
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
+    $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
 }
 catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
@@ -214,8 +215,22 @@ finally {
     Add-ArtifactsLog -message "Download Artifacts done."
 }
 
+# Initialize company
+if ($env:mode -eq "4ps") {
+    $files = Get-DemoDataFiles
+    foreach ($demoDataFile in $files) {
+        $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
+        "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
+        if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
+            $companyName = $Matches[1]
+            Write-Host "  Create company $companyName"
+            New-NAVCompany -CompanyName $companyName -ServerInstance BC
+        }
+    }
+}
+
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
-if (![string]::IsNullOrEmpty($env:saasbakfile) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
+if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManually) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
     Unpublish-AllNavAppsInServerInstance
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
@@ -233,6 +248,9 @@ try {
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
+    if ($env:mode -eq "4ps") {
+        $env:AppExcludeExpr = "I_DONT_WANT_TO_EXCLUDE_ANYTHING"
+    }
 
     Import-Artifacts `
         -Path            $targetDirManuallySorted `
@@ -440,16 +458,23 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Force
 
     Write-Host " - Upgrading tenant"
-    Start-NAVDataUpgrade `
-            -ServerInstance $ServerInstance `
-            -Tenant $tenantId `
-            -Force `
-            -FunctionExecutionMode Serial `
-            -SkipIfAlreadyUpgraded
-    Get-NAVDataUpgrade `
-        -ServerInstance $ServerInstance `
-        -Tenant $tenantId `
-        -Progress
+    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
+    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
+
+    Write-Host " - Check data upgrade is executed"
+    Set-NavServerInstance -ServerInstance BC -Restart
+    
+    for ($i = 0; $i -lt 10; $i++) {
+        $TenantState = (Get-NavTenant -ServerInstance BC -Tenant $TenantId).State
+        if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
+            break;
+        }
+
+        Write-Host " - - Tenant not operational yet (try $i), sleeping 10s"
+        Start-Sleep -Seconds 10
+    }
+
+    Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($env:cosmoBaseAppVersion)"
 
     Write-Host " - Deactivate all users to ensure license compliance"
     Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() } | % {
@@ -466,8 +491,12 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         }
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
     }
+}
 
-    Write-Host " - Importing License to new tenant"
+if (![string]::IsNullOrEmpty($env:saasbakfile))
+{
+    # license import also needs to happen on restart in case we got a new license
+    Write-Host " - Importing License to tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
         $licenseToImport = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Cronus.*").FullName
