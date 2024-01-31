@@ -198,7 +198,7 @@ $properties = @{}
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
 Write-Host "Import BC.NuGetHelper"
-Install-Module -Name "BC.NuGetHelper" -Scope CurrentUser -Force
+Install-Module -Name "BC.NuGetHelper" -Scope CurrentUser -Force -AllowClobber
 Import-Module -Name "BC.NuGetHelper" -Scope Local
 #TODO Import Trusted Feed from Config
 Write-Host "Setup trusted NugGet Feed"
