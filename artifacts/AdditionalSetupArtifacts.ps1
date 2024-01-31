@@ -201,7 +201,7 @@ Write-Host "Install Nuget Provider"
 Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
 Write-Host "Import BC.NuGetHelper"
 Install-Module -Name "BC.NuGetHelper" -Scope CurrentUser -Force
-Import-Module -Name "BC.NuGetHelper" -Scope Local
+Import-Module -Name "BC.NuGetHelper" -Scope Global
 #TODO Import Trusted Feed from Config
 Write-Host "Setup trusted NugGet Feed"
 $bcContainerHelperConfig.TrustedNuGetFeeds += @([PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/PGrabensteiner8351/Nugeticing_Test/_packaging/Nugeticing_Test/nuget/v3/index.json"; "Token" = "wz4zihliutaua6won5glzyzkt2qyf2qbvnwxhiykychvclrr2ldq"; "Patterns" = @('*'); "Fingerprints" = @() })
