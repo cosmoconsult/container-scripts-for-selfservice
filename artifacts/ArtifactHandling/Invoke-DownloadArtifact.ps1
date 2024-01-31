@@ -140,7 +140,7 @@ function Invoke-DownloadArtifact {
             }
             elseif ($type -eq "nuget") {
                 Add-ArtifactsLog -message "Download $name from nuget feed" 
-                Download-BcNuGetPackageToFolder -packageName $name -copyInstalledAppsToFolder $tempFolder
+                Download-BcNuGetPackageToFolder -packageName $name -folder $tempFolder
 
                 foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
                     if ($file.Name -like "*.app") {
