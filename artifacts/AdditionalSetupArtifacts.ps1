@@ -197,8 +197,10 @@ $properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
+Write-Host "Install Nuget Provider"
+Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
 Write-Host "Import BC.NuGetHelper"
-Install-Module -Name "BC.NuGetHelper" -Scope CurrentUser -Force -AllowClobber
+Install-Module -Name "BC.NuGetHelper" -Scope CurrentUser -Force
 Import-Module -Name "BC.NuGetHelper" -Scope Local
 #TODO Import Trusted Feed from Config
 Write-Host "Setup trusted NugGet Feed"
