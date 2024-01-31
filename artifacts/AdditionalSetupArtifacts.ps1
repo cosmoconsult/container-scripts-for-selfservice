@@ -196,6 +196,9 @@ $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
 $properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
+Install-Module -Name BC.NuGetHelper
+#TODO Import Trusted Feed from Config
+$bcContainerHelperConfig.TrustedNuGetFeeds += @([PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/PGrabensteiner8351/Nugeticing_Test/_packaging/Nugeticing_Test/nuget/v3/index.json"; "Token" = "wz4zihliutaua6won5glzyzkt2qyf2qbvnwxhiykychvclrr2ldq"; "Patterns" = @('*'); "Fingerprints" = @() })
 
 # Download Artifacts
 try {
@@ -203,7 +206,7 @@ try {
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-
+ 
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
     $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
