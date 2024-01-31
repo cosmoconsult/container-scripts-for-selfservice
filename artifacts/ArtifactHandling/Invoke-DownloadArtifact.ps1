@@ -47,8 +47,8 @@ function Invoke-DownloadArtifact {
         $tempArchive = "$([System.IO.Path]::GetTempFileName()).zip"
         
         $tempFolder = [System.IO.Path]::GetTempFileName()
-        if (Test-Path $folder) {Remove-Item $folder}
-        New-Item -Path $folder -ItemType "Directory"
+        if (Test-Path $tempFolder) {Remove-Item $tempFolder}
+        New-Item -Path $tempFolder -ItemType "Directory"
 
         $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName
         if (! $serviceTierFolder) {
