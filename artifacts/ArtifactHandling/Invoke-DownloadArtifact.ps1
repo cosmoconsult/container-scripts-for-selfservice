@@ -11,7 +11,7 @@ function Invoke-DownloadArtifact {
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [string]$name = "",
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$protocolType = "upack",
+        [string]$type = "upack",
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [string]$view = "",
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
@@ -103,7 +103,7 @@ function Invoke-DownloadArtifact {
             if ("$pat" -eq "") {
                 $pat = $accessToken
             }
-            if ($protocolType -eq "upack") {
+            if ($type -eq "upack") {
                 $artifactVersion = $version
                 if ("$artifactVersion" -ne "") {
                     Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
@@ -117,7 +117,7 @@ function Invoke-DownloadArtifact {
                         -name            $name `
                         -scope           $scope `
                         -view            $view `
-                        -protocolType    $protocolType `
+                        -protocolType    $type `
                         -accessToken     $pat `
                         -telemetryClient $telemetryClient `
                         -artifactVersion $artifactVersion
@@ -138,7 +138,7 @@ function Invoke-DownloadArtifact {
                     $sourceUri = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?scope=$($scope)&pat=$($pat)"
                 }
             }
-            elseif ($protocolType -eq "nuget") {
+            elseif ($type -eq "nuget") {
                 Add-ArtifactsLog -message "Download $name from nuget feed" 
                 Download-BcNuGetPackageToFolder -packageName $name -copyInstalledAppsToFolder $tempFolder
 
