@@ -204,7 +204,7 @@ Install-Module -Name "bccontainerhelper" -Scope CurrentUser -Force
 Import-Module -Name "bccontainerhelper" -Scope Global
 #TODO Import Trusted Feed from Config
 Write-Host "Setup trusted NugGet Feed"
-$bcContainerHelperConfig.TrustedNuGetFeeds += @([PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/PGrabensteiner8351/Nugeticing_Test/_packaging/Nugeticing_Test/nuget/v3/index.json"; "Token" = "wz4zihliutaua6won5glzyzkt2qyf2qbvnwxhiykychvclrr2ldq"; "Patterns" = @('*'); "Fingerprints" = @() })
+$bcContainerHelperConfig.TrustedNuGetFeeds += @([PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/PSchiefer-Nugeticing-Test/_packaging/release/nuget/v3/index.json"; "Token" = "qb34n5lbvrdfje6rwswdgjnk2fxxnq6ezprb32adf3s537qtbb6a"; "Patterns" = @('*'); "Fingerprints" = @() })
 
 # Download Artifacts
 try {
