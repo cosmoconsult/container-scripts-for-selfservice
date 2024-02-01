@@ -197,14 +197,6 @@ $properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
-Write-Host "Install Nuget Provider"
-Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
-Write-Host "Import bccontainerhelper"
-Install-Module -Name "bccontainerhelper" -Scope CurrentUser -Force
-Import-Module -Name "bccontainerhelper" -Scope Global
-#TODO Import Trusted Feed from Config
-Write-Host "Setup trusted NugGet Feed"
-$bcContainerHelperConfig.TrustedNuGetFeeds += @([PSCustomObject]@{ "Url" = "https://pkgs.dev.azure.com/PSchiefer-Nugeticing-Test/_packaging/release/nuget/v3/index.json"; "Token" = "qb34n5lbvrdfje6rwswdgjnk2fxxnq6ezprb32adf3s537qtbb6a"; "Patterns" = @('*'); "Fingerprints" = @() })
 
 # Download Artifacts
 try {
