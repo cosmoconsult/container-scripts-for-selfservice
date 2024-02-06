@@ -44,6 +44,7 @@ function Import-AppArtifact {
             $importFiles = $true
             Add-ArtifactsLog -message "Import App Artifacts..."           
         }
+        Write-Host "##[group]$($app.Name) $($app.Publisher) $($app.Version)"
         
         $properties = @{"path" = $Path; "DatabaseName" = $DatabaseName; "NavServiceName" = $NavServiceName; "ServerInstance" = $ServerInstance; SyncMode = $SyncMode; Scope = $Scope}
         try {
@@ -215,6 +216,7 @@ function Import-AppArtifact {
         catch {
             Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import App Artifact"
         }
+        Write-Host "##[endgroup]"
     }
     
     end {

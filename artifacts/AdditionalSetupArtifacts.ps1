@@ -199,6 +199,7 @@ Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryCli
 
 # Download Artifacts
 try {
+    Write-Host "##[group]Download Artifacts"
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
@@ -213,6 +214,7 @@ catch {
 }
 finally {
     Add-ArtifactsLog -message "Download Artifacts done."
+    Write-Host "##[endgroup]"
 }
 
 # Initialize company
