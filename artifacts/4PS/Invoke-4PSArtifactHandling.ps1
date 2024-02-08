@@ -36,10 +36,10 @@ function Invoke-4PSArtifactHandling {
 
                 $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $username
                 if (! $userexist) {
-                    New-NAVServerUser -ServerInstance BC -Username $username -Password $securepassword -LanguageId 'en-US' -Force -ErrorAction SilentlyContinue
+                    New-NAVServerUser -ServerInstance BC -Username $username -Password $securepassword -Force -ErrorAction SilentlyContinue
                 }
                 else {
-                    Set-NAVServerUser -ServerInstance BC -Username $username -Password $securepassword -LanguageId 'en-US' -Force -ErrorAction SilentlyContinue
+                    Set-NAVServerUser -ServerInstance BC -Username $username -Password $securepassword -Force -ErrorAction SilentlyContinue
                 }
                 New-NAVServerUserPermissionSet -ServerInstance BC -Username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 1
