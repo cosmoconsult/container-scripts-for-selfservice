@@ -50,6 +50,7 @@ function Import-AppArtifact {
             $started = Get-Date -Format "o"
             
             $app     = (Get-NAVAppInfo -Path $Path)            
+            Write-Host "##[group]$($app.Name) $($app.Publisher) $($app.Version)"
             $properties["Name"]       = $app.Name
             $properties["Publisher"]  = $app.Publisher
             $properties["AppId"]      = $app.Id
@@ -215,6 +216,7 @@ function Import-AppArtifact {
         catch {
             Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import App Artifact"
         }
+        Write-Host "##[endgroup]"
     }
     
     end {
