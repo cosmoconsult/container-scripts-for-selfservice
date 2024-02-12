@@ -2,49 +2,54 @@ function Invoke-DownloadArtifact {
     [CmdletBinding()]
     param (
         # Artifact Parameter
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$organization  = "",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$project       = "",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$feed          = "",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$name          = "",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$protocolType  = "upack",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$view          = "",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$version       = "",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$scope         = "project",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$url           = "",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$target        = "",        
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
-        [string]$targetFolder  = "",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$organization = "",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$project = "",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$feed = "",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$name = "",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$type = "upack",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$view = "",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$version = "",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$scope = "project",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$url = "",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$target = "",        
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$targetFolder = "",
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [string]$appImportScope = "",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [string]$pat = "",
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [string[]]$cosmoArtifactType = @(),
         # Download Parameter
-        [Parameter(Mandatory=$false)]
-        [string]$destination   = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
-        [Parameter(Mandatory=$false)]
-        [string]$baseUrl       = "https://ppi-devops.germanywestcentral.cloudapp.azure.com/proxy",
-        [Parameter(Mandatory=$false)]
-        [string]$accessToken   = "$($env:AZURE_DEVOPS_EXT_PAT)",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
+        [string]$destination = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
+        [Parameter(Mandatory = $false)]
+        [string]$baseUrl = "https://ppi-devops.germanywestcentral.cloudapp.azure.com/proxy",
+        [Parameter(Mandatory = $false)]
+        [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
+        [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null
     )
     
     begin {
-        $folderIdx         = 0
-        $rootFolder        = $destination
-        $tempArchive       = "$([System.IO.Path]::GetTempFileName()).zip"
+        $folderIdx = 0
+        $rootFolder = $destination
+        $tempArchive = "$([System.IO.Path]::GetTempFileName()).zip"
+        
+        $tempFolder = [System.IO.Path]::GetTempFileName()
+        if (Test-Path $tempFolder) {Remove-Item $tempFolder}
+        New-Item -Path $tempFolder -ItemType "Directory"
+
         $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName
         if (! $serviceTierFolder) {
             Add-ArtifactsLog -message "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'" -severity Warn
@@ -56,20 +61,22 @@ function Invoke-DownloadArtifact {
             # Validate or get the PAT, becasue no Download URL is present
             if ("$accessToken" -eq "") {
                 # Try get the PAT from environment
-                $accessToken = (@("$($env:AZURE_DEVOPS_TOKEN)", "$($env:AZURE_DEVOPS_EXT_PAT)", "$($env:AZP_TOKEN)") | ? { "$_" -ne ""} | select -First 1)            
+                $accessToken = (@("$($env:AZURE_DEVOPS_TOKEN)", "$($env:AZURE_DEVOPS_EXT_PAT)", "$($env:AZP_TOKEN)") | ? { "$_" -ne "" } | select -First 1)            
             }
             if ("$accessToken" -eq "") {
                 # Try to convert PAT from Base64, because it is stored in environment
-                $accessToken64 = (@("$($env:AZURE_DEVOPS_TOKEN64)", "$($env:AZURE_DEVOPS_EXT_PAT64)", "$($env:AZP_TOKEN64)", "$($env:AZURE_DEVOPS_PAT64)") | ? { "$_" -ne ""} | select -First 1)
+                $accessToken64 = (@("$($env:AZURE_DEVOPS_TOKEN64)", "$($env:AZURE_DEVOPS_EXT_PAT64)", "$($env:AZP_TOKEN64)", "$($env:AZURE_DEVOPS_PAT64)") | ? { "$_" -ne "" } | select -First 1)
                 if ("" -ne "$accessToken64" -and "" -eq "$accessToken") {
                     try {
                         $accessToken = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String("$accessToken64"))
-                    } catch {}                    
+                    }
+                    catch {}                    
                 }
                 if ("" -ne "$accessToken64" -and "" -eq "$accessToken") {
                     try {
                         $accessToken = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String("$accessToken64"))
-                    } catch {}
+                    }
+                    catch {}
                 }
             }
             if ("" -eq "$accessToken") {
@@ -96,50 +103,69 @@ function Invoke-DownloadArtifact {
             if ("$pat" -eq "") {
                 $pat = $accessToken
             }
-            $artifactVersion = $version
-            if ("$artifactVersion" -ne "") {
-                Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
-            } else {
-                Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
-                $artifactVersion = Get-PackageVersion `
-                    -organization    $organization `
-                    -project         $project `
-                    -feed            $feed `
-                    -name            $name `
-                    -scope           $scope `
-                    -view            $view `
-                    -protocolType    $protocolType `
-                    -accessToken     $pat `
-                    -telemetryClient $telemetryClient `
-                    -artifactVersion $artifactVersion
-            } 
+            if ($type -eq "upack") {
+                $artifactVersion = $version
+                if ("$artifactVersion" -ne "") {
+                    Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
+                }
+                else {
+                    Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
+                    $artifactVersion = Get-PackageVersion `
+                        -organization    $organization `
+                        -project         $project `
+                        -feed            $feed `
+                        -name            $name `
+                        -scope           $scope `
+                        -view            $view `
+                        -protocolType    $type `
+                        -accessToken     $pat `
+                        -telemetryClient $telemetryClient `
+                        -artifactVersion $artifactVersion
+                } 
 
-            if ("$artifactVersion" -eq "") {
-                Add-ArtifactsLog -message "Artiact $name (View: '$view') skipped (no version / release found)" -severity Warn
-                Invoke-LogEvent -name "Download Artifact - no Artifact found" -properties $properties -telemetryClient $telemetryClient
-                $url     = ""
-            } else {
-                Add-ArtifactsLog -message "`Artifact $name (View: '$view') has Version v $artifactVersion"
+                if ("$artifactVersion" -eq "") {
+                    Add-ArtifactsLog -message "Artiact $name (View: '$view') skipped (no version / release found)" -severity Warn
+                    Invoke-LogEvent -name "Download Artifact - no Artifact found" -properties $properties -telemetryClient $telemetryClient
+                    $url = ""
+                }
+                else {
+                    Add-ArtifactsLog -message "`Artifact $name (View: '$view') has Version v $artifactVersion"
 
-                $scope      = $scope
-                if ("$scope" -eq "") { $scope = "project"}
-                $project    = $project
-                if ("$scope" -ne "project" -and "" -eq "$project") { $project = "dummy" }
-                $sourceUri  = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?scope=$($scope)&pat=$($pat)"
+                    $scope = $scope
+                    if ("$scope" -eq "") { $scope = "project" }
+                    $project = $project
+                    if ("$scope" -ne "project" -and "" -eq "$project") { $project = "dummy" }
+                    $sourceUri = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?scope=$($scope)&pat=$($pat)"
+                }
+            }
+            elseif ($type -eq "nuget") {
+                Import-NugetTools
+                Add-ArtifactsLog -message "Download $name from nuget feed" 
+                Download-BcNuGetPackageToFolder -packageName $name -folder $tempFolder
+
+                foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
+                    if ($file.Name -like "*.app") {
+                        Invoke-DownloadArtifact -name $file.Name -url $file.FullName -target $target -destination $destination -telemetryClient $telemetryClient
+                    }
+                }
+                $success = $true
+                return
             }
         }
 
         $isDownload = "$sourceUri".StartsWith("http")
-        $isArchive  = $isDownload -or "$sourceUri".EndsWith(".zip")
+        $isArchive = $isDownload -or "$sourceUri".EndsWith(".zip")
         if ("$sourceUri" -ne "") {
             if ($isDownload) {
                 $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
                 if ($url_output.Length -gt 1) {
                     Add-ArtifactsLog -message "Download Artifact from $($url_output[0])&pat=***"
-                } else {
+                }
+                else {
                     Add-ArtifactsLog -message "Download Artifact from $($sourceUri)"
                 }
-            } else {
+            }
+            else {
                 Add-ArtifactsLog -message "Copy Artifact from $sourceUri"
             }
 
@@ -148,22 +174,27 @@ function Invoke-DownloadArtifact {
                 if ("$sourceUri".StartsWith("http")) {  
                     try {
                         Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
-                    } catch {
+                    }
+                    catch {
                         Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive"
                     }
-                } else {
+                }
+                else {
                     if (Test-Path $sourceUri) {
                         Add-ArtifactsLog -message "Found Artifact at $sourceUri"
-                    } else {
+                    }
+                    else {
                         Add-ArtifactsLog -message "No Artifact found at $sourceUri"
                     }                    
                 }
 
                 if ($isDownload) {
                     $archive = $tempArchive
-                } elseif ($isArchive) {
+                }
+                elseif ($isArchive) {
                     $archive = $sourceUri
-                } else {
+                }
+                else {
                     $archive = ""
                 }
 
@@ -173,21 +204,23 @@ function Invoke-DownloadArtifact {
                     if ("$targetFolder" -eq "") {
                         if ($name.StartsWith("sortorder")) {
                             $folderSuffix = $name.Split(" ")[0]
-                        } else {
+                        }
+                        else {
                             $folderSuffix = "$($folderIdx.ToString().PadLeft(3, '0'))"                        
                         }
-                    } else {
+                    }
+                    else {
                         $folderSuffix = "$targetFolder"
                     }
-                    $folder    = Join-Path $rootFolder "$folderSuffix"
+                    $folder = Join-Path $rootFolder "$folderSuffix"
 
                     # Overrule the Target Folder, when a special target (app, dll, font) is set
                     switch ("$target".ToLower()) {
-                        "dll"     { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
+                        "dll" { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
                         "add-ins" { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
                         #"app"     { $folder = "c:/apps" }
-                        "font"    { $folder = "c:/fonts" }
-                        "fonts"   { $folder = "c:/fonts" }
+                        "font" { $folder = "c:/fonts" }
+                        "fonts" { $folder = "c:/fonts" }
                         "demodata" { $folder = "c:/demodata" }
                     }
 
@@ -204,7 +237,8 @@ function Invoke-DownloadArtifact {
                                 }
                             }
                         }
-                    } else {
+                    }
+                    else {
                         Add-ArtifactsLog -message "Copy Artifact '$sourceUri' ($name v $artifactVersion) to $($folder)..."
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force
                         Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
@@ -221,22 +255,26 @@ function Invoke-DownloadArtifact {
                     Add-ArtifactsLog -message "$((Get-ChildItem $folder -Recurse) | Select-Object FullName, Length | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)"
 
                     $success = $true
-                } else {
+                }
+                else {
                     Add-ArtifactsLog -message "No content available from source: '$sourceUri'" -severity Warn -success skip
                     $success = $false
                 }
 
-                $properties = @{"organization" = $organization; "project" = $project; "feed" = $feed; "name" = $name; "scope" = $scope; "view" = $view; "protocolType" = $type; "url" = $url_output}
+                $properties = @{"organization" = $organization; "project" = $project; "feed" = $feed; "name" = $name; "scope" = $scope; "view" = $view; "protocolType" = $type; "url" = $url_output }
                 Invoke-LogOperation -name "Download Artifact" -success $success -started $started -properties $properties -telemetryClient $telemetryClient
-            } catch { 
+            }
+            catch { 
                 Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -operation "Download Artifact"
-            } finally {
+            }
+            finally {
                 if (Test-Path $tempArchive) {
                     Remove-Item -Path $tempArchive -Force -ErrorAction SilentlyContinue
                 }
                 $sourceUri = ""
             }
-        } else {
+        }
+        else {
             Add-ArtifactsLog -message "Artifact $name skipped - no Url found." -severity Warn -success skip
         }
     }

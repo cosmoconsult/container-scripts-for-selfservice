@@ -115,46 +115,6 @@ if ($env:cosmoUpgradeSysApp) {
     }
 }
 
-# Check, if -includeCSide exists, because --volume ""$($programFilesFolder):C:\navpfiles"" is mounted
-if ("$($env:includeCSide)" -eq "y" -or (Test-Path "c:\navpfiles\")) {
-    Write-Host ""
-    Write-Host "=== Additional Setup Freddy ==="
-    
-    if ($restartingInstance -eq $false -and $databaseServer -eq "localhost" -and $databaseInstance -eq "SQLEXPRESS") {
-        & sqlcmd -S 'localhost\SQLEXPRESS' -d $DatabaseName -Q "update [dbo].[Object] SET [Modified] = 0" | Out-Null
-    }
-
-    if (!(Test-Path "c:\navpfiles\*")) {
-        Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics NAV\*" -Destination "c:\navpfiles" -Recurse -Force -ErrorAction Ignore
-        $destFolder = (Get-Item "c:\navpfiles\*\RoleTailored Client").FullName
-        $ClientUserSettingsFileName = "$runPath\ClientUserSettings.config"
-        [xml]$ClientUserSettings = Get-Content $clientUserSettingsFileName
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""Server""]").value = "$PublicDnsName"
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServerInstance""]").value = $ServerInstance
-        if ($multitenant) {
-            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""TenantId""]").value = "$TenantId"
-        }
-        if ($null -ne $clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ServicesCertificateValidationEnabled""]")) {
-            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ServicesCertificateValidationEnabled""]").value = "false"
-        }
-        if ($null -ne $clientUserSettings.SelectSingleNode("//appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]")) {
-            $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCertificateValidationEnabled""]").value = "false"
-        }
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesPort""]").value = "$publicWinClientPort"
-        $acsUri = "$federationLoginEndpoint"
-        if ($acsUri -ne "") {
-            if (!($acsUri.ToLowerInvariant().Contains("%26wreply="))) {
-                $acsUri += "%26wreply=$publicWebBaseUrl"
-            }
-        }
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ACSUri""]").value = "$acsUri"
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""DnsIdentity""]").value = "$dnsIdentity"
-        $clientUserSettings.SelectSingleNode("//configuration/appSettings/add[@key=""ClientServicesCredentialType""]").value = "$Auth"
-        $clientUserSettings.Save("$destFolder\ClientUserSettings.config")
-    }
-    Write-Host "=== Additional Setup Freddy Done ==="
-    Write-Host ""    
-}
 
 Write-Host ""
 Write-Host "=== Additional Setup ==="
@@ -189,6 +149,7 @@ if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)
     Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
 }
 
+$env:nugetImported = $false
 
 $targetDir = "C:\run\my\apps"
 $targetDirManuallySorted = "C:\run\my\manuallysorted-apps"
@@ -197,6 +158,7 @@ $properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
+
 # Download Artifacts
 try {
     Write-Host "##[group]Download Artifacts"
@@ -204,7 +166,7 @@ try {
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-
+ 
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
     $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
