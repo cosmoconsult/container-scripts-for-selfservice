@@ -28,7 +28,7 @@
             }
         }
     }
-    $env:nugetImported = true
+    $env:nugetImported = $true
 }
 
 Export-ModuleMember -Function Import-NugetTools
