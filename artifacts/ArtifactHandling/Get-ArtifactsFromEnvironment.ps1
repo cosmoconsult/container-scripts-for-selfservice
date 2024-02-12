@@ -1,10 +1,10 @@
 function Get-ArtifactsFromEnvironment {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$false, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [Alias("FullName")]
         [string]$path = $null,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null
     )
     
@@ -17,7 +17,7 @@ function Get-ArtifactsFromEnvironment {
     process {
         if ("$env:AZURE_DEVOPS_PACKAGES" -eq "" -and "$env:AZURE_DEVOPS_ARTIFACTS" -eq "") {
             Write-Host "not packages / artifacts found"
-            $artifacts    = [System.Collections.ArrayList]@()
+            $artifacts = [System.Collections.ArrayList]@()
             if (("$path" -ne "") -and (Test-Path "$path")) {
                 $artifactJson = (Get-Content $path -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue)
                 if ($artifactJson.artifacts) {
@@ -33,7 +33,7 @@ function Get-ArtifactsFromEnvironment {
         $artifacts = @()
         try {
             if ("$env:AZURE_DEVOPS_PACKAGES" -ne "") {
-                $packages  = "$env:AZURE_DEVOPS_PACKAGES".Split(@(',', ';'))
+                $packages = "$env:AZURE_DEVOPS_PACKAGES".Split(@(',', ';'))
                 Write-Host "Artifacts from AZURE_DEVOPS_PACKAGES ..."
                 
                 $packages | ForEach-Object {
@@ -49,16 +49,16 @@ function Get-ArtifactsFromEnvironment {
                     }
                 }
             } 
-            if ("$env:AZURE_DEVOPS_ARTIFACTS" -ne "") 
-            {
+            if ("$env:AZURE_DEVOPS_ARTIFACTS" -ne "") {
                 Write-Host "Artifacts from AZURE_DEVOPS_ARTIFACTS ..."
-                $base64       = "$env:AZURE_DEVOPS_ARTIFACTS"
+                $base64 = "$env:AZURE_DEVOPS_ARTIFACTS"
                 if ("$base64" -ne "") {
                     $artifactJson = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($base64))
                     if ("$artifactJson" -ne "" -and $artifactJson[0] -ne "{") {
                         $artifactJson = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($base64))
                     }
-                } else {
+                }
+                else {
                     $artifactJson = '{"artifacts":[]}'
                 }
 
@@ -74,7 +74,8 @@ function Get-ArtifactsFromEnvironment {
 
                 if ($env:IsBuildContainer) {
                     $artifacts = $artifacts | Where-Object { -not ($_.ignorein -contains "build") }
-                } else {
+                }
+                else {
                     $artifacts = $artifacts | Where-Object { -not ($_.ignorein -contains "dev") }
                 }
             }

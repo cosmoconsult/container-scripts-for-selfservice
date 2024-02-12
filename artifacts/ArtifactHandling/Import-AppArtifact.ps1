@@ -1,25 +1,25 @@
 function Import-AppArtifact {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [Alias("FullName")]    
         [string]$Path,
         [switch]$IsModifiedBaseApp,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$ServerInstance = "NAV",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Tenant = "default",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$DatabaseServer = "localhost\sqlexpress",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Filter = "*.app",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet("Add", "ForceSync")]
         [string]$SyncMode = "Add",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet("Global", "Tenant")]
         [string]$Scope = "Global",        
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null
     )
     
@@ -29,7 +29,7 @@ function Import-AppArtifact {
         }
 
         $importFiles = $false
-        $started     = Get-Date -Format "o"
+        $started = Get-Date -Format "o"
     }
     
     process {
@@ -45,16 +45,16 @@ function Import-AppArtifact {
             Add-ArtifactsLog -message "Import App Artifacts..."           
         }
         
-        $properties = @{"path" = $Path; "DatabaseName" = $DatabaseName; "NavServiceName" = $NavServiceName; "ServerInstance" = $ServerInstance; SyncMode = $SyncMode; Scope = $Scope}
+        $properties = @{"path" = $Path; "DatabaseName" = $DatabaseName; "NavServiceName" = $NavServiceName; "ServerInstance" = $ServerInstance; SyncMode = $SyncMode; Scope = $Scope }
         try {
             $started = Get-Date -Format "o"
             
-            $app     = (Get-NAVAppInfo -Path $Path)            
+            $app = (Get-NAVAppInfo -Path $Path)            
             Write-Host "##[group]$($app.Name) $($app.Publisher) $($app.Version)"
-            $properties["Name"]       = $app.Name
-            $properties["Publisher"]  = $app.Publisher
-            $properties["AppId"]      = $app.Id
-            $properties["Version"]    = $app.Version
+            $properties["Name"] = $app.Name
+            $properties["Publisher"] = $app.Publisher
+            $properties["AppId"] = $app.Id
+            $properties["Version"] = $app.Version
 
             Add-ArtifactsLog -kind App -message "$([System.Environment]::NewLine)Import App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
 
@@ -78,7 +78,7 @@ function Import-AppArtifact {
             $oldApp = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
             
             # Uninstall old NAVApp, when present
-            if($oldApp -and $oldApp.IsInstalled) {
+            if ($oldApp -and $oldApp.IsInstalled) {
                 try {
                     $started1 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) ..." -data $app
@@ -89,16 +89,20 @@ function Import-AppArtifact {
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Uninstall old App successful" -data $app -success success }
                     $runDataUpgrade = $true
-                } catch {
+                }
+                catch {
                     Add-ArtifactsLog -kind App -message "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
                     $success = $false
-                } finally {
+                }
+                finally {
                     Invoke-LogOperation -name "Uninstall old App" -started $started1 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
-            } else {
+            }
+            else {
                 if ($oldApp) {
                     $runDataUpgrade = $true
-                } else {
+                }
+                else {
                     $runDataUpgrade = $false
                 } 
                 $success = $true
@@ -115,10 +119,12 @@ function Import-AppArtifact {
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Publish App successful" -data $app -success success }
-                } catch {
+                }
+                catch {
                     Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
                     $success = $false
-                } finally {
+                }
+                finally {
                     Invoke-LogOperation -name "Publish App" -started $started2 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
             }
@@ -135,10 +141,12 @@ function Import-AppArtifact {
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Sync App ... successful" -data $app -success success }
-                } catch {
+                }
+                catch {
                     Add-ArtifactsLog -kind App -message "Sync App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
                     $success = $false
-                } finally {
+                }
+                finally {
                     Invoke-LogOperation -name "Publish App" -started $started2 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
                 $skipInstall = ! $success
@@ -154,16 +162,18 @@ function Import-AppArtifact {
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Debug -data $app }
-                    $success     = ! $err
+                    $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "App Data Upgrade ... successful" -data $app -success success }
                     # Check, if the new App is correct installed
                     $result = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
                     $skipInstall = $result -and $result.IsInstalled  
-                } catch {
+                }
+                catch {
                     Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
-                    $success     = $false
+                    $success = $false
                     $skipInstall = $true
-                } finally {
+                }
+                finally {
                     Invoke-LogOperation -name "App Data Upgrade" -started $started2 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
             }
@@ -179,10 +189,12 @@ function Import-AppArtifact {
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app -lowerCase }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Install App ... successful" -data $app -success success }
-                } catch {        
+                }
+                catch {        
                     Add-ArtifactsLog -kind App -message "Install App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
                     $success = $false
-                } finally {                
+                }
+                finally {                
                     Invoke-LogOperation -name "Install App" -started $started3 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
             }
@@ -199,15 +211,16 @@ function Import-AppArtifact {
                 Add-ArtifactsLog -kind App -message "$(($result | Select-Object Name, Publisher, Version, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion | Format-Table -AutoSize | Out-String -Width 1024).Trim())"
                 $result = $result | Select-Object -First 1
                 Add-ArtifactsLog -kind App -message "App Status $($app.Name) $($app.Publisher) $($app.Version) ... Published: $($result.IsPublished) Installed: $($result.IsInstalled) SyncState: $($result.SyncState) " -data $result
-            } else {
+            }
+            else {
                 Add-ArtifactsLog -kind App -message "Import App $($app.Name) $($app.Publisher) $($app.Version) failed" -data $app -severity Error -success fail
             }
 
             if ($result) {
-                $properties["IsPublished"]          = $result.IsPublished
-                $properties["IsInstalled"]          = $result.IsInstalled
-                $properties["SyncState"]            = $result.SyncState
-                $properties["NeedsUpgrade"]         = $result.NeedsUpgrade
+                $properties["IsPublished"] = $result.IsPublished
+                $properties["IsInstalled"] = $result.IsInstalled
+                $properties["SyncState"] = $result.SyncState
+                $properties["NeedsUpgrade"] = $result.NeedsUpgrade
                 $properties["ExtensionDataVersion"] = $result.ExtensionDataVersion
             }
             Add-ArtifactsLog -message " "

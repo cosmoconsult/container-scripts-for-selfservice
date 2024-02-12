@@ -6,7 +6,8 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrWhiteSpace($en
 
     if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
         $licenseToImport = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Cronus.*").FullName
-    } else {
+    }
+    else {
         $licenseToImport = $env:licensefile
     }
 
@@ -29,11 +30,11 @@ Pop-Location
 
 $scripts = @(
                 (Join-Path $PSScriptRoot "EnablePremium.ps1")
-            )
+)
 
 
 
-foreach ($script in $scripts){
+foreach ($script in $scripts) {
     if (Test-Path -Path $script) {
         Write-Host "Execute $script"
         . ($script)

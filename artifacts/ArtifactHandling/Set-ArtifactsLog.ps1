@@ -1,9 +1,9 @@
 function Set-ArtifactsLog {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true, ValueFromPipelineByPropertyName = $true)]
         [System.Object]$artifactsLog,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$artifactsLogFile = "C:/inetpub/wwwroot/http/artifacts.log.json"
     )
     

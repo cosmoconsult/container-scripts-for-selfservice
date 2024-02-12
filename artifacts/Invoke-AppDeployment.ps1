@@ -5,8 +5,8 @@ param (
     [string]$Password,
     [string]$BearerToken = "",
     [string]$PathInZip = "",
-    [Parameter(Mandatory=$false)]
-    [ValidateSet('Global','Tenant','Dev')]
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('Global', 'Tenant', 'Dev')]
     [string] $Scope = "Tenant",
     [string] $ContainerId
 )
@@ -23,7 +23,7 @@ try {
         if (-not (Test-Path $basePath)) {
             New-Item "$basePath" -ItemType Directory
         }
-        $subfolder = $([convert]::tostring((get-random 65535),16).padleft(8,'0'))
+        $subfolder = $([convert]::tostring((get-random 65535), 16).padleft(8, '0'))
         $folder = Join-Path $basePath $subfolder
         New-Item "$folder" -ItemType Directory
         $filename = "downloadedapp.app"
@@ -44,21 +44,22 @@ try {
                 Write-Host "Couldn't find $PathInZip in $AppToDeploy"
                 exit
             }
-        } else {
+        }
+        else {
             $AppToDeploy = $fullPath
         }
     }
     
     $ServerInstance = "BC"
     $Path = $AppToDeploy
-    $app     = (Get-NAVAppInfo -Path $Path) 
+    $app = (Get-NAVAppInfo -Path $Path) 
 
     if ($Scope -ne 'Dev') {
         # Check if app is already published with another version
         $oldApp = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -ErrorAction SilentlyContinue) | Select-Object -First 1
         
         # Uninstall old NAVApp, when present
-        if($oldApp -and $oldApp.IsInstalled) {
+        if ($oldApp -and $oldApp.IsInstalled) {
             try {
                 $started1 = Get-Date -Format "o"
                 Write-Host "Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $($oldApp.Name) -Publisher $($oldApp.Publisher) -Version $($oldApp.Version) -Force"
@@ -69,14 +70,17 @@ try {
                 $success = ! $err
                 if ($success) { Write-Host "Uninstall old App successful" }
                 $runDataUpgrade = $true
-            } catch {
+            }
+            catch {
                 Write-Host "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
                 $success = $false
             }
-        } else {
+        }
+        else {
             if ($oldApp) {
                 $runDataUpgrade = $true
-            } else {
+            }
+            else {
                 $runDataUpgrade = $false
             } 
             $success = $true
@@ -90,7 +94,8 @@ try {
                 if ($Scope -eq "Global") {
                     Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope"
                     Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-                } elseif ($Scope -eq "Tenant") {
+                }
+                elseif ($Scope -eq "Tenant") {
                     Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default"
                     Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                 }
@@ -99,7 +104,8 @@ try {
                 $err  | foreach { Write-Host "$_" }
                 $success = ! $err
                 if ($success) { Write-Host "Publish App successful" }
-            } catch {
+            }
+            catch {
                 Write-Host "Publish App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
                 $success = $false
             }
@@ -117,7 +123,8 @@ try {
                 $err  | foreach { Write-Host "$_" }
                 $success = ! $err
                 if ($success) { Write-Host "Sync App ... successful" }
-            } catch {
+            }
+            catch {
                 Write-Host "Sync App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
                 $success = $false
             }
@@ -141,14 +148,15 @@ try {
                 $info | foreach { Write-Host "$_" }
                 $warn | foreach { Write-Host "$_" }
                 $err  | foreach { Write-Host "$_" }
-                $success     = ! $err
+                $success = ! $err
                 if ($success) { Write-Host "App Data Upgrade ... successful" }
                 # Check, if the new App is correct installed
                 $result = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -ErrorAction SilentlyContinue) | Select-Object -First 1
                 $skipInstall = $result -and $result.IsInstalled  
-            } catch {
+            }
+            catch {
                 Write-Host "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-                $success     = $false
+                $success = $false
                 $skipInstall = $true
             }
         }
@@ -164,13 +172,15 @@ try {
                 $err  | foreach { Write-Host "$_" }
                 $success = ! $err
                 if ($success) { Write-Host "Install App ... successful" }
-            } catch {        
+            }
+            catch {        
                 Write-Host "Install App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
                 $success = $false
             }
         }
         
-    } else {
+    }
+    else {
         # Scope is dev
         Import-Module (Join-Path $PSScriptRoot "helper\k8s-bc-helper.psd1")
         Import-Module "c:\run\helper\k8s-bc-helper.psd1"
@@ -229,7 +239,8 @@ try {
         Write-Host "$(($result | Select-Object Name, Publisher, Version, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion | Format-Table -AutoSize | Out-String -Width 1024).Trim())"
         $result = $result | Select-Object -First 1
         Write-Host "App Status $($app.Name) $($app.Publisher) $($app.Version) ... Published: $($result.IsPublished) Installed: $($result.IsInstalled) SyncState: $($result.SyncState) "
-    } else {
+    }
+    else {
         Write-Host "Import App $($app.Name) $($app.Publisher) $($app.Version) failed"
     }
 }

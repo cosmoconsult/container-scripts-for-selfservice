@@ -27,14 +27,14 @@ function Move-Database {
             New-Item $dbPath -Type Directory -Force | Out-Null
             $_.FileGroups | ForEach-Object {
                 $_.Files | ForEach-Object {
-                    $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
-                    $toCopy += ,@($_.FileName, $destination)
+                    $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' + $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
+                    $toCopy += , @($_.FileName, $destination)
                     $_.FileName = $destination
                 } 
             }
             $_.LogFiles | ForEach-Object {
-                $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
-                $toCopy += ,@($_.FileName, $destination)
+                $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' + $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
+                $toCopy += , @($_.FileName, $destination)
                 $_.FileName = $destination
             }
 
@@ -42,7 +42,8 @@ function Move-Database {
             try {
                 $db = $_
                 $_.SetOffline()
-            } catch {
+            }
+            catch {
                 $db.Refresh()
                 if ($db.Status -ne "Offline") {
                     Write-Warning "Database $($db.Name) is not offline!"
@@ -62,14 +63,14 @@ function Move-Database {
 
 $blackListedApps = @(
     [pscustomobject]@{
-        Name="CKL Monetization";
-        Id='2d648cd3-1779-449a-b0eb-23a98267d85e';
-        Reason="works only on SaaS"
+        Name   = "CKL Monetization";
+        Id     = '2d648cd3-1779-449a-b0eb-23a98267d85e';
+        Reason = "works only on SaaS"
     },
     [pscustomobject]@{
-        Name="_Exclude_AnonymizedDataSharing_";
-        Id='063b3ac9-c464-4899-96e0-70d5425854e4';
-        Reason="works only on SaaS"
+        Name   = "_Exclude_AnonymizedDataSharing_";
+        Id     = '063b3ac9-c464-4899-96e0-70d5425854e4';
+        Reason = "works only on SaaS"
     }
 )
 
@@ -80,7 +81,8 @@ if ($env:cosmoUpgradeSysApp) {
     if ($sysAppInstallInfo) {
         Write-Host "  Uninstall the previous system application with dependencies"
         Uninstall-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Force -Tenant $TenantId
-    } else {
+    }
+    else {
         Write-Host "  No previous system application found"
     }
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
@@ -133,7 +135,8 @@ if (Test-Path "$serviceTierFolder") {
     if (Test-Path "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
         Write-Host "Import App Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
         Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
-    } elseif (Test-Path "$serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
+    }
+    elseif (Test-Path "$serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
         Write-Host "Import App Management Utils from $serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1"
         Import-Module "$serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
     }
@@ -143,8 +146,7 @@ if (Test-Path "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1") {
     Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
 }
 
-if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer))
-{
+if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)) {
     Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
     Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
 }
@@ -164,8 +166,8 @@ try {
     Write-Host "##[group]Download Artifacts"
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder"))))  } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder")} | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
  
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
@@ -270,7 +272,7 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
 
     if ($newPublicDnsName) {
         [xml]$doc = New-Object System.Xml.XmlDocument
-        $root = $doc.CreateNode("element","PerformanceCounterDataCollector",$null)
+        $root = $doc.CreateNode("element", "PerformanceCounterDataCollector", $null)
         "\Microsoft Dynamics NAV($ServerInstance)\% Primary key cache hit rate",
         "\Microsoft Dynamics NAV($ServerInstance)\# Active sessions",
         "\Microsoft Dynamics NAV($ServerInstance)\% Command cache hit rate",
@@ -295,7 +297,7 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
         $DCS.SegmentMaxDuration = 86400
         $DCS.SubdirectoryFormat = 1
         $DCS.RootPath = $SubDir
-        $DCS.SetCredentials($null,$null)
+        $DCS.SetCredentials($null, $null)
         $DCS.Commit($DCSName, $Server, 3) | Out-Null
         $DCS.Query($DCSName, $Server)
 
@@ -308,7 +310,7 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
         $DC.LogFileFormat = 3
         $DC.SetXML($doc.OuterXml)
         $DCS.DataCollectors.Add($DC)
-        $DCS.SetCredentials($null,$null)
+        $DCS.SetCredentials($null, $null)
         $DCS.Commit($DCSName, $Server, 3) | Out-Null
         $DCS.Query($DCSName, $Server)
 
@@ -321,8 +323,7 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
     }
 }
 
-if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saasbakfile))
-{
+if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saasbakfile)) {
     Write-Host "HANDLING SaaS BAKFILE"
 
     $bak = $env:saasbakfile
@@ -338,11 +339,11 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     
     Write-Host " - Restoring SaaS DB to $databaseFolder"
     New-NAVDatabase -DatabaseServer $DatabaseServer `
-                        -DatabaseInstance $DatabaseInstance `
-                        -DatabaseName "$tenantId" `
-                        -FilePath "$bak" `
-                        -DestinationPath "$databaseFolder" `
-                        -Timeout $SqlTimeout -Force | out-null
+        -DatabaseInstance $DatabaseInstance `
+        -DatabaseName "$tenantId" `
+        -FilePath "$bak" `
+        -DestinationPath "$databaseFolder" `
+        -Timeout $SqlTimeout -Force | out-null
     
     Write-Host " - Adapting package IDs"
     $diffPackageIds = Invoke-Sqlcmd -Query "select da.[App ID], da.[Package ID] FROM [default].[dbo].[NAV App Installed App] da JOIN [$tenantId].[dbo].[NAV App Installed App] ta ON da.[App ID] = ta.[App ID] AND da.[Version Major] = ta.[Version Major] AND da.[Version Minor] = ta.[Version Minor] AND da.[Version Build] = ta.[Version Build] AND da.[Version Revision] = ta.[Version Revision] AND da.[Package ID] != ta.[Package ID]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
@@ -447,31 +448,33 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     }
 
     Write-Host " - Create user in new tenant (if not exists)"
-    if(!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() })) {
+    if (!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() })) {
         if ($($env:username).indexOf("@") -gt 0) {
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -AuthenticationEMail $env:username -ErrorAction Continue
-        } else {
+        }
+        else {
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
         }
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
     }
 }
 
-if (![string]::IsNullOrEmpty($env:saasbakfile))
-{
+if (![string]::IsNullOrEmpty($env:saasbakfile)) {
     # license import also needs to happen on restart in case we got a new license
     Write-Host " - Importing License to tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
         $licenseToImport = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Cronus.*").FullName
-    } else {
+    }
+    else {
         $licenseToImport = $env:licensefile
     }
     
     if (Test-Path $licenseToImport) {
         Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile $licenseToImport -Database Tenant
         Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
-    } else {
+    }
+    else {
         Write-Host "   Couldn't find license file"
     }
 }
@@ -480,9 +483,8 @@ Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
-if (!(Test-Path "C:\CosmoSetupCompleted.txt"))
-{
-   New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
-   Write-Host "Set marker for health check"
+if (!(Test-Path "C:\CosmoSetupCompleted.txt")) {
+    New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
+    Write-Host "Set marker for health check"
 }
 Write-Host ""

@@ -31,8 +31,7 @@ public static class Dummy {
         $result = Invoke-WebRequest -Uri "${healthCheckBaseUrl}Health/System" -UseBasicParsing -TimeoutSec 10
         if ($result.StatusCode -eq 200 -and ((ConvertFrom-Json $result.Content).result)) {
             # Web Client Health Check Endpoint will test Web Client, Service Tier and Database Connection
-            if (Test-Path "C:\CosmoSetupCompleted.txt")
-            {
+            if (Test-Path "C:\CosmoSetupCompleted.txt") {
                 exit 0
             }
         }
@@ -40,8 +39,7 @@ public static class Dummy {
     else {
         # WebClient not installed, check Service Tier
         if ((Get-service -name "$NavServiceName").Status -eq 'Running') {
-            if (Test-Path "C:\CosmoSetupCompleted.txt")
-            {
+            if (Test-Path "C:\CosmoSetupCompleted.txt") {
                 exit 0
             }
         }

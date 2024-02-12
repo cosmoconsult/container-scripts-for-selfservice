@@ -1,16 +1,16 @@
 function Import-RIMArtifact {
     [CmdletBinding()]
     Param(
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [Alias("FullName")]    
         [string]$Path,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$ServerInstance = "NAV",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Tenant = "default",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Filter = "*.rapidstart",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null
     )
     
@@ -20,7 +20,7 @@ function Import-RIMArtifact {
         }
 
         $importFiles = $false
-        $started     = Get-Date -Format "o"
+        $started = Get-Date -Format "o"
     }
     
     process {
@@ -38,27 +38,28 @@ function Import-RIMArtifact {
             New-NAVServerUserPermissionSet -WindowsAccount (whoami) -PermissionSetId SUPER $ServerInstance  -Tenant $Tenant -ErrorAction SilentlyContinue
         }
         #Manage path as a filter
-        if ($Path -like '*'){
+        if ($Path -like '*') {
             $Path = (Get-Item -Path $Path -Filter $Filter)[0]
         }
         
         if ($importFiles) {
-            $properties = @{"path" = $Path; "ServerInstance" = $ServerInstance}
+            $properties = @{"path" = $Path; "ServerInstance" = $ServerInstance }
 
             Add-ArtifactsLog -kind RIM -message "Import RapidStart ... Get Companies ..."
-            $companies  = [System.Collections.ArrayList]@() + ((Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" })
+            $companies = [System.Collections.ArrayList]@() + ((Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" })
         
-            if ($companies.count -eq 0){
+            if ($companies.count -eq 0) {
                 Add-ArtifactsLog -kind RIM -message "Import RapidStart FAILED:$([System.Environment]::NewLine)  No company found" -data $properties -severity Error -success fail
                 return
-            } else {
+            }
+            else {
                 Add-ArtifactsLog -kind RIM -message "Import RapidStart ... found $($companies.count) companies" -data $properties
             }
             
             Add-ArtifactsLog -kind RIM -message "Import and apply package from $Path ..." -data $properties
             
             foreach ($company in $companies) {
-                $properties = @{"path" = $Path; "Company" = $company.CompanyName; "ServerInstance" = $ServerInstance}
+                $properties = @{"path" = $Path; "Company" = $company.CompanyName; "ServerInstance" = $ServerInstance }
             
                 try {
                     Add-ArtifactsLog -kind RIM -message "$([System.Environment]::NewLine)Import and apply package $Path in company '$($company.CompanyName)'" -data $properties

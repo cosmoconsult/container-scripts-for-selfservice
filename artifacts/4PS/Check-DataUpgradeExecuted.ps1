@@ -17,21 +17,20 @@ function Check-DataUpgradeExecuted {
     [cmdletbinding()]
     PARAM
     (
-        [parameter(Mandatory=$true)]
+        [parameter(Mandatory = $true)]
         [string]$ServerInstance,
         [string]$Tenant,
-        [parameter(Mandatory=$true)]
+        [parameter(Mandatory = $true)]
         [string]$RequiredTenantDataVersion
     )
-    PROCESS
-    {
+    PROCESS {
         if (!$Tenant) {
             $Tenant = 'default'
         }        
         if (((Get-NavTenant `
-            -ServerInstance $ServerInstance `
-            -Tenant $Tenant).TenantDataVersion) -eq $RequiredTenantDataVersion) {
-                Write-Host ("### Upgrade of base app {0} in tenant {1} excecuted." -f $RequiredTenantDataVersion, $Tenant) -ForegroundColor green    
+                        -ServerInstance $ServerInstance `
+                        -Tenant $Tenant).TenantDataVersion) -eq $RequiredTenantDataVersion) {
+            Write-Host ("### Upgrade of base app {0} in tenant {1} excecuted." -f $RequiredTenantDataVersion, $Tenant) -ForegroundColor green    
         } 
         else {
             Write-Host ("### Upgrade of base app {0} in tenant {1} NOT excecuted!" -f $RequiredTenantDataVersion, $Tenant) -ForegroundColor red
