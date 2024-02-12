@@ -139,6 +139,7 @@ function Invoke-DownloadArtifact {
                 }
             }
             elseif ($type -eq "nuget") {
+                Import-NugetTools
                 Add-ArtifactsLog -message "Download $name from nuget feed" 
                 Download-BcNuGetPackageToFolder -packageName $name -folder $tempFolder
 
