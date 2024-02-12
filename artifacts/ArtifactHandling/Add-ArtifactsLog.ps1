@@ -1,22 +1,22 @@
 function Add-ArtifactsLog {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$false)]
-        [string]$message  = "",        
-        [Parameter(Mandatory=$false)]
-        [string]$time     = (Get-Date -format "o"),
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
+        [string]$message = "",        
+        [Parameter(Mandatory = $false)]
+        [string]$time = (Get-Date -format "o"),
+        [Parameter(Mandatory = $false)]
         [ValidateSet("", "FOB", "App", "RIM", "DLL", "Font")]
         [string]$kind = "",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet("Info", "Warn", "Error", "Debug")]
         [string]$severity = "Info",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet("", "success", "fail", "skip")]
         [string]$success = $null,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [System.Object]$data = $null,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$artifactsLogFile = "C:/inetpub/wwwroot/http/artifacts.log.json",
         [switch]$lowerCase,
         [string]$suppressedWarnings = $env:SUPPRESSED_WARNINGS,
@@ -31,7 +31,7 @@ function Add-ArtifactsLog {
         if ("$message" -eq "") { return }
 
         $message = "$message".Trim()
-        $logEntry = @{ "time"= $time; "type"=$kind; "message" = $message; "severity" = $severity; "success" = $success }
+        $logEntry = @{ "time" = $time; "type" = $kind; "message" = $message; "severity" = $severity; "success" = $success }
 
         if ($data) {
             $logEntry["data"] = ($data | ConvertTo-Json -Depth 1 -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue)
@@ -44,7 +44,7 @@ function Add-ArtifactsLog {
         }
         
         switch ($severity) {
-            "Warn"  { 
+            "Warn" { 
                 if (($suppressedWarnings) -and ($message -match [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($suppressedWarnings)))) {
                     $severity = "Info"
                 }
@@ -56,12 +56,12 @@ function Add-ArtifactsLog {
             }
         }
 
-        $info   = "$("$kind".PadRight(4))$("[$severity]".ToUpper().PadLeft(6))"
+        $info = "$("$kind".PadRight(4))$("[$severity]".ToUpper().PadLeft(6))"
 
         if (! $message) { Write-Host "$info "; return }
         switch ($severity) {
-            "Info"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" } } }
-            "Warn"  { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Yellow } } }
+            "Info" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" } } }
+            "Warn" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Yellow } } }
             "Error" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f Red } } }
             "Debug" { foreach ($m in "$message".Trim().Split([System.Environment]::NewLine)) { if ($m) { Write-Host "$info $($m.trim())" -f DarkRed } } }
         }

@@ -13,7 +13,7 @@
 function Copy-EventLog {
     [CmdletBinding()]
     Param (
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string] $logname = "Application"
     )
 

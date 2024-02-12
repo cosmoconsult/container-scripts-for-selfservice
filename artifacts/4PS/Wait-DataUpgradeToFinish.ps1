@@ -15,12 +15,11 @@ function Wait-DataUpgradeToFinish {
     [cmdletbinding()]
     PARAM
     (
-        [parameter(Mandatory=$true)]
+        [parameter(Mandatory = $true)]
         [string]$ServerInstance,
         [string]$Tenant
     )
-    PROCESS
-    {
+    PROCESS {
         if (!$Tenant) {
             $Tenant = 'default'
         }
@@ -40,8 +39,7 @@ function Wait-DataUpgradeToFinish {
             Write-Host "Couldn't get the errors of the NAVDataUpgrade, maybe none is running"
         }
     
-        if(!$errors)
-        {
+        if (!$errors) {
 
             Write-Host "no errors detected - process has been completed successfully"
             return;
@@ -56,8 +54,7 @@ function Wait-DataUpgradeToFinish {
         }
 
         $errorMessage = "Errors occurred during the Microsoft Dynamics NAV data upgrade process: " + [System.Environment]::NewLine
-        foreach($nextErrorRecord in $errors)
-        {
+        foreach ($nextErrorRecord in $errors) {
             $errorMessage += ("Codeunit ID: " + $nextErrorRecord.CodeunitId + ", Function: " + $nextErrorRecord.FunctionName + ", Error: " + $nextErrorRecord.Error + ", Company: " + $nextErrorRecord.CompanyName + [System.Environment]::NewLine)
         }
 

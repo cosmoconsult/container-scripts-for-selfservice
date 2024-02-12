@@ -52,7 +52,7 @@ function Install-OpenSSH {
   
   $path = "c:\ProgramData\ssh\administrators_authorized_keys" 
   
-  $sshkey=Get-Content("C:\pubKey\pubkey.pub") 
+  $sshkey = Get-Content("C:\pubKey\pubkey.pub") 
   $sshKey | Out-File $path -Encoding utf8
 
   $acl = Get-Acl -Path $path

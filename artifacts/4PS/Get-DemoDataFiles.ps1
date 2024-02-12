@@ -3,8 +3,7 @@ function Get-DemoDataFiles {
     PARAM
     (
     )
-    PROCESS
-    {
+    PROCESS {
         $files = @()
         if (Test-Path -Path "c:\demodata") {
             $files = Get-ChildItem "c:\demodata" -Filter *.xml |

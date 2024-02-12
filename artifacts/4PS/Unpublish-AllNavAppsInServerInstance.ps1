@@ -18,8 +18,7 @@ function Unpublish-AllNavAppsInServerInstance {
         [string]$ServerInstance,
         [string]$Tenant
     )
-    PROCESS
-    {
+    PROCESS {
         if (!$Tenant) {
             $Tenant = 'default'
         }

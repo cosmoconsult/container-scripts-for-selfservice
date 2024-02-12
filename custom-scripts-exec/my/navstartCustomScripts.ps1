@@ -1,10 +1,9 @@
 # this is from custom-scripts package
 $downloadCustomScriptsScript = "C:\run\my\CC-DownloadCustomScripts.ps1"
 
-if (Test-Path "C:\CosmoSetupCompleted.txt")
-{
-   Remove-Item -path "C:\CosmoSetupCompleted.txt" -force | Out-Null
-   Write-Host "Remove marker for health check"
+if (Test-Path "C:\CosmoSetupCompleted.txt") {
+  Remove-Item -path "C:\CosmoSetupCompleted.txt" -force | Out-Null
+  Write-Host "Remove marker for health check"
 }
 
 $volPath = "$env:volPath"

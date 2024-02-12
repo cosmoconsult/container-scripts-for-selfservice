@@ -1,7 +1,7 @@
 function Get-ArtifactsLog {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [System.Object]$artifactsLogFile = "C:/inetpub/wwwroot/http/artifacts.log.json"
     )
     

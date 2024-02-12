@@ -1,20 +1,20 @@
 function Import-FobArtifact {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true, ValueFromPipelineByPropertyName=$true)]
+        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [Alias("FullName")]
         [string]$Path,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$NavServiceName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$ServerInstance = "NAV",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Tenant = "default",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$DatabaseServer = "localhost\sqlexpress",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Filter = "*.fob",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null
     )
     
@@ -24,7 +24,7 @@ function Import-FobArtifact {
         }
 
         $importFiles = $false
-        $started     = Get-Date -Format "o"
+        $started = Get-Date -Format "o"
     }
     
     process {
@@ -42,11 +42,11 @@ function Import-FobArtifact {
             $databaseName = ((Get-NAVServerConfiguration -ServerInstance $ServerInstance -ErrorAction SilentlyContinue) | Where-Object { $_.key -eq "DatabaseName" }).value
         }
         
-        $properties = @{"path" = $Path; "DatabaseName" = $DatabaseName; "NavServiceName" = $NavServiceName; "ServerInstance" = $ServerInstance}
+        $properties = @{"path" = $Path; "DatabaseName" = $DatabaseName; "NavServiceName" = $NavServiceName; "ServerInstance" = $ServerInstance }
         try {
             $started = Get-Date -Format "o"
             
-            $fob     = Get-Item -Path $Path -Filter $Filter -ErrorAction SilentlyContinue
+            $fob = Get-Item -Path $Path -Filter $Filter -ErrorAction SilentlyContinue
             if ($fob -and ("$($fob.Length)" -ne "0")) {
                 Add-ArtifactsLog -kind FOB -message "$([System.Environment]::NewLine)Import Objects from $($fob.FullName) ... into $DatabaseName" -data $properties
                 Import-NAVApplicationObject `
@@ -63,7 +63,8 @@ function Import-FobArtifact {
                 $err  | foreach { Add-ArtifactsLog -kind FOB -message "$_" -severity Error -data $properties }
                 $success = ! $err
                 if ($success) { Add-ArtifactsLog -kind FOB -message "Import Objects ... successful" -data $properties -success success }                
-            } else {
+            }
+            else {
                 Add-ArtifactsLog -kind FOB -message "Import Objects from $Path ... SKIPPED" -success "skip" -data $properties
             }
             

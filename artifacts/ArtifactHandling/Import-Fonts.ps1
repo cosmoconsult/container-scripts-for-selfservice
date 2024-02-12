@@ -1,13 +1,13 @@
 function Import-Fonts {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Path = "c:/fonts",
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$NavServiceName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Tenant = "default",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null
     )
     
@@ -17,16 +17,16 @@ function Import-Fonts {
         }
 
         $importFiles = $false
-        $started     = Get-Date -Format "o"
+        $started = Get-Date -Format "o"
     }
     
     process {
 
         function Import-Font ($path) {
-#*******************************************************************
-#  Load C# code
-#*******************************************************************
-$fontCSharpCode = @'
+            #*******************************************************************
+            #  Load C# code
+            #*******************************************************************
+            $fontCSharpCode = @'
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -52,37 +52,38 @@ namespace FontResource
 }
 '@
 
-                    Add-Type $fontCSharpCode
+            Add-Type $fontCSharpCode
                     
-                    # Create hashtable containing valid font file extensions and text to append to Registry entry name.
-                    $hashFontFileTypes = @{}
-                    $hashFontFileTypes.Add(".fon", "")
-                    $hashFontFileTypes.Add(".fnt", "")
-                    $hashFontFileTypes.Add(".ttf", " (TrueType)")
-                    $hashFontFileTypes.Add(".ttc", " (TrueType)")
-                    $hashFontFileTypes.Add(".otf", " (OpenType)")
-                    $fontRegistryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
+            # Create hashtable containing valid font file extensions and text to append to Registry entry name.
+            $hashFontFileTypes = @{}
+            $hashFontFileTypes.Add(".fon", "")
+            $hashFontFileTypes.Add(".fnt", "")
+            $hashFontFileTypes.Add(".ttf", " (TrueType)")
+            $hashFontFileTypes.Add(".ttc", " (TrueType)")
+            $hashFontFileTypes.Add(".otf", " (OpenType)")
+            $fontRegistryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
         
-                    $fileDir  = split-path $path
-                    $fileName = split-path $path -leaf
-                    $fileExt = (Get-Item $path).extension
-                    $fileBaseName = $fileName -replace($fileExt ,"")
+            $fileDir = split-path $path
+            $fileName = split-path $path -leaf
+            $fileExt = (Get-Item $path).extension
+            $fileBaseName = $fileName -replace ($fileExt , "")
             
-                    $shell = new-object -com shell.application
-                    $myFolder = $shell.Namespace($fileDir)
-                    $fileobj = $myFolder.Items().Item($fileName)
-                    $fontName = $myFolder.GetDetailsOf($fileobj,21)
+            $shell = new-object -com shell.application
+            $myFolder = $shell.Namespace($fileDir)
+            $fileobj = $myFolder.Items().Item($fileName)
+            $fontName = $myFolder.GetDetailsOf($fileobj, 21)
             
-                    if ($fontName -eq "") { $fontName = $fileBaseName }
+            if ($fontName -eq "") { $fontName = $fileBaseName }
             
-                    $retVal = [FontResource.AddRemoveFonts]::AddFont($path)
+            $retVal = [FontResource.AddRemoveFonts]::AddFont($path)
             
-                    if ($retVal -eq 0) {
-                        Write-Host -ForegroundColor Red "Font `'$($path)`'`' installation failed"
-                    } else {
-                        Write-Host -ForegroundColor Green "Font `'$($path)`' installed successfully"
-                        Set-ItemProperty -path "$($fontRegistryPath)" -name "$($fontName)$($hashFontFileTypes.item($fileExt))" -value "$($fileName)" -type STRING
-                    }
+            if ($retVal -eq 0) {
+                Write-Host -ForegroundColor Red "Font `'$($path)`'`' installation failed"
+            }
+            else {
+                Write-Host -ForegroundColor Green "Font `'$($path)`' installed successfully"
+                Set-ItemProperty -path "$($fontRegistryPath)" -name "$($fontName)$($hashFontFileTypes.item($fileExt))" -value "$($fileName)" -type STRING
+            }
         }
 
         # Initialize, if files / folder are/is present
@@ -92,15 +93,14 @@ namespace FontResource
         }
 
         $fontsFolderPath = "C:\Windows\Fonts"
-        $ExistingFonts   = Get-ChildItem -LiteralPath $fontsFolderPath | % { $_.Name }
+        $ExistingFonts = Get-ChildItem -LiteralPath $fontsFolderPath | % { $_.Name }
         
         Get-ChildItem -LiteralPath $Path -Exclude @("*.zip", "*.txt", "*.ini") -ErrorAction Ignore | % {
             if (! $ExistingFonts.Contains($_.Name) -and $_.Extension -ne ".ini") {
                 
                 $properties = @{"path" = $Path; "Font" = $_.Name; "FontPath" = $_.FullName; }
 
-                try
-                {
+                try {
                     $WindowsFontPath = Join-Path "c:\Windows\Fonts" $_.Name
                     $fullName = $_.FullName
                 

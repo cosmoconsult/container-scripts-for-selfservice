@@ -27,52 +27,53 @@ function Backup-BCDatabases {
         [switch] $compress
     )
 
-        Write-Host $bakFolder
-        $bakFolder.GetType()
-        Test-Path $bakFolder
+    Write-Host $bakFolder
+    $bakFolder.GetType()
+    Test-Path $bakFolder
 
-        $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
-        [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
-        $multitenant = ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -eq "true")
-        $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
-        $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
-        $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
+    $customConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
+    [xml]$customConfig = [System.IO.File]::ReadAllText($customConfigFile)
+    $multitenant = ($customConfig.SelectSingleNode("//appSettings/add[@key='Multitenant']").Value -eq "true")
+    $databaseServer = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseServer']").Value
+    $databaseInstance = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseInstance']").Value
+    $databaseName = $customConfig.SelectSingleNode("//appSettings/add[@key='DatabaseName']").Value
         
-        $databaseServerInstance = $databaseServer
-        if ("$databaseInstance" -ne "") {
-            $databaseServerInstance = "$databaseServer\$databaseInstance"
-        }
+    $databaseServerInstance = $databaseServer
+    if ("$databaseInstance" -ne "") {
+        $databaseServerInstance = "$databaseServer\$databaseInstance"
+    }
 
-        if (!(Test-Path -Path $bakFolder)) {
-            New-Item $bakFolder -ItemType Directory | Out-Null
-        }
+    if (!(Test-Path -Path $bakFolder)) {
+        New-Item $bakFolder -ItemType Directory | Out-Null
+    }
 
-        if ($multitenant) {
-            Import-Module (Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "NavAdminTool.ps1")
-            if (!($tenant)) {
-                $tenant = @(get-navtenant $serverInstance | % { $_.Id }) + "tenant"
+    if ($multitenant) {
+        Import-Module (Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "NavAdminTool.ps1")
+        if (!($tenant)) {
+            $tenant = @(get-navtenant $serverInstance | % { $_.Id }) + "tenant"
+        }
+        Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "app" -databasecredential $databasecredential -compress:$compress
+        $tenant | ForEach-Object {
+            $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance $_ -ErrorAction SilentlyContinue
+            if ($tenantInfo) {
+                $dbName = $tenantInfo.DatabaseName
             }
-            Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "app" -databasecredential $databasecredential -compress:$compress
-            $tenant | ForEach-Object {
-                $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance $_ -ErrorAction SilentlyContinue
+            else {
+                $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance default -ErrorAction SilentlyContinue
                 if ($tenantInfo) {
-                    $dbName = $tenantInfo.DatabaseName
+                    $dbName = $tenantInfo.DatabaseName.replace('default', $_)
                 }
                 else {
-                    $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance default -ErrorAction SilentlyContinue
-                    if ($tenantInfo) {
-                        $dbName = $tenantInfo.DatabaseName.replace('default',$_)
-                    }
-                    else {
-                        $dbName = $_
-                    }
+                    $dbName = $_
                 }
-                Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $dbName -bakFolder $bakFolder -bakName $_ -databasecredential $databasecredential -compress:$compress
             }
-        } else {
-            Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database" -databasecredential $databasecredential -compress:$compress
+            Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $dbName -bakFolder $bakFolder -bakName $_ -databasecredential $databasecredential -compress:$compress
         }
-        Write-Host 'backup finished'
+    }
+    else {
+        Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database" -databasecredential $databasecredential -compress:$compress
+    }
+    Write-Host 'backup finished'
 }
 
 

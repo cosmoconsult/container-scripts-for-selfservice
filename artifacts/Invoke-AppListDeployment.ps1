@@ -5,8 +5,8 @@ param (
     [string]$Password,
     [string]$BearerToken = "",
     [string]$PathInZip = "",
-    [Parameter(Mandatory=$false)]
-    [ValidateSet('Global','Tenant','Dev')]
+    [Parameter(Mandatory = $false)]
+    [ValidateSet('Global', 'Tenant', 'Dev')]
     [string] $Scope = "Tenant",
     [string] $ContainerId
 )
@@ -43,7 +43,7 @@ try {
             if (-not (Test-Path $basePath)) {
                 New-Item "$basePath" -ItemType Directory
             }
-            $subfolder = $([convert]::tostring((get-random 65535),16).padleft(8,'0'))
+            $subfolder = $([convert]::tostring((get-random 65535), 16).padleft(8, '0'))
             $folder = Join-Path $basePath $subfolder
             New-Item "$folder" -ItemType Directory
             $filename = "downloadedapp.app"
@@ -64,7 +64,8 @@ try {
                     Write-Host "Couldn't find $PathInZip in $AppToDeploy"
                     exit
                 }
-            } else {
+            }
+            else {
                 $AppToDeploy = $fullPath
             }
         }

@@ -1,28 +1,28 @@
 function Import-Artifacts {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [Alias("Folder", "TargetFolder")]
         [string]$Path,
-        [Parameter(Mandatory=$true)]
+        [Parameter(Mandatory = $true)]
         [string]$NavServiceName,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$ServerInstance = "NAV",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$Tenant = "default",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$DatabaseServer = "localhost\sqlexpress",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [string]$OperationScope = "AdditionalSetup",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet("Add", "ForceSync")]
         [string]$SyncMode = "Add",
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [ValidateSet("Global", "Tenant")]
         [string]$Scope = "Global",    
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [bool]$SkipFontImport = $false
     )
     
@@ -30,7 +30,7 @@ function Import-Artifacts {
         if (! $telemetryClient) {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
-        $started    = Get-Date -Format "o"
+        $started = Get-Date -Format "o"
         $properties = @{ NavServiceName = $NavServiceName; ServerInstance = $ServerInstance; Tenant = $Tenant; Path = $Path; DatabaseServer = $DatabaseServer; SyncMode = $SyncMode }
     }
     
@@ -44,7 +44,7 @@ function Import-Artifacts {
         }
         if ($items) {
             try {
-                $started   = Get-Date -Format "o"
+                $started = Get-Date -Format "o"
                 Write-Host "Import $($items.Length) FOBs..."
 
                 # Import all FOBs
@@ -59,18 +59,18 @@ function Import-Artifacts {
             finally {
                 Write-Host "Import FOBs done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
             }
-        } else {
+        }
+        else {
             Write-Host "No FOBs to import."
         }
 
         # Publish apps
         $items = @()
         $params = @{
-            Depth = $maxDepth
+            Depth  = $maxDepth
             Filter = "*.app"            
         }
-        if ($null -ne $env:AppExcludeExpr)
-        {
+        if ($null -ne $env:AppExcludeExpr) {
             Write-Host ("Found App expression override {0}" -f $env:AppExcludeExpr)
             $params.Add("ExcludeExpr", $env:AppExcludeExpr)   
         }
@@ -81,7 +81,7 @@ function Import-Artifacts {
         }
         if ($items) {
             try {
-                $started   = Get-Date -Format "o"
+                $started = Get-Date -Format "o"
                 Write-Host "Import $($items.Length) Apps..."
                 
                 Add-ArtifactsLog -message "Install Apps:$([System.Environment]::NewLine)$($items | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)" -data $app
@@ -111,7 +111,8 @@ function Import-Artifacts {
             finally {
                 Write-Host "Import Apps done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
             }
-        } else {
+        }
+        else {
             Write-Host "No Apps to import."
         }
 
@@ -122,7 +123,7 @@ function Import-Artifacts {
         }
         if ($items) {
             try {
-                $started   = Get-Date -Format "o"
+                $started = Get-Date -Format "o"
                 Write-Host "Import $($items.Length) RapidStart packages..."
 
                 # Import all RIMs
@@ -137,7 +138,8 @@ function Import-Artifacts {
             finally {
                 Write-Host "Import RapidStart packages done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
             }
-        } else {
+        }
+        else {
             Write-Host "No RapidStart packages to import."
         }
 
@@ -148,7 +150,7 @@ function Import-Artifacts {
         }
         if ($items) {
             try {
-                $started   = Get-Date -Format "o"
+                $started = Get-Date -Format "o"
                 Write-Host "Import $($items.Length) Fonts..."
                 # Import all Fonts
                 Import-Fonts -NavServiceName $NavServiceName -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
@@ -162,7 +164,8 @@ function Import-Artifacts {
             finally {
                 Write-Host "Import Fonts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
             }
-        } else {
+        }
+        else {
             Write-Host "No Fonts to import."
         }
     }

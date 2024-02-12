@@ -4,7 +4,7 @@ function Invoke-LogError {
         [System.Exception]$exception,
         [hashtable]$properties = @{},
         [System.Object]$telemetryClient = $null,
-        [Parameter(Mandatory=$false)]
+        [Parameter(Mandatory = $false)]
         [Alias("Event", "Name")]
         [string]$operation = $null
     )
@@ -14,7 +14,7 @@ function Invoke-LogError {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
         if ($telemetryClient -and $operation) {
-            $telemetryClient.Context.Operation.Id   = $operation
+            $telemetryClient.Context.Operation.Id = $operation
             $telemetryClient.Context.Operation.Name = $operation
         }
     }

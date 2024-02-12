@@ -13,26 +13,27 @@ function Invoke-LogEvent {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
         if ($telemetryClient -and $operation) {
-            $telemetryClient.Context.Operation.Id   = $name
+            $telemetryClient.Context.Operation.Id = $name
             $telemetryClient.Context.Operation.Name = $name
         }
         try {
             $request = [Microsoft.ApplicationInsights.DataContracts.EventTelemetry]::new()
             $request.Name = $name
-        } catch {
+        }
+        catch {
             $request = $null
         }
         if ($request) {            
-            $request.Timestamp  = Get-Date            
+            $request.Timestamp = Get-Date            
         }
     }
     
     process {
         if (! $telemetryClient -or ! $request) { return }
         try {
-            $request.Name       = "$operation"
+            $request.Name = "$operation"
             $properties.Keys | ForEach-Object { $request.Properties[$_] = $properties[$_] }
-            $metrics.Keys    | ForEach-Object { $request.Metrics[$_]    = $metrics[$_] }
+            $metrics.Keys    | ForEach-Object { $request.Metrics[$_] = $metrics[$_] }
             $telemetryClient.Track($request)
         }
         catch {

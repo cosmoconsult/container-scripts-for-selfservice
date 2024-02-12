@@ -3,7 +3,8 @@ $assemblyArchive = "C:\inetpub\wwwroot\http\AllAssemblies.zip"
 if (Test-Path $assemblyArchive) {
   $assemblyInfo = Get-Item $assemblyArchive
   Write-Host "Assembly package $($assemblyInfo.Name) with size $($assemblyInfo.Length) already exists"
-} else {
+}
+else {
   $serviceFolderTarget = "C:\temp\Service\"
   $rtcFolderTarget = "C:\temp\RoleTailored Client\"
   $netFolderTarget = "C:\temp\.NET\"
@@ -12,8 +13,7 @@ if (Test-Path $assemblyArchive) {
   # Identify version
   $sysAppPath = 'C:\Applications\system application\source\Microsoft_System Application.app'
   $twentyTwoOrLater = $true
-  if (Test-Path $sysAppPath)
-  {
+  if (Test-Path $sysAppPath) {
     c:\run\prompt.ps1
     $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath
     $sysAppVersionFS = $sysAppInfoFS.Version
@@ -39,7 +39,8 @@ if (Test-Path $assemblyArchive) {
   Copy-Item -Path "C:\Program Files\Microsoft Dynamics*\*\Service\*" -Destination $serviceFolderTarget -Recurse
   if ($twentyTwoOrLater) {
     get-childitem -Directory 'C:\Program Files\dotnet\shared\' | % { Get-ChildItem -Directory $_.FullName | Sort-Object Name -Descending | Select-Object -First 1 } | % { New-Item -Force -ItemType Directory (Join-Path $sharedFolderTarget $_.FullName.SubString(31)); Copy-Item -Recurse $_.FullName (Join-Path $sharedFolderTarget $_.FullName.SubString(31)) }
-  } else {
+  }
+  else {
     Copy-Item -Path "C:\Program Files (x86)\Microsoft Dynamics*\*\RoleTailored Client\*" -Destination $rtcFolderTarget -Recurse
     Copy-Item -Path "C:\Windows\Microsoft.NET\Framework64\v4.0.*\*" -Destination $netFolderTarget -Recurse
     Copy-Item -Path ([PSObject].Assembly.Location) -Destination $netFolderTarget            # required for obsolete ExchangePowerShellRunner.Codeunit.al
@@ -48,7 +49,8 @@ if (Test-Path $assemblyArchive) {
   # Create one archive
   if ($twentyTwoOrLater) {
     Compress-Archive -Path ($serviceFolderTarget, $sharedFolderTarget) -DestinationPath $assemblyArchive -CompressionLevel "Fastest"
-  } else {
+  }
+  else {
     Compress-Archive -Path ($serviceFolderTarget, $rtcFolderTarget, $netFolderTarget) -DestinationPath $assemblyArchive -CompressionLevel "Fastest"
   }
 

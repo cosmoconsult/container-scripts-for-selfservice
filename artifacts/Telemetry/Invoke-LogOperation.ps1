@@ -16,38 +16,41 @@ function Invoke-LogOperation {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
         if ($telemetryClient -and $name) {
-            $telemetryClient.Context.Operation.Id   = $name
+            $telemetryClient.Context.Operation.Id = $name
             $telemetryClient.Context.Operation.Name = $name
         }
         try {
             $request = [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry]::new()
             $request.Name = $name
-        } catch {
+        }
+        catch {
             $request = $null
         }
         try {
             $started = Get-Date -Date "$started" -Format "o"
-        } catch {
+        }
+        catch {
             $started = Get-Date -Format "o"
         }
         try {
             $ended = Get-Date -Date "$ended" -Format "o"
-        } catch {
+        }
+        catch {
             $ended = Get-Date -Format "o"
         }
         if ($started -and $ended -and $request) {
             $duration = (Get-Date -Date $ended) - (Get-Date -Date $started)
-            $request.StartTime  = $started            
-            $request.Duration   = $duration            
+            $request.StartTime = $started            
+            $request.Duration = $duration            
         }
     }
     
     process {
         if (! $telemetryClient -or ! $request) { return }
         try {
-            $request.Success    = $success
+            $request.Success = $success
             $properties.Keys | ForEach-Object { $request.Properties[$_] = $properties[$_] }
-            $metrics.Keys    | ForEach-Object { $request.Metrics[$_]    = $metrics[$_] }
+            $metrics.Keys    | ForEach-Object { $request.Metrics[$_] = $metrics[$_] }
             $telemetryClient.Track($request)
         }
         catch {

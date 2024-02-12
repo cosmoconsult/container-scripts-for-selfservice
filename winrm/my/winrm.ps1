@@ -1,8 +1,7 @@
 $alops_docker_username = "${env:alops-docker-username}"
 $alops_docker_password = "${env:alops-docker-password}"
 
-if (![string]::IsNullOrEmpty($alops_docker_username) -and ![string]::IsNullOrEmpty($alops_docker_password))
-{
+if (![string]::IsNullOrEmpty($alops_docker_username) -and ![string]::IsNullOrEmpty($alops_docker_password)) {
     Invoke-Expression "net user /add $alops_docker_username $alops_docker_password"
     Invoke-Expression "net localgroup Administrators $alops_docker_username /add"
     $cert = New-SelfSignedCertificate -DnsName "dontcare" -CertStoreLocation Cert:\LocalMachine\My

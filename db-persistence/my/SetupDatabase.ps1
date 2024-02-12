@@ -9,7 +9,8 @@ if ($restartingInstance) {
 
     # Nothing to do
 
-} elseif (($volPath -ne "") -and (Test-Path $volPath)) {
+}
+elseif (($volPath -ne "") -and (Test-Path $volPath)) {
     # database volume path is provided, check if the database is already there or not
 
     if ((Get-ChildItem $volPath).Count -eq 0) {
@@ -51,14 +52,14 @@ if ($restartingInstance) {
                 mkdir $dbPath | Out-Null
                 $_.FileGroups | ForEach-Object {
                     $_.Files | ForEach-Object {
-                        $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
-                        $toCopy += ,@($_.FileName, $destination)
+                        $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' + $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
+                        $toCopy += , @($_.FileName, $destination)
                         $_.FileName = $destination
                     } 
                 }
                 $_.LogFiles | ForEach-Object {
-                    $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' +  $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
-                    $toCopy += ,@($_.FileName, $destination)
+                    $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' + $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
+                    $toCopy += , @($_.FileName, $destination)
                     $_.FileName = $destination
                 }
 
@@ -66,7 +67,8 @@ if ($restartingInstance) {
                 try {
                     $db = $_
                     $_.SetOffline()
-                } catch {
+                }
+                catch {
                     $db.Refresh()
                     if ($db.Status -ne "Offline") {
                         Write-Warning "Database $($db.Name) is not offline!"
@@ -82,7 +84,8 @@ if ($restartingInstance) {
         }
         
         $smo.ConnectionContext.Disconnect()
-    } else {
+    }
+    else {
         $databases = (Get-ChildItem $volPath -Directory).BaseName
 
         foreach ($database in $databases) {
@@ -103,8 +106,7 @@ if ($restartingInstance) {
 
         Write-Host "Check database $appDatabaseName and container version to identify need for upgrade"
         $sysAppPath = 'C:\Applications\system application\source\Microsoft_System Application.app'
-        if (Test-Path $sysAppPath)
-        {
+        if (Test-Path $sysAppPath) {
             c:\run\prompt.ps1
             $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath
             $sysAppInfoDB = (Invoke-Sqlcmd -database $appDatabaseName -Query "select * FROM [dbo].[NAV App Installed App] WHERE Publisher='Microsoft' and Name='System Application'" -ServerInstance "$DatabaseServer\$DatabaseInstance")
@@ -121,23 +123,28 @@ if ($restartingInstance) {
                 $sysAppInfoDB
                 Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
                 $env:cosmoUpgradeSysApp = $true
-            } else {
+            }
+            else {
                 Write-Host "  Found version $sysAppVersionFS for the container and $sysAppVersionDB for the database"
                 if ($sysAppVersionDB -gt $sysAppVersionFS) {
                     Write-Error "  Database version is newer than container version, this probably won't work"
-                } elseif ($sysAppVersionFS -gt $sysAppVersionDB) {
+                }
+                elseif ($sysAppVersionFS -gt $sysAppVersionDB) {
                     Write-Host "  Container version is newer than database version, trying to convert"
                     Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
                     $env:cosmoUpgradeSysApp = $true
-                } else {
+                }
+                else {
                     Write-Host "  Versions are identical, this should work"
                 }
             }
-        } else {
+        }
+        else {
             Write-Host "Can't upgrade database because System App not available (likely old BC version)"
         }
     }
-} else {
+}
+else {
     # invoke default
     . (Join-Path $runPath $MyInvocation.MyCommand.Name)
 }
