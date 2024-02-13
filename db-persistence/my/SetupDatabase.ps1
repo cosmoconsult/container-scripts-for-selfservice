@@ -86,7 +86,7 @@ elseif (($volPath -ne "") -and (Test-Path $volPath)) {
         $smo.ConnectionContext.Disconnect()
     }
     else {
-        $databases = (Get-ChildItem $volPath -Directory).BaseName
+        $databases = (Get-ChildItem $volPath -Directory -Exclude ALAssemblies).BaseName
 
         foreach ($database in $databases) {
             # folder is not empty, attach the database
