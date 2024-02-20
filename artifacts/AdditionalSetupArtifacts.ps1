@@ -439,7 +439,9 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Start-Sleep -Seconds 10
     }
 
-    Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($env:cosmoBaseAppVersion)"
+    if (![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)) {
+        Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($env:cosmoBaseAppVersion)"
+    }
 
     Write-Host " - Deactivate all users to ensure license compliance"
     Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() } | % {
