@@ -465,11 +465,11 @@ if (![string]::IsNullOrEmpty($env:saasbakfile)) {
     # license import also needs to happen on restart in case we got a new license
     Write-Host " - Importing License to tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
-    if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
+    if ([string]::IsNullOrWhiteSpace($licensefile)) {
         $licenseToImport = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Cronus.*").FullName
     }
     else {
-        $licenseToImport = $env:licensefile
+        $licenseToImport = $licensefile
     }
     
     if (Test-Path $licenseToImport) {
