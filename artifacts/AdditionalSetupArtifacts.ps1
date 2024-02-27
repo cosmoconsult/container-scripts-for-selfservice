@@ -439,7 +439,9 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Start-Sleep -Seconds 10
     }
 
-    Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($env:cosmoBaseAppVersion)"
+    if (![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)) {
+        Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($env:cosmoBaseAppVersion)"
+    }
 
     Write-Host " - Deactivate all users to ensure license compliance"
     Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() } | % {
@@ -463,11 +465,11 @@ if (![string]::IsNullOrEmpty($env:saasbakfile)) {
     # license import also needs to happen on restart in case we got a new license
     Write-Host " - Importing License to tenant"
     Invoke-Sqlcmd -Database $tenantId -Query "truncate table [dbo].[Tenant License State]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
-    if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
+    if ([string]::IsNullOrWhiteSpace($licensefile)) {
         $licenseToImport = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Cronus.*").FullName
     }
     else {
-        $licenseToImport = $env:licensefile
+        $licenseToImport = $licensefile
     }
     
     if (Test-Path $licenseToImport) {
