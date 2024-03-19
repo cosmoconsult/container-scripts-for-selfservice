@@ -34,6 +34,7 @@ try {
   }
 
   # Cleanup in the beginning (just in case)
+  Write-Host "Cleanup"
   Remove-Item -Path $serviceFolderTarget -Force -Recurse -ErrorAction SilentlyContinue
   Remove-Item -Path $rtcFolderTarget -Force -Recurse -ErrorAction SilentlyContinue
   Remove-Item -Path $netFolderTarget -Force -Recurse -ErrorAction SilentlyContinue
@@ -42,12 +43,14 @@ try {
   Remove-Item -Path $assemblyArchiveTmp -Force -ErrorAction SilentlyContinue
 
   # Create new directories
+  Write-Host "Creating temporary directories"
   New-Item -Path $serviceFolderTarget -Type Directory | Out-Null
   New-Item -Path $rtcFolderTarget -Type Directory | Out-Null
   New-Item -Path $netFolderTarget -Type Directory | Out-Null
   New-Item -Path $sharedFolderTarget -Type Directory | Out-Null
 
   # Copy all DLLs from folders to new directory (because some were in use and couldn't be zipped right away)
+  Write-Host "Copying DLLs to temp directories"
   Copy-Item -Path "C:\Program Files\Microsoft Dynamics*\*\Service\*" -Destination $serviceFolderTarget -Recurse
   if ($twentyTwoOrLater) {
     get-childitem -Directory 'C:\Program Files\dotnet\shared\' | % { Get-ChildItem -Directory $_.FullName | Sort-Object Name -Descending | Select-Object -First 1 } | % { New-Item -Force -ItemType Directory (Join-Path $sharedFolderTarget $_.FullName.SubString(31)); Copy-Item -Recurse $_.FullName (Join-Path $sharedFolderTarget $_.FullName.SubString(31)) }
@@ -59,6 +62,7 @@ try {
   }
 
   # Create one archive
+  Write-Host "Creating archive"
   if ($twentyTwoOrLater) {
     Compress-Archive -Path ($serviceFolderTarget, $sharedFolderTarget) -DestinationPath $assemblyArchiveTmp -CompressionLevel "Fastest"
   }
@@ -67,6 +71,7 @@ try {
   }
 
   # Cleanup in the end
+  Write-Host "Cleaning up"
   Remove-Item -Path $serviceFolderTarget -Force -Recurse -ErrorAction SilentlyContinue
   Remove-Item -Path $rtcFolderTarget -Force -Recurse -ErrorAction SilentlyContinue
   Remove-Item -Path $netFolderTarget -Force -Recurse -ErrorAction SilentlyContinue
