@@ -9,7 +9,7 @@ try {
 
   # Prepare
   $assemblyArchive = "C:\inetpub\wwwroot\http\AllAssemblies.zip"
-  $assemblyArchiveTmp = "$($assemblyArchive).tmp"
+  $assemblyArchiveTmp = "C:\inetpub\wwwroot\http\AllAssemblies.tmp.zip"
   if (Test-Path $assemblyArchive) {
     $assemblyInfo = Get-Item $assemblyArchive
     Write-Host "Assembly package $($assemblyInfo.Name) with size $($assemblyInfo.Length) already exists"
