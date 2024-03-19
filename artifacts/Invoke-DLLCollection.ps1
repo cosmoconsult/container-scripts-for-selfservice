@@ -69,14 +69,14 @@ try {
   else {
     Compress-Archive -Path ($serviceFolderTarget, $rtcFolderTarget, $netFolderTarget) -DestinationPath $assemblyArchiveTmp -CompressionLevel "Fastest"
   }
+  Move-Item -Path $assemblyArchiveTmp -Destination $assemblyArchive
 
   # Cleanup in the end
   Write-Host "Cleaning up"
   Remove-Item -Path $serviceFolderTarget -Force -Recurse -ErrorAction SilentlyContinue
   Remove-Item -Path $rtcFolderTarget -Force -Recurse -ErrorAction SilentlyContinue
   Remove-Item -Path $netFolderTarget -Force -Recurse -ErrorAction SilentlyContinue
-  Remove-Item -Path $sharedTarget -Force -Recurse -ErrorAction SilentlyContinue
-  Move-Item -Path $assemblyArchiveTmp -Destination $assemblyArchive
+  Remove-Item -Path $sharedFolderTarget -Force -Recurse -ErrorAction SilentlyContinue
 
   $assemblyInfo = Get-Item $assemblyArchive
   Write-Host "Created $($assemblyInfo.Name) with size $($assemblyInfo.Length)"
