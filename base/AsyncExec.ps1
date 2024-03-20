@@ -20,30 +20,32 @@ $scriptLog = "$Id.log"
 $scriptLogErr = "$Id.err.log"
 
 if ($OnlyGetStatus -and (-not (Test-Path $lockFile))) {
-    return "not started"
+    return [PSCustomObject]@{
+        state = "NotStarted"
+    } | ConvertTo-Json
 }
 
 # create lock file if it doesn't exist, else throw an error
 if (-not (New-Item -Type File -Path $lockFile -ErrorAction SilentlyContinue)) {
-    $status = Get-Content -Path $lockFile;
-
     if (Test-Path $scriptLog) {
-        $status += "`n`n"
-        $status += Get-Content -Path $scriptLog -Raw
+        $stdOut = Get-Content -Path $scriptLog -Raw
     }
 
     if (Test-Path $scriptLogErr) {
-        $status += "`n`n"
-        $status += Get-Content -Path $scriptLogErr -Raw
+        $stdErr = Get-Content -Path $scriptLogErr -Raw
     }
 
-    return $status
+    return [PSCustomObject]@{
+        state = Get-Content -Path $lockFile
+        stdOut = $stdOut
+        stdErr = $stdErr
+    } | ConvertTo-Json
 }
 
 try {
     Remove-Item -Path $scriptLog -Force -ErrorAction SilentlyContinue
     Remove-Item -Path $scriptLogErr -Force -ErrorAction SilentlyContinue
-    Set-Content -Path $lockFile -Value "started"
+    Set-Content -Path $lockFile -Value "Started"
 
     $ps = "powershell"
     if ($PSVersionTable.PSEdition -eq "Core") {
@@ -54,10 +56,15 @@ try {
     $p = Start-Process -FilePath $ps -ArgumentList "-File $ScriptPath" -NoNewWindow -RedirectStandardOutput $scriptLog -RedirectStandardError $scriptLogErr -PassThru
     $handle = $p.Handle  # cache the handle
 
-    Set-Content -Path $lockFile -Value "running"
+    Set-Content -Path $lockFile -Value "InProgress"
 
     $p.WaitForExit();
-    Set-Content -Path $lockFile -Value "finished (exit code: $($p.ExitCode))"
+    if ($p.ExitCode -ne 0) {
+        Set-Content -Path $lockFile -Value "CompletedWithError"
+    }
+    else {
+        Set-Content -Path $lockFile -Value "CompletedSuccessfully"
+    }
 }
 catch {
     # remove lock file when something goes wrong
