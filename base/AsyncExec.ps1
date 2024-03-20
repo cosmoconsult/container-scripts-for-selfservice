@@ -38,7 +38,7 @@ try {
     Set-Content -Path $lockFile -Value "started"
 
     # run script in the background and redirect all output to a log file, store exit code
-    $p = Start-Process -FilePath "pwsh" -ArgumentList "-File $ScriptPath" -NoNewWindow -RedirectStandardOutput $scriptLog -RedirectStandardError $scriptLogErr -PassThru
+    $p = Start-Process -FilePath "powershell" -ArgumentList "-File $ScriptPath" -NoNewWindow -RedirectStandardOutput $scriptLog -RedirectStandardError $scriptLogErr -PassThru
     $handle = $p.Handle  # cache the handle
 
     Set-Content -Path $lockFile -Value "running"
