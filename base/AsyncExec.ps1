@@ -3,7 +3,11 @@
 param (
     [Parameter(Mandatory = $true, Position = 0)]
     [string]
-    $ScriptPath
+    $ScriptPath,
+
+    [Parameter(Mandatory = $false, Position = 1)]
+    [switch]
+    $OnlyGetStatus
 )
 
 # create lock file to prevent multiple executions with a name based on the script name
@@ -30,6 +34,10 @@ if (-not (New-Item -Type File -Path $lockFile -ErrorAction SilentlyContinue)) {
     }
 
     return $status
+}
+
+if ($OnlyGetStatus) {
+    return "not started"
 }
 
 try {
