@@ -15,6 +15,10 @@ $lockFile = "$ScriptPath.lock"  # holds status
 $scriptLog = "$ScriptPath.log"
 $scriptLogErr = "$ScriptPath.err.log"
 
+if ($OnlyGetStatus -and (-not (Test-Path $lockFile))) {
+    return "not started"
+}
+
 # create lock file if it doesn't exist, else throw an error
 if (-not (New-Item -Type File -Path $lockFile -ErrorAction SilentlyContinue)) {
     $status = Get-Content -Path $lockFile;
@@ -34,10 +38,6 @@ if (-not (New-Item -Type File -Path $lockFile -ErrorAction SilentlyContinue)) {
     }
 
     return $status
-}
-
-if ($OnlyGetStatus) {
-    return "not started"
 }
 
 try {
