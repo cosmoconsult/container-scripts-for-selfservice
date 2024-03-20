@@ -1,19 +1,23 @@
 # run any PS script async in the background and hold a lock file while it's running. Pipe all output to a log file and return the current status (started, running, finished, failed)
 [CmdletBinding()]
 param (
-    [Parameter(Mandatory = $true, Position = 0)]
+    [Parameter(Mandatory = $false, Position = 0)]
     [string]
     $ScriptPath,
 
-    [Parameter(Mandatory = $false, Position = 1)]
+    [Parameter(Mandatory = $true, Position = 1)]
+    [string]
+    $Id,
+
+    [Parameter(Mandatory = $false, Position = 2)]
     [switch]
     $OnlyGetStatus
 )
 
 # create lock file to prevent multiple executions with a name based on the script name
-$lockFile = "$ScriptPath.lock"  # holds status
-$scriptLog = "$ScriptPath.log"
-$scriptLogErr = "$ScriptPath.err.log"
+$lockFile = "$Id.lock"  # holds status
+$scriptLog = "$Id.log"
+$scriptLogErr = "$Id.err.log"
 
 if ($OnlyGetStatus -and (-not (Test-Path $lockFile))) {
     return "not started"
@@ -22,10 +26,6 @@ if ($OnlyGetStatus -and (-not (Test-Path $lockFile))) {
 # create lock file if it doesn't exist, else throw an error
 if (-not (New-Item -Type File -Path $lockFile -ErrorAction SilentlyContinue)) {
     $status = Get-Content -Path $lockFile;
-
-    if ($status.Contains("finished")) {
-        Remove-Item -Path $lockFile -Force
-    }
 
     if (Test-Path $scriptLog) {
         $status += "`n`n"
