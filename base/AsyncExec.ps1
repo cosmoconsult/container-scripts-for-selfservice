@@ -38,7 +38,7 @@ if (-not (New-Item -Type File -Path $lockFile -ErrorAction SilentlyContinue)) {
 
     return [PSCustomObject]@{
         id = $Id
-        state = Get-Content -Path $lockFile
+        state = Get-Content -Path $lockFile -Raw 
         stdOut = $stdOut
         stdErr = $stdErr
     } | ConvertTo-Json
