@@ -29,16 +29,16 @@ if ($OnlyGetStatus -and (-not (Test-Path $lockFile))) {
 # create lock file if it doesn't exist, else throw an error
 if (-not (New-Item -Type File -Path $lockFile -ErrorAction SilentlyContinue)) {
     if (Test-Path $scriptLog) {
-        $stdOut = Get-Content -Path $scriptLog -Raw
+        $stdOut = (Get-Content -Path $scriptLog -Raw).psobject.BaseObject
     }
 
     if (Test-Path $scriptLogErr) {
-        $stdErr = Get-Content -Path $scriptLogErr -Raw
+        $stdErr = (Get-Content -Path $scriptLogErr -Raw).psobject.BaseObject
     }
 
     return [PSCustomObject]@{
         id = $Id
-        state = Get-Content -Path $lockFile -Raw 
+        state = (Get-Content -Path $lockFile -Raw).psobject.BaseObject
         stdOut = $stdOut
         stdErr = $stdErr
     } | ConvertTo-Json
