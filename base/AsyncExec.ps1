@@ -30,10 +30,16 @@ if ($OnlyGetStatus -and (-not (Test-Path $lockFile))) {
 if (-not (New-Item -Type File -Path $lockFile -ErrorAction SilentlyContinue)) {
     if (Test-Path $scriptLog) {
         $stdOut = (Get-Content -Path $scriptLog -Raw).psobject.BaseObject
+        if ($stdOut.Length -le 1) {
+            $stdOut = ""
+        }
     }
 
     if (Test-Path $scriptLogErr) {
         $stdErr = (Get-Content -Path $scriptLogErr -Raw).psobject.BaseObject
+        if ($stdErr.Length -le 1) {
+            $stdErr = ""
+        }
     }
 
     return [PSCustomObject]@{
