@@ -1,4 +1,4 @@
-# run any PS script async in the background and hold a lock file while it's running. Pipe all output to a log file and return the current status (started, running, finished, failed)
+# run any PS script async in the background and hold a lock file while it's running. Pipe all output to a log file and return the current status of the execution
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $false, Position = 0)]
@@ -51,6 +51,7 @@ if (-not (New-Item -Type File -Path $lockFile -Value "Started" -ErrorAction Sile
 }
 
 try {
+    # script not already running, start it and collect logs
     Remove-Item -Path $scriptLog -Force -ErrorAction SilentlyContinue
     Remove-Item -Path $scriptLogErr -Force -ErrorAction SilentlyContinue
 
@@ -59,7 +60,7 @@ try {
         $ps = "pwsh"
     }
 
-    # run script in the background and redirect all output to a log file, store exit code
+    # run script in the background and redirect all output to a log file
     $p = Start-Process -FilePath $ps -ArgumentList "-File $ScriptPath" -NoNewWindow -RedirectStandardOutput $scriptLog -RedirectStandardError $scriptLogErr -PassThru
     $handle = $p.Handle  # cache the handle
 
