@@ -103,7 +103,7 @@ function Invoke-DownloadArtifact {
             if ("$pat" -eq "") {
                 $pat = $accessToken
             }
-            if ($type -eq "upack") {
+            if (($type -eq "upack") -OR (!$type)) {
                 $artifactVersion = $version
                 if ("$artifactVersion" -ne "") {
                     Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
