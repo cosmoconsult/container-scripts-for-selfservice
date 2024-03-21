@@ -14,7 +14,6 @@ param (
     $OnlyGetStatus
 )
 
-# create lock file to prevent multiple executions with a name based on the script name
 $lockFile = "$Id.lock"  # holds status
 $scriptLog = "$Id.log"
 $scriptLogErr = "$Id.err.log"
@@ -26,8 +25,9 @@ if ($OnlyGetStatus -and (-not (Test-Path $lockFile))) {
     } | ConvertTo-Json
 }
 
-# create lock file if it doesn't exist, else throw an error
-if (-not (New-Item -Type File -Path $lockFile -ErrorAction SilentlyContinue)) {
+# create lock file if it doesn't exist, else return status
+if (-not (New-Item -Type File -Path $lockFile -Value "Started" -ErrorAction SilentlyContinue)) {
+    # lock file exists, return status
     if (Test-Path $scriptLog) {
         $stdOut = (Get-Content -Path $scriptLog -Raw).psobject.BaseObject
         if ($stdOut.Length -le 1) {
@@ -53,7 +53,6 @@ if (-not (New-Item -Type File -Path $lockFile -ErrorAction SilentlyContinue)) {
 try {
     Remove-Item -Path $scriptLog -Force -ErrorAction SilentlyContinue
     Remove-Item -Path $scriptLogErr -Force -ErrorAction SilentlyContinue
-    Set-Content -Path $lockFile -Value "Started"
 
     $ps = "powershell"
     if ($PSVersionTable.PSEdition -eq "Core") {
