@@ -17,7 +17,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrWhiteSpace($en
     Write-Host " - Deactivate all users to ensure license compliance"
     Get-NAVServerUser -ServerInstance $ServerInstance | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() } | % {
         Write-Host " - Disable $($_.UserName)"
-        Set-NAVServerUser -UserName $_.UserName -State Disabled -ServerInstance $ServerInstance -ErrorAction Continue
+        Set-NAVServerUser -UserName $_.UserName -State Disabled -ServerInstance $ServerInstance -ErrorAction SilentlyContinue
     }
 }
 
