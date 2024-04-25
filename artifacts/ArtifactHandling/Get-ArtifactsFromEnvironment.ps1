@@ -15,7 +15,7 @@ function Get-ArtifactsFromEnvironment {
     }
     
     process {
-        if ("$env:AZURE_DEVOPS_PACKAGES" -eq "" -and (-not $extendeEnv.AzureDevOpsArtifacts)) {
+        if ("$env:AZURE_DEVOPS_PACKAGES" -eq "" -and (-not $global:extendedEnv.AzureDevOpsArtifacts)) {
             Write-Host "not packages / artifacts found"
             $artifacts = [System.Collections.ArrayList]@()
             if (("$path" -ne "") -and (Test-Path "$path")) {
@@ -49,9 +49,9 @@ function Get-ArtifactsFromEnvironment {
                     }
                 }
             } 
-            if ($extendeEnv.AzureDevOpsArtifacts) {
+            if ($global:extendedEnv.AzureDevOpsArtifacts) {
                 Write-Host "Artifacts from AZURE_DEVOPS_ARTIFACTS ..."
-                $base64 = $extendeEnv.AzureDevOpsArtifacts
+                $base64 = $global:extendedEnv.AzureDevOpsArtifacts
                 if ("$base64" -ne "") {
                     $artifactJson = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String($base64))
                     if ("$artifactJson" -ne "" -and $artifactJson[0] -ne "{") {
