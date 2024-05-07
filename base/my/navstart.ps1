@@ -6,7 +6,7 @@ $scripts = @(
 )
 
 Write-Host "Start"
-Write-Host "Running on Powershell Version: " $PSVersionTable.PSVersion
+Write-Host "Running on Powershell Version:" $PSVersionTable.PSVersion
 
 foreach ($script in $scripts) {
     if (Test-Path -Path $script) {
