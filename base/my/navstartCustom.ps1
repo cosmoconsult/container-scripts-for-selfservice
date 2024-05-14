@@ -1,5 +1,7 @@
 $isPsCore = [System.Version]$PSVersionTable.PSVersion -ge [System.Version]"7.4.1"
 if ($isPsCore) {
+    . (Join-Path $myPath "pscoreoverrides.ps1")
+
     if (Test-Path 'c:\run\my\prompt.ps1') {
         . 'c:\run\my\prompt.ps1'
     }
