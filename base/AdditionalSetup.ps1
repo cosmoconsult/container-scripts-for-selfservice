@@ -1,5 +1,5 @@
 $scripts = @(
-            (Join-Path $PSScriptRoot "AdditionalSetupSSH.ps1"),(Join-Path $PSScriptRoot "AdditionalSetupArtifacts.ps1"),
+            (Join-Path $PSScriptRoot "AdditionalSetupArtifacts.ps1"),
             (Join-Path $PSScriptRoot "AdditionalSetupSSH.ps1")
 )
 
