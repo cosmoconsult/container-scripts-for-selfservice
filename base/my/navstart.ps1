@@ -1,3 +1,4 @@
+Import-Module (Join-Path $PSScriptRoot "..\helper\k8s-bc-helper.psd1") -Scope Global
 $scripts = @(
                         (Join-Path $PSScriptRoot "ExtendedEnvironment.ps1"),
                         (Join-Path $PSScriptRoot "navstartCustomScripts.ps1"),
@@ -11,7 +12,7 @@ Write-Host "Running on Powershell Version:" $PSVersionTable.PSVersion
 foreach ($script in $scripts) {
     if (Test-Path -Path $script) {
         Write-Host "Execute $script"
-        . ($script)
+        Invoke-script ($script)
     }
 }
 
