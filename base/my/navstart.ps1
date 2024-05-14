@@ -1,4 +1,4 @@
-#Import-Module (Join-Path $PSScriptRoot "..\helper\k8s-bc-helper.psd1") -Scope Global
+Import-Module (Join-Path $PSScriptRoot "..\helper\k8s-bc-helper.psd1") -Scope Global
 Invoke-Command { & "pwsh.exe"       } -NoNewScope # PowerShell 7
 $scripts = @(
                         (Join-Path $PSScriptRoot "ExtendedEnvironment.ps1"),
