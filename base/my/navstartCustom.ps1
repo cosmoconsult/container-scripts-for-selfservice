@@ -9,6 +9,9 @@ if ($isPsCore) {
     
     Install-Module -name SqlServer -RequiredVersion 22.2.0 -Scope AllUsers -Force
     Import-Module -name SqlServer -RequiredVersion 22.2.0 -Global -Force
+
+    $runPath = "c:\Run"
+    $myPath = Join-Path $runPath "my"
 }
 
 $scripts = @(
