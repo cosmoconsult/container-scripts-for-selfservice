@@ -5,7 +5,7 @@ function Invoke-Script {
         $ScriptPath
     )
 
-    $usePwsh = $true #DEBUG
+    $usePwsh = $false #DEBUG
 
     if ($usePwsh) {
         if (-not $global:PowerShellSession) {
