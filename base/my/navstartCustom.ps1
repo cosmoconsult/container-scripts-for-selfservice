@@ -1,5 +1,9 @@
 $isPsCore = [System.Version]$PSVersionTable.PSVersion -ge [System.Version]"7.4.1"
 if ($isPsCore) {
+    
+    $runPath = "c:\Run"
+    $myPath = Join-Path $runPath "my"
+    
     . (Join-Path $myPath "pscoreoverrides.ps1")
 
     if (Test-Path 'c:\run\my\prompt.ps1') {
@@ -12,8 +16,6 @@ if ($isPsCore) {
     Install-Module -name SqlServer -RequiredVersion 22.2.0 -Scope AllUsers -Force
     Import-Module -name SqlServer -RequiredVersion 22.2.0 -Global -Force
 
-    $runPath = "c:\Run"
-    $myPath = Join-Path $runPath "my"
 }
 
 $scripts = @(
