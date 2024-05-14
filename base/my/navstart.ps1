@@ -1,1 +1,1 @@
-pwsh.exe (Join-Path $runPath $MyInvocation.MyCommand.Name)
+pwsh.exe (Join-Path $runPath "navstartCustom.ps1")
