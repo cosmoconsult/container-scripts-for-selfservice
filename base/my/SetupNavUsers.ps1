@@ -37,6 +37,6 @@ $scripts = @(
 foreach ($script in $scripts) {
     if (Test-Path -Path $script) {
         Write-Host "Execute $script"
-        Invoke-Script ($script)
+        . ($script)
     }
 }

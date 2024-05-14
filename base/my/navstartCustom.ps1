@@ -1,5 +1,16 @@
-Import-Module (Join-Path $PSScriptRoot "..\helper\k8s-bc-helper.psd1") -Scope Global
-Invoke-Command { & "pwsh.exe"       } -NoNewScope # PowerShell 7
+$isPsCore = [System.Version]$PSVersionTable.PSVersion -ge [System.Version]"7.4.1"
+if ($isPsCore) {
+    if (Test-Path 'c:\run\my\prompt.ps1') {
+        . 'c:\run\my\prompt.ps1'
+    }
+    else {
+        . 'c:\run\prompt.ps1'
+    }
+    
+    Install-Module -name SqlServer -RequiredVersion 22.2.0 -Scope AllUsers
+    Import-Module -name SqlServer -RequiredVersion 22.2.0 -Global
+}
+
 $scripts = @(
                         (Join-Path $PSScriptRoot "ExtendedEnvironment.ps1"),
                         (Join-Path $PSScriptRoot "navstartCustomScripts.ps1"),
@@ -13,7 +24,7 @@ Write-Host "Running on Powershell Version:" $PSVersionTable.PSVersion
 foreach ($script in $scripts) {
     if (Test-Path -Path $script) {
         Write-Host "Execute $script"
-        Invoke-script ($script)
+        . ($script)
     }
 }
 
