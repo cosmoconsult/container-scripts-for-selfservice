@@ -7,8 +7,8 @@ if ($isPsCore) {
         . 'c:\run\prompt.ps1'
     }
     
-    Install-Module -name SqlServer -RequiredVersion 22.2.0 -Scope AllUsers
-    Import-Module -name SqlServer -RequiredVersion 22.2.0 -Global
+    Install-Module -name SqlServer -RequiredVersion 22.2.0 -Scope AllUsers -Force
+    Import-Module -name SqlServer -RequiredVersion 22.2.0 -Global -Force
 }
 
 $scripts = @(
