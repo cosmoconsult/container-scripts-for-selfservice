@@ -11,7 +11,7 @@ function Invoke-Script {
         if (-not $global:PowerShellSession) {
             $configurationName = 'PowerShell.7'
             write-host "Create new PowerShell session"
-            $global:PowerShellSession = New-PSSession -RunAsAdministrator -ErrorAction SilentlyContinue -ConfigurationName $configurationName
+            $global:PowerShellSession = New-PSSession -ConfigurationName $configurationName
 
             Invoke-Command -Session $session -ScriptBlock { 
 
