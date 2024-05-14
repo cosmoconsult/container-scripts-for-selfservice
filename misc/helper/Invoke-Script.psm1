@@ -46,3 +46,5 @@ function Invoke-Script {
         . ($ScriptPath)
     }
 }
+
+Export-ModuleMember -Function Invoke-Script
