@@ -107,7 +107,9 @@ elseif (($volPath -ne "") -and (Test-Path $volPath)) {
         Write-Host "Check database $appDatabaseName and container version to identify need for upgrade"
         $sysAppPath = 'C:\Applications\system application\source\Microsoft_System Application.app'
         if (Test-Path $sysAppPath) {
-            c:\run\prompt.ps1
+            . (Join-Path $runPath "prompt.ps1")
+            . (Join-Path $myPath "pscoreoverrides.ps1")
+            
             $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath
             $sysAppInfoDB = (Invoke-Sqlcmd -database $appDatabaseName -Query "select * FROM [dbo].[NAV App Installed App] WHERE Publisher='Microsoft' and Name='System Application'" -ServerInstance "$DatabaseServer\$DatabaseInstance")
 
