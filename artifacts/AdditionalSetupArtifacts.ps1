@@ -71,6 +71,31 @@ $blackListedApps = @(
         Name   = "_Exclude_AnonymizedDataSharing_";
         Id     = '063b3ac9-c464-4899-96e0-70d5425854e4';
         Reason = "works only on SaaS"
+    },
+    [pscustomobject]@{
+        Name   = "4PS Document API (DEPRECATED) W1";
+        Id     = '40409ec8-f051-4b5b-bcb9-8ef51e1cd1ff';
+        Reason = "deprecated"
+    },
+    [pscustomobject]@{
+        Name   = "4PS App API (DEPRECATED) W1";
+        Id     = 'dd2d0593-ba8d-4f73-bab1-f51f2daa658d';
+        Reason = "deprecated"
+    },
+    [pscustomobject]@{
+        Name   = "4PS Job API (DEPRECATED) W1";
+        Id     = 'f8e2d23f-5500-4b0a-b139-8a7b9725334e';
+        Reason = "deprecated"
+    },
+    [pscustomobject]@{
+        Name   = "Intelligent Cloud Base";
+        Id     = '58623bfa-0559-4bc2-ae1c-0979c29fd9e0';
+        Reason = "works only on SaaS"
+    },
+    [pscustomobject]@{
+        Name   = "Business Central Intelligent Cloud";
+        Id     = '334ef79e-547e-4631-8ba1-7a7f18e14de6';
+        Reason = "works only on SaaS"
     }
 )
 
