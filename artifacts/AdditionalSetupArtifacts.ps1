@@ -324,7 +324,9 @@ $blackListedApps = @(
 )
 if ($env:blackListedAppsJson) {
     $blackListedAppsJson = $env:blackListedAppsJson | ConvertFrom-Json
-    $blackListedApps += $blackListedAppsJson
+    if ($blackListedAppsJson -is [array] -and $blackListedAppsJson.Length -gt 0) {
+        $blackListedApps += $blackListedAppsJson
+    }
 }
 
 if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saasbakfile)) {
