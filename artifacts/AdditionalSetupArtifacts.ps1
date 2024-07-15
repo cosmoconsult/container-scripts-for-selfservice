@@ -322,8 +322,9 @@ $blackListedApps = @(
         Reason = "works only on SaaS"
     }
 )
-if ($env:blackListedApps -and $env:blackListedApps.Count -gt 0) {
-    $blackListedApps += $env:blackListedApps
+if ($env:blackListedAppsJson) {
+    $blackListedAppsJson = $env:blackListedAppsJson | ConvertFrom-Json
+    $blackListedApps += $blackListedAppsJson
 }
 
 if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saasbakfile)) {
