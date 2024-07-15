@@ -310,7 +310,7 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
     }
 }
 
-$blackListedApps = @(
+$excludeAppsFromSaaSBak = @(
     [pscustomobject]@{
         Name   = "CKL Monetization";
         Id     = '2d648cd3-1779-449a-b0eb-23a98267d85e';
@@ -322,11 +322,8 @@ $blackListedApps = @(
         Reason = "works only on SaaS"
     }
 )
-if ($env:blackListedAppsJson) {
-    $blackListedAppsJson = $env:blackListedAppsJson | ConvertFrom-Json
-    if ($blackListedAppsJson -is [array] -and $blackListedAppsJson.Length -gt 0) {
-        $blackListedApps += $blackListedAppsJson
-    }
+if ($global:excludeAppsFromSaaSBak -is [array] -and $global:excludeAppsFromSaaSBak.Length -gt 0) {
+    $excludeAppsFromSaaSBak += $global:excludeAppsFromSaaSBak
 }
 
 if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saasbakfile)) {
@@ -357,10 +354,10 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Invoke-Sqlcmd -Database $tenantId -Query "UPDATE [dbo].[NAV App Installed App] SET [Package ID] = '$($app.'Package ID')' WHERE [App ID] = '$($app.'App ID')'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
 
-    foreach ($blackListedApp in $blackListedApps) {
-        Write-Host "   - Removing app '$($blackListedApp.Name)' if installed, reason '$($blackListedApp.Reason)', id '$($blackListedApp.Id)'"
-        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Published App] WHERE [App ID] = '$($blackListedApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
-        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Installed App] WHERE [App ID] = '$($blackListedApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+    foreach ($excludeApp in $excludeAppsFromSaaSBak) {
+        Write-Host "   - Removing app '$($excludeApp.Name)' if installed, reason '$($excludeApp.Reason)', id '$($excludeApp.Id)'"
+        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Published App] WHERE [App ID] = '$($excludeApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Installed App] WHERE [App ID] = '$($excludeApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
 
     Write-Host " - Replacing default tenant database with new SaaS database"
