@@ -8,12 +8,12 @@ Write-Host "Start AdditionalSetup"
 if (!$TenantId) { $TenantId = "default" }
 $serverInstanceState = (Get-NAVServerInstance BC).State
 if ($serverInstanceState -ne "Running") {
-    Write-Host "Error: NAV ServerInstance not running, aborting..." -ForegroundColor Red
+    Write-Host "Error: NAV ServerInstance not running, skipping AdditionalSetup..." -ForegroundColor Red
     return
 }
 $TenantState = (Get-NavTenant -ServerInstance BC -Tenant $TenantId).State
 if ($TenantState -ne "Mounted" -and $TenantState -ne "Operational") {
-    Write-Host "Error: Tenant not mounted/operational, aborting..." -ForegroundColor Red
+    Write-Host "Error: Tenant not mounted/operational, skipping AdditionalSetup..." -ForegroundColor Red
     return
 }
 
