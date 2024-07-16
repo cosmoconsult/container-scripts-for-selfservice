@@ -430,7 +430,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Write-Host " - Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
     
-    for ($i = 0; $i -lt 10; $i++) {
+    for ($i = 0; $i -lt 20; $i++) {
         $TenantState = (Get-NavTenant -ServerInstance BC -Tenant $TenantId).State
         if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
             break;
