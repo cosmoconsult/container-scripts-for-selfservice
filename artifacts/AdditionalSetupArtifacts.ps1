@@ -182,7 +182,7 @@ finally {
         Write-Host "Restart NAV service to load new DLLs/Add-ins"
         Restart-Service -Name $NavServiceName
         for ($i = 0; $i -lt 10; $i++) {
-            $TenantState = (Get-NavTenant -ServerInstance $NavServiceName -Tenant $Tenant).State
+            $TenantState = (Get-NavTenant -ServerInstance $NavServiceName -Tenant $TenantId).State
             if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
                 break;
             }
