@@ -8,11 +8,13 @@ Write-Host "Start AdditionalSetup"
 if (!$TenantId) { $TenantId = "default" }
 $serverInstanceState = (Get-NAVServerInstance BC).State
 if ($serverInstanceState -ne "Running") {
-    throw "NAV ServerInstance not running, aborting AdditionalSetup"
+    Write-Error "NAV ServerInstance not running, skipping AdditionalSetup..."
+    return
 }
 $TenantState = (Get-NavTenant -ServerInstance BC -Tenant $TenantId).State
 if ($TenantState -ne "Mounted" -and $TenantState -ne "Operational") {
-    throw "Tenant not mounted/operational, aborting AdditionalSetup"
+    Write-Error "Tenant not mounted/operational, skipping AdditionalSetup..."
+    return
 }
 
 foreach ($script in $scripts) {
