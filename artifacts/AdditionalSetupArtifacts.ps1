@@ -178,8 +178,7 @@ catch {
 }
 finally {
     # if there are any "dll" or "add-ins" artifacts we need to restart the service (fonts are handled individually)
-    $artifactsRequireRestart = $artifacts | Where-Object { "$($_.target)".ToLower() -eq "dll" -or "$($_.target)".ToLower() -eq "add-ins" }
-    if ($artifactsRequireRestart -and $artifactsRequireRestart.Count -gt 0) {
+    if (@($artifacts | Where-Object { "$($_.target)".ToLower() -eq "dll" -or "$($_.target)".ToLower() -eq "add-ins" }).Count -gt 0) {
         Write-Host "Restart NAV service to load new DLLs/Add-ins"
         Restart-Service -Name $NavServiceName
         for ($i = 0; $i -lt 10; $i++) {
