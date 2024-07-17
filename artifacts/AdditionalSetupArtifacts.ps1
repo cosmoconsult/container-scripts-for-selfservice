@@ -166,7 +166,7 @@ try {
     Write-Host "##[group]Download Artifacts"
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { ($_.target) -ne "bak" -and ($_.target) -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
  
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
@@ -178,7 +178,8 @@ catch {
 }
 finally {
     # if there are any "dll" or "add-ins" artifacts we need to restart the service (fonts are handled individually)
-    if ($artifacts -and ($artifacts | Where-Object { $_.target.ToLower() -eq "dll" -or $_.target.ToLower() -eq "add-ins" }).Count -gt 0) {
+    $artifactsRequireRestart = $artifacts | Where-Object { $_ -and $_.target -and ($_.target.ToLower() -eq "dll" -or $_.target.ToLower() -eq "add-ins") }
+    if ($artifactsRequireRestart -and $artifactsRequireRestart.Count -gt 0) {
         Write-Host "Restart NAV service to load new DLLs/Add-ins"
         Restart-Service -Name $NavServiceName
         for ($i = 0; $i -lt 10; $i++) {
