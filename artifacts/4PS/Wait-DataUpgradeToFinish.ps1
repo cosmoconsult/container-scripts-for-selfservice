@@ -23,24 +23,20 @@ function Wait-DataUpgradeToFinish {
         if (!$Tenant) { $Tenant = 'default' }
         
         try {      
-            do {
-                Start-Sleep -Seconds 1 | Out-Null
-                $status = Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $Tenant
-            } while ( "$($status.State)" -in @("InProgress") )
+            Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Progress
         }
         catch { 
-            Write-Host "Couldn't get the status of the NAVDataUpgrade, maybe none is running"
+            Write-Host "Couldn't get the progress of the NAVDataUpgrade, maybe none is running"
         }
 
         try {
             $errors = Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $Tenant -ErrorOnly
-            $errorsString = $errors | Out-String
         }
         catch { 
             Write-Host "Couldn't get the errors of the NAVDataUpgrade, maybe none is running"
         }
     
-        if (!$errors -and ("$($status.NumericProgress)" -eq 1)) {
+        if (!$errors) {
             Write-Host "no errors detected - process has been completed successfully"
             return;
         }
@@ -54,7 +50,7 @@ function Wait-DataUpgradeToFinish {
         }
 
         $errorMessage = "Errors occurred during the NAVDataUpgrade process: " + [System.Environment]::NewLine
-        $errorsString.Trim().Replace("`r`n", "`n").Split("`n") | ForEach-Object { $errorMessage += $_ + [System.Environment]::NewLine }
+        ($errors | Out-String).Trim().Replace("`r`n", "`n").Split("`n") | ForEach-Object { $errorMessage += $_ + [System.Environment]::NewLine }
         Write-Host $errorMessage
     }
 }
