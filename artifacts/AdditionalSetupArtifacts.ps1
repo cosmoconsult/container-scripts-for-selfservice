@@ -177,21 +177,6 @@ catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
 }
 finally {
-    # if there are any "dll" or "add-ins" artifacts we need to restart the service (fonts are handled individually)
-    if (@($artifacts | Where-Object { "$($_.target)".ToLower() -eq "dll" -or "$($_.target)".ToLower() -eq "add-ins" }).Count -gt 0) {
-        Write-Host "Restart NAV service to load new DLLs/Add-ins"
-        Restart-Service -Name $NavServiceName
-        for ($i = 0; $i -lt 10; $i++) {
-            $TenantState = (Get-NavTenant -ServerInstance $NavServiceName -Tenant $TenantId).State
-            if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
-                break;
-            }
-
-            Write-Host " - - Tenant not operational yet (try $i), sleeping 10s"
-            Start-Sleep -Seconds 10
-        }
-    }
-
     Add-ArtifactsLog -message "Download Artifacts done."
     Write-Host "##[endgroup]"
 }
