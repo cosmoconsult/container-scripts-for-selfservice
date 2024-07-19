@@ -413,7 +413,13 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Syncing all apps"
     for ($i = 0; $i -lt 10; $i++) {
-        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.SyncState -ne "Synced" } | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
+        $unsyncedApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.SyncState -ne "Synced" }
+        Write-Host " - - Found $($unsyncedApps.Count) unsynced apps in loop $i"
+        foreach ($app in $unsyncedApps) {
+            Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
+            Write-Host " - - Synced $($app.Name) in loop $i"
+        }
+        Write-Host " - - Loop $i done"
     }
 
     Write-Host " - Upgrading all apps"
