@@ -418,7 +418,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host " - - Found $($unsyncedApps.Count) unsynced apps in loop $i"
         
         $unsyncedApps | ForEach-Object {
-            Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
+            Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -Name $_.Name -Publisher $_.Publisher -Version $_.Version -ErrorAction silentlycontinue -WarningAction silentlycontinue
             Write-Host " - - Synced $($_.Name) in loop $i"
         }
         
@@ -434,7 +434,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host " - - Found $($upgradeableApps.Count) upgradeable apps in loop $i"
 
         $upgradeableApps | ForEach-Object {
-            Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+            Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -Name $_.Name -Publisher $_.Publisher -Version $_.Version -ErrorAction silentlycontinue
             Write-Host " - - Upgraded $($_.Name) in loop $i"
         }
         
