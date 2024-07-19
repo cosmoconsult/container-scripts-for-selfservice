@@ -61,19 +61,6 @@ function Move-Database {
 
 }
 
-$blackListedApps = @(
-    [pscustomobject]@{
-        Name   = "CKL Monetization";
-        Id     = '2d648cd3-1779-449a-b0eb-23a98267d85e';
-        Reason = "works only on SaaS"
-    },
-    [pscustomobject]@{
-        Name   = "_Exclude_AnonymizedDataSharing_";
-        Id     = '063b3ac9-c464-4899-96e0-70d5425854e4';
-        Reason = "works only on SaaS"
-    }
-)
-
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
     if (!$TenantId) { $TenantId = "default" }
@@ -107,13 +94,22 @@ if ($env:cosmoUpgradeSysApp) {
 
     if ($env:mode -ne "4ps") {
         Write-Host " - Syncing all apps"
-        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
-    
+        do {
+            $unsyncedApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.SyncState -ne "Synced" }
+            $unsyncedApps | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+        } while ($unsyncedApps.Count -gt 0)
+
         Write-Host " - Upgrading all apps"
-        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+        do {
+            $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq $true }
+            $upgradeableApps | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue
+        } while ($upgradeableApps.Count -gt 0)
 
         Write-Host " - Installing all apps"
-        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Install-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+        do {
+            $uninstalledApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.IsInstalled -eq $false }
+            $uninstalledApps | Install-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue
+        } while ($uninstalledApps.Count -gt 0)
     }
 }
 
@@ -166,7 +162,7 @@ try {
     Write-Host "##[group]Download Artifacts"
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.target -ne "bak" -and $_.target -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
  
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
@@ -323,6 +319,22 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
     }
 }
 
+$excludeAppsFromSaaSBak = @(
+    [pscustomobject]@{
+        Name   = "CKL Monetization";
+        Id     = '2d648cd3-1779-449a-b0eb-23a98267d85e';
+        Reason = "works only on SaaS"
+    },
+    [pscustomobject]@{
+        Name   = "_Exclude_AnonymizedDataSharing_";
+        Id     = '063b3ac9-c464-4899-96e0-70d5425854e4';
+        Reason = "works only on SaaS"
+    }
+)
+if ($global:excludeAppsFromSaaSBak -is [array] -and $global:excludeAppsFromSaaSBak.Length -gt 0) {
+    $excludeAppsFromSaaSBak += $global:excludeAppsFromSaaSBak
+}
+
 if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saasbakfile)) {
     Write-Host "HANDLING SaaS BAKFILE"
 
@@ -351,10 +363,10 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Invoke-Sqlcmd -Database $tenantId -Query "UPDATE [dbo].[NAV App Installed App] SET [Package ID] = '$($app.'Package ID')' WHERE [App ID] = '$($app.'App ID')'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
 
-    foreach ($blackListedApp in $blackListedApps) {
-        Write-Host "   - Removing app '$($blackListedApp.Name)' if installed, reason '$($blackListedApp.Reason)', id '$($blackListedApp.Id)'"
-        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Published App] WHERE [App ID] = '$($blackListedApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
-        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Installed App] WHERE [App ID] = '$($blackListedApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+    foreach ($excludeApp in $excludeAppsFromSaaSBak) {
+        Write-Host "   - Removing app '$($excludeApp.Name)' if installed, reason '$($excludeApp.Reason)', id '$($excludeApp.Id)'"
+        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Published App] WHERE [App ID] = '$($excludeApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
+        Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Installed App] WHERE [App ID] = '$($excludeApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
 
     Write-Host " - Replacing default tenant database with new SaaS database"
@@ -409,12 +421,16 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Force
 
     Write-Host " - Syncing all apps"
-    for ($i = 0; $i -lt 10; $i++) {
-        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
-    }
+    do {
+        $unsyncedApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.SyncState -ne "Synced" }
+        $unsyncedApps | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+    } while ($unsyncedApps.Count -gt 0)
 
     Write-Host " - Upgrading all apps"
-    Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+    do {
+        $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq $true }
+        $upgradeableApps | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue
+    } while ($upgradeableApps.Count -gt 0)
 
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
