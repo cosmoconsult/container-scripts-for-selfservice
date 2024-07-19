@@ -94,13 +94,22 @@ if ($env:cosmoUpgradeSysApp) {
 
     if ($env:mode -ne "4ps") {
         Write-Host " - Syncing all apps"
-        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
-    
+        do {
+            $unsyncedApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.SyncState -ne "Synced" }
+            $unsyncedApps | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+        } while ($unsyncedApps.Count -gt 0)
+
         Write-Host " - Upgrading all apps"
-        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+        do {
+            $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq $true }
+            $upgradeableApps | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue
+        } while ($upgradeableApps.Count -gt 0)
 
         Write-Host " - Installing all apps"
-        Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId | Install-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
+        do {
+            $uninstalledApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.IsInstalled -eq $false }
+            $uninstalledApps | Install-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue
+        } while ($uninstalledApps.Count -gt 0)
     }
 }
 
@@ -419,7 +428,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Upgrading all apps"
     do {
-        $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq "True" }
+        $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq $true }
         $upgradeableApps | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue
     } while ($upgradeableApps.Count -gt 0)
 
