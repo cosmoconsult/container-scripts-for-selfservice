@@ -412,26 +412,22 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Force
 
     Write-Host " - Syncing all apps"
-    $unsyncedApps = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.SyncState -ne "Synced" })
     $i = 0
-    while ($unsyncedApps.Count -gt 0) {
+    do {
         $i++
-        Write-Host " - - Found $($unsyncedApps.Count) unsynced apps in loop $i"
-        $unsyncedApps | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue -WarningAction silentlycontinue
-        $unsyncedApps = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.SyncState -ne "Synced" })
-        Write-Host " - - Loop $i done"
-    }
+        $unsyncedApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.SyncState -ne "Synced" }
+        Write-Host " - - Sync $($unsyncedApps.Count) apps in loop $i..."
+        $unsyncedApps | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+    } while ($unsyncedApps.Count -gt 0)
 
     Write-Host " - Upgrading all apps"
-    $upgradeableApps = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq "True" })
     $i = 0
-    while ($upgradeableApps.Count -gt 0) {
+    do {
         $i++
-        Write-Host " - - Found $($upgradeableApps.Count) upgradeable apps in loop $i"
-        $upgradeableApps | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction silentlycontinue
-        $upgradeableApps = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq "True" })
-        Write-Host " - - Loop $i done"
-    }
+        $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq "True" }
+        Write-Host " - - Upgrading $($unsyncedApps.Count) apps in loop $i..."
+        $upgradeableApps | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue
+    } while ($upgradeableApps.Count -gt 0)
 
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
