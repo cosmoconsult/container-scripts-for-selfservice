@@ -1,6 +1,6 @@
 Write-Host "Finding users with duplicate AuthenticationEmail and fixing disabled duplicate users"
 
-$duplicateAadUserSets = Get-NAVServerUser -ServerInstance $ServerInstance | where { $_.AuthenticationEmail -ne '' } | group 'AuthenticationEmail' | Where { $_.Count -gt 1 } 
+$duplicateAadUserSets = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant "default" | where { $_.AuthenticationEmail -ne '' } | group 'AuthenticationEmail' | Where { $_.Count -gt 1 } 
 
 foreach ($duplicateAadUserSet in $duplicateAadUserSets)
 {
