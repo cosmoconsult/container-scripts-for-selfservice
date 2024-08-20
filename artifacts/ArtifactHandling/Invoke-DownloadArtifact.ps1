@@ -34,7 +34,7 @@ function Invoke-DownloadArtifact {
         [Parameter(Mandatory = $false)]
         [string]$destination = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
         [Parameter(Mandatory = $false)]
-        [string]$baseUrl = "$($env:publicdnsname)",
+        [string]$baseUrl = "https://$($env:publicdnsname)",
         [Parameter(Mandatory = $false)]
         [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
         [Parameter(Mandatory = $false)]
@@ -87,7 +87,7 @@ function Invoke-DownloadArtifact {
         # Ensure TSL12
         [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12                
         
-        if ("$baseUrl" -eq "" -or "$baseUrl".ToLower() -eq "localhost") {
+        if ("$baseUrl" -eq "" -or "$baseUrl".ToLower() -contains "localhost") {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
     }
