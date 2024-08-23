@@ -11,6 +11,8 @@ foreach ($duplicateAadUserSet in $duplicateAadUserSets)
         Write-Host "Fixing AuthenticationEmail of duplicate user $($_.UserName)"
 
         # moving to a non-existent email as removing doesn't work
-        Set-NAVServerUser -ServerInstance $ServerInstance -UserName $_.UserName -AuthenticationEmail "none@example.com"
+        if ($_.UserName) {
+            Set-NAVServerUser -ServerInstance $ServerInstance -UserName $_.UserName -AuthenticationEmail "none@example.com"
+        }
     }
 }
