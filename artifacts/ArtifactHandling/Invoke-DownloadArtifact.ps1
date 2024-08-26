@@ -58,7 +58,7 @@ function Invoke-DownloadArtifact {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
         if ("$url" -eq "") {
-            # Validate or get the PAT, becasue no Download URL is present
+            # Validate or get the PAT, because no Download URL is present
             if ("$accessToken" -eq "") {
                 # Try get the PAT from environment
                 $accessToken = (@("$($env:AZURE_DEVOPS_TOKEN)", "$($env:AZURE_DEVOPS_EXT_PAT)", "$($env:AZP_TOKEN)") | ? { "$_" -ne "" } | select -First 1)            
