@@ -280,9 +280,9 @@ function Invoke-DownloadArtifact {
             }
             catch { 
                 Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -operation "Download Artifact"
+                Add-ArtifactsLog -message "Error downloading artifact $($name): $_" -severity Error -success fail
             }
             finally {
-                Write-Host ""
                 if (Test-Path $tempArchive) {
                     Remove-Item -Path $tempArchive -Force -ErrorAction SilentlyContinue
                 }
