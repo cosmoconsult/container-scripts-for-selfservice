@@ -282,6 +282,7 @@ function Invoke-DownloadArtifact {
                 Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -operation "Download Artifact"
             }
             finally {
+                Write-Host ""
                 if (Test-Path $tempArchive) {
                     Remove-Item -Path $tempArchive -Force -ErrorAction SilentlyContinue
                 }
