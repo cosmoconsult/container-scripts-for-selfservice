@@ -90,6 +90,11 @@ function Invoke-DownloadArtifact {
         if ("$baseUrl" -eq "" -or "$baseUrl".ToLower() -contains "localhost") {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
+
+        $featuresResult = Invoke-WebRequest -Method Get -uri "$baseUrl/api/automation/release/Features"
+        Write-Host "Features Result: $($featuresResult)"
+        $getVersionFromAPI = $featuresResult.StatusCode -eq 200 -and ((ConvertFrom-Json $featuresResult.Content).result -contains "GetArtifactLatest")
+        Write-Host "Get Version from API: $getVersionFromAPI"
     }
     
     process {
