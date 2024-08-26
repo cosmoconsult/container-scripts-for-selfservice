@@ -93,7 +93,6 @@ function Invoke-DownloadArtifact {
 
         $featuresResult = Invoke-WebRequest -Method Get -uri "$baseUrl/api/automation/release/Features" -UseBasicParsing
         $getVersionFromAPI = $featuresResult.StatusCode -eq 200 -and ((ConvertFrom-Json $featuresResult.Content) -contains "GetArtifactLatest")
-        Write-Host "Get Version from API: $getVersionFromAPI"
     }
     
     process {
@@ -113,31 +112,35 @@ function Invoke-DownloadArtifact {
             }
             if (($type -eq "upack") -OR (!$type)) {
                 $artifactVersion = $version
-                if ("$artifactVersion" -ne "") {
-                    Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
+                if (!$getVersionFromAPI) {
+                    if ("$artifactVersion" -ne "") {
+                        Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
+                    }
+                    else {
+                        Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
+                        $artifactVersion = Get-PackageVersion `
+                            -organization    $organization `
+                            -project         $project `
+                            -feed            $feed `
+                            -name            $name `
+                            -scope           $scope `
+                            -view            $view `
+                            -protocolType    $type `
+                            -accessToken     $pat `
+                            -telemetryClient $telemetryClient `
+                            -artifactVersion $artifactVersion
+                    }
                 }
-                else {
-                    Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
-                    $artifactVersion = Get-PackageVersion `
-                        -organization    $organization `
-                        -project         $project `
-                        -feed            $feed `
-                        -name            $name `
-                        -scope           $scope `
-                        -view            $view `
-                        -protocolType    $type `
-                        -accessToken     $pat `
-                        -telemetryClient $telemetryClient `
-                        -artifactVersion $artifactVersion
-                } 
 
-                if ("$artifactVersion" -eq "") {
+                if ("$artifactVersion" -eq "" -and !$getVersionFromAPI) {
                     Add-ArtifactsLog -message "Artiact $name (View: '$view') skipped (no version / release found)" -severity Warn
                     Invoke-LogEvent -name "Download Artifact - no Artifact found" -properties $properties -telemetryClient $telemetryClient
                     $url = ""
                 }
                 else {
-                    Add-ArtifactsLog -message "`Artifact $name (View: '$view') has Version v $artifactVersion"
+                    if (!$getVersionFromAPI) {
+                        Add-ArtifactsLog -message "`Artifact $name (View: '$view') has Version v $artifactVersion"
+                    }
 
                     $scope = $scope
                     if ("$scope" -eq "") { $scope = "project" }
