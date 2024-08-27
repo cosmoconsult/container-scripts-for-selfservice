@@ -149,7 +149,7 @@ function Invoke-DownloadArtifact {
                     if ("$scope" -eq "") { $scope = "project" }
                     $project = $project
                     if ("$scope" -ne "project" -and "" -eq "$project") { $project = "dummy" }
-                    $sourceUri = "$baseUrl/api/automation/release/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?scope=$($scope)&pat=$($pat)"
+                    $sourceUri = "$baseUrl/api/automation/release/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?PATValidationProject=$($env:CcOrgName)&scope=$($scope)&pat=$($pat)"
                 }
             }
             elseif ($type -eq "nuget") {
