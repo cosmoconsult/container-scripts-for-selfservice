@@ -34,7 +34,7 @@ function Invoke-DownloadArtifact {
         [Parameter(Mandatory = $false)]
         [string]$destination = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
         [Parameter(Mandatory = $false)]
-        [string]$baseUrl = "https://ppi-devops.germanywestcentral.cloudapp.azure.com/proxy",
+        [string]$baseUrl = "https://$($env:publicdnsname)",
         [Parameter(Mandatory = $false)]
         [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
         [Parameter(Mandatory = $false)]
@@ -58,7 +58,7 @@ function Invoke-DownloadArtifact {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
         if ("$url" -eq "") {
-            # Validate or get the PAT, becasue no Download URL is present
+            # Validate or get the PAT, because no Download URL is present
             if ("$accessToken" -eq "") {
                 # Try get the PAT from environment
                 $accessToken = (@("$($env:AZURE_DEVOPS_TOKEN)", "$($env:AZURE_DEVOPS_EXT_PAT)", "$($env:AZP_TOKEN)") | ? { "$_" -ne "" } | select -First 1)            
@@ -86,6 +86,16 @@ function Invoke-DownloadArtifact {
         $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("vsts:$($accessToken)")))"; }
         # Ensure TSL12
         [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12                
+        
+        if ("$baseUrl" -eq "" -or "$baseUrl".ToLower() -contains "localhost") {
+            $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
+        }
+
+        try {
+            $featuresResult = Invoke-WebRequest -Method Get -uri "$baseUrl/api/automation/release/Features" -UseBasicParsing
+            $getVersionFromAPI = $featuresResult.StatusCode -eq 200 -and ((ConvertFrom-Json $featuresResult.Content) -contains "GetArtifactLatest")
+        }
+        catch {}
     }
     
     process {
@@ -105,37 +115,41 @@ function Invoke-DownloadArtifact {
             }
             if (($type -eq "upack") -OR (!$type)) {
                 $artifactVersion = $version
-                if ("$artifactVersion" -ne "") {
-                    Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
+                if (!$getVersionFromAPI) {
+                    if ("$artifactVersion" -ne "") {
+                        Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
+                    }
+                    else {
+                        Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
+                        $artifactVersion = Get-PackageVersion `
+                            -organization    $organization `
+                            -project         $project `
+                            -feed            $feed `
+                            -name            $name `
+                            -scope           $scope `
+                            -view            $view `
+                            -protocolType    $type `
+                            -accessToken     $pat `
+                            -telemetryClient $telemetryClient `
+                            -artifactVersion $artifactVersion
+                    }
                 }
-                else {
-                    Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
-                    $artifactVersion = Get-PackageVersion `
-                        -organization    $organization `
-                        -project         $project `
-                        -feed            $feed `
-                        -name            $name `
-                        -scope           $scope `
-                        -view            $view `
-                        -protocolType    $type `
-                        -accessToken     $pat `
-                        -telemetryClient $telemetryClient `
-                        -artifactVersion $artifactVersion
-                } 
 
-                if ("$artifactVersion" -eq "") {
+                if ("$artifactVersion" -eq "" -and !$getVersionFromAPI) {
                     Add-ArtifactsLog -message "Artiact $name (View: '$view') skipped (no version / release found)" -severity Warn
                     Invoke-LogEvent -name "Download Artifact - no Artifact found" -properties $properties -telemetryClient $telemetryClient
                     $url = ""
                 }
                 else {
-                    Add-ArtifactsLog -message "`Artifact $name (View: '$view') has Version v $artifactVersion"
+                    if (!$getVersionFromAPI) {
+                        Add-ArtifactsLog -message "`Artifact $name (View: '$view') has Version v $artifactVersion"
+                    }
 
                     $scope = $scope
                     if ("$scope" -eq "") { $scope = "project" }
                     $project = $project
                     if ("$scope" -ne "project" -and "" -eq "$project") { $project = "dummy" }
-                    $sourceUri = "$baseUrl/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?scope=$($scope)&pat=$($pat)"
+                    $sourceUri = "$baseUrl/api/automation/release/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?PATValidationProject=$($env:CcOrgName)&scope=$($scope)&pat=$($pat)"
                 }
             }
             elseif ($type -eq "nuget") {
@@ -266,6 +280,7 @@ function Invoke-DownloadArtifact {
             }
             catch { 
                 Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -operation "Download Artifact"
+                Add-ArtifactsLog -message "Download Artifact $($name) failed: $_" -severity Error -success fail
             }
             finally {
                 if (Test-Path $tempArchive) {
