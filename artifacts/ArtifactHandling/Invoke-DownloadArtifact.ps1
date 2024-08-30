@@ -87,7 +87,7 @@ function Invoke-DownloadArtifact {
         # Ensure TSL12
         [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12                
         
-        if ("$baseUrl" -eq "" -or "$baseUrl".ToLower() -contains "localhost") {
+        if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
 
@@ -274,8 +274,20 @@ function Invoke-DownloadArtifact {
                 Invoke-LogOperation -name "Download Artifact" -success $success -started $started -properties $properties -telemetryClient $telemetryClient
             }
             catch { 
+                $errorMessage = $_.ToString()
+                # Try to parse the JSON object from the error message and extract the details
+                if ($errorMessage -match '{.*}') {
+                    try {
+                        $jsonError = $errorMessage | ConvertFrom-Json
+                        if ($jsonError.detail) {
+                            $errorMessage = $($jsonError.detail)
+                        }
+                    }
+                    catch { }
+                }
+
                 Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -operation "Download Artifact"
-                Add-ArtifactsLog -message "Download Artifact $($name) failed: $_" -severity Error -success fail
+                Add-ArtifactsLog -message "Download Artifact $($name) failed: $($errorMessage)" -severity Error -success fail
             }
             finally {
                 if (Test-Path $tempArchive) {
