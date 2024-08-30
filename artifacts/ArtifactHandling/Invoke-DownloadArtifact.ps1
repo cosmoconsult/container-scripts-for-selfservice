@@ -186,12 +186,7 @@ function Invoke-DownloadArtifact {
             try {
                 $started = Get-Date -Format "o"
                 if ("$sourceUri".StartsWith("http")) {  
-                    try {
-                        Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
-                    }
-                    catch {
-                        Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive"
-                    }
+                    Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
                 }
                 else {
                     if (Test-Path $sourceUri) {
