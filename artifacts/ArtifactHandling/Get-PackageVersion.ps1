@@ -55,7 +55,7 @@ function Get-PackageVersion {
             $started = Get-Date -Format "o"
 
             if ("$scope" -ne "project") { $project = "" }
-            $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("vsts:$($accessToken)")))"; }
+            $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
             $baseuri = [string]::Join('/', (@($organization, $project) | Where-Object { "$_" -ne "" }))
             $uri = "https://feeds.dev.azure.com/$baseuri/_apis/packaging/feeds/$feed/packages?api-version=5.1-preview.1"
             Add-ArtifactsLog -message "Get Package for $name ... $uri" #$($headers | ConvertTo-Json -Compress)
