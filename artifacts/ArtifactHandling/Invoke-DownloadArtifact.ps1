@@ -117,7 +117,7 @@ function Invoke-DownloadArtifact {
                 $artifactVersion = $version
                 if (!$getVersionFromAPI) {
                     if ("$artifactVersion" -ne "") {
-                        Add-ArtifactsLog -message "Get Artifact Version for $($name) ... skipped, because version is set to v $($artifactVersion)"
+                        Add-ArtifactsLog -message "Get Artifact Version for $($name)... skipped, because version is set to v $($artifactVersion)"
                     }
                     else {
                         Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
@@ -133,6 +133,9 @@ function Invoke-DownloadArtifact {
                             -telemetryClient $telemetryClient `
                             -artifactVersion $artifactVersion
                     }
+                }
+                else {
+                    Add-ArtifactsLog -message "Get Artiact $($name)..."
                 }
 
                 if ("$artifactVersion" -eq "" -and !$getVersionFromAPI) {
