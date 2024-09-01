@@ -9,7 +9,7 @@ if ([string]::IsNullOrEmpty($env:CcOrgName) -or [string]::IsNullOrEmpty($env:CcP
     return;
 }
 
-$encodedCreds = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes("dummy:$($env:AZURE_DEVOPS_EXT_PAT)"))
+$encodedCreds = [System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($env:AZURE_DEVOPS_EXT_PAT)"))
 $Headers = @{
     Authorization = "Basic $encodedCreds"
 }
