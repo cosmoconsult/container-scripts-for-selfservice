@@ -189,11 +189,13 @@ function Invoke-DownloadArtifact {
             try {
                 $started = Get-Date -Format "o"
                 if ("$sourceUri".StartsWith("http")) { 
-                    # ignore auth header if SAS token is present
-                    if ($sourceUri -match "([?&](sp|st|se|sv|sr|sig)=[^&]+)") {
-                        $headers = @{}
+                    if ("$sourceUri".StartsWith("$baseUrl")) {
+                        Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
                     }
-                    Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
+                    else {
+                        Add-ArtifactsLog -message "External artifact URL detected, ignoring Authorization header" -severity Debug
+                        Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive"
+                    }
                 }
                 else {
                     if (Test-Path $sourceUri) {
