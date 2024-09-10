@@ -191,12 +191,12 @@ function Invoke-DownloadArtifact {
                 if ("$sourceUri".StartsWith("http")) { 
                     # ignore auth header if SAS token is present
                     if ($sourceUri -match "([?&](sp|st|se|sv|sr|sig)=[^&]+)") {
-                        Write-Host "SAS token found in URL, ignoring Authorization header"
-                        $headers = @{}
+                        Write-Debug "SAS token found in URL, ignoring Authorization header"
+                        Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive"
                     }
-                    Write-Host "Headers:"
-                    $headers.GetEnumerator() | Format-Table -Property Key, Value -AutoSize | Out-String | Write-Host
-                    Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
+                    else {
+                        Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
+                    }
                 }
                 else {
                     if (Test-Path $sourceUri) {
