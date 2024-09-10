@@ -194,7 +194,10 @@ function Invoke-DownloadArtifact {
                         Write-Host "SAS token found in URL, ignoring Authorization header"
                         $headers = @{}
                     }
-                    Write-Host "Headers: $($headers)"
+                    Write-Host "Headers:"
+                    $headers.GetEnumerator() | ForEach-Object {
+                        Write-Host " $($_.Key): $($_.Value)"
+                    }
                     Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
                 }
                 else {
