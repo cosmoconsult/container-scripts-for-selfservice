@@ -195,9 +195,7 @@ function Invoke-DownloadArtifact {
                         $headers = @{}
                     }
                     Write-Host "Headers:"
-                    $headers.GetEnumerator() | ForEach-Object {
-                        Write-Host " $($_.Key): $($_.Value)"
-                    }
+                    $headers.GetEnumerator() | Format-Table -Property Key, Value -AutoSize | Out-String | Write-Host
                     Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
                 }
                 else {
