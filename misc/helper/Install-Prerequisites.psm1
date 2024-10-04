@@ -5,6 +5,7 @@
   Install-OpenSSH
 #>
 function Install-OpenSSH {
+  Write-Host "##[group]Install OpenSSH"
   if (!(Test-Path -Path "C:\pubKey\pubkey.pub")) {
     Write-Output "No ssh key found, ssh disabled"
     return
@@ -74,6 +75,7 @@ function Install-OpenSSH {
   sc.exe failure sshd reset= 86400 actions= restart/500
   Start-Service sshd
   
+  Write-Host "##[endgroup]"
 }
 
 Export-ModuleMember -Function Install-OpenSSH
@@ -85,12 +87,13 @@ Export-ModuleMember -Function Install-OpenSSH
   Install-Chocolatey
 #>
 function Install-Chocolatey {
-    Write-Output "Install Chocolatey"
+    Write-Host "##[group]Install OpenSSH Install Chocolatey"
     Set-ExecutionPolicy Bypass -Scope Process -Force; 
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; 
     Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
     refreshenv
     Write-Output "Installation Chocolatey completed"
+    Write-Host "##[endgroup]"
 }
 
 Export-ModuleMember -Function Install-Chocolatey
@@ -103,11 +106,12 @@ Export-ModuleMember -Function Install-Chocolatey
   Install-Nodejs
 #>
 function Install-Nodejs {
-    Write-Output "Install Nodejs"
+    Write-Host "##[group]Install OpenSSH Install Nodejs"
     choco install nodejs.install --version 20.17.0 -y
     Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
     refreshenv
     Write-Output "Installation Nodejs completed"
+    Write-Host "##[endgroup]"
 }
 
 Export-ModuleMember -Function Install-Nodejs
