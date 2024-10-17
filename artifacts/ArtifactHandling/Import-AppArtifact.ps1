@@ -80,6 +80,11 @@ function Import-AppArtifact {
             # Uninstall old NAVApp, when present
             if ($oldApp -and $oldApp.IsInstalled) {
                 try {
+                    if ($oldApp.Version -ge $app.Version) {
+                        Write-Host "Skipping installation of App $($app.Name) $($app.Publisher) $($app.Version) as version $($oldApp.Version) is already installed."
+                        Invoke-LogOperation -name "Import App Artifact" -started $started -properties $properties -telemetryClient $telemetryClient
+                        return;
+                    }
                     $started1 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) ..." -data $app
                     Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant $Tenant -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
