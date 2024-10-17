@@ -61,6 +61,10 @@ try {
         # Uninstall old NAVApp, when present
         if ($oldApp -and $oldApp.IsInstalled) {
             try {
+                if ($oldApp.Version -eq $app.Version) {
+                    Write-Host "App $($app.Name) $($app.Publisher) $($app.Version) is already installed"
+                    return;
+                }
                 $started1 = Get-Date -Format "o"
                 Write-Host "Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $($oldApp.Name) -Publisher $($oldApp.Publisher) -Version $($oldApp.Version) -Force"
                 Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
