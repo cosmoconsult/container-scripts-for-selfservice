@@ -82,7 +82,7 @@ function Import-AppArtifact {
                 try {
                     if ($oldApp.Version -ge $app.Version) {
                         Write-Host "Skipping installation of App $($app.Name) $($app.Publisher) $($app.Version) as version $($oldApp.Version) is already installed."
-                        Invoke-LogOperation -name "Import App Artifact" -started $started -properties $properties -telemetryClient $telemetryClient
+                        Invoke-LogOperation -name "Import App Artifact skipped" -started $started -properties $properties -telemetryClient $telemetryClient
                         return;
                     }
                     $started1 = Get-Date -Format "o"
