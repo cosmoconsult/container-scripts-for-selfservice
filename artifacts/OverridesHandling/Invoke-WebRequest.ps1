@@ -9,7 +9,9 @@ function Invoke-WebRequest() {
         $previousProgressPreference = $global:ProgressPreference
         $global:ProgressPreference = 'SilentlyContinue'
 
-        Invoke-CommandWithArgs -ScriptBlock { Microsoft.PowerShell.Utility\Invoke-WebRequest @namedArgs @positionalArgs } -Arguments $RemainingArgs
+        Invoke-CommandWithArgs -ScriptBlock { 
+            Microsoft.PowerShell.Utility\Invoke-WebRequest @namedArgs @positionalArgs 
+        } -ArgumentList $RemainingArgs
     }
     finally {
         $global:ProgressPreference = $previousProgressPreference

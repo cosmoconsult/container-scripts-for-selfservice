@@ -3,12 +3,13 @@ function Invoke-CommandWithArgs {
     param (
         [Parameter(Mandatory = $true)]
         [scriptblock]$ScriptBlock,
-        [object[]]$Arguments
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [object[]]$ArgumentList
     )
     $namedArgs = @{}
     $positionalArgs = @()
     $name = $null
-    foreach ($arg in $Arguments) {
+    foreach ($arg in $ArgumentList) {
         if ($arg -like '-*') {
             if ($name) {
                 $namedArgs[$name] = $true

@@ -9,7 +9,9 @@ function Expand-Archive() {
         $previousProgressPreference = $global:ProgressPreference
         $global:ProgressPreference = 'SilentlyContinue'
 
-        Invoke-CommandWithArgs -ScriptBlock { Microsoft.PowerShell.Archive\Expand-Archive @namedArgs @positionalArgs } -Arguments $RemainingArgs
+        Invoke-CommandWithArgs -ScriptBlock { 
+            Microsoft.PowerShell.Archive\Expand-Archive @namedArgs @positionalArgs 
+        } -ArgumentList $RemainingArgs
     }
     finally {
         $global:ProgressPreference = $previousProgressPreference

@@ -4,35 +4,39 @@ function Invoke-CommandWithArgsInPwshCore() {
         [Parameter(Mandatory = $true)]
         [scriptblock]$ScriptBlock,
         [Parameter(ValueFromRemainingArguments = $true)]
-        [object[]]$RemainingArgs
+        [object[]]$ArgumentList
     )
 
-    $coreScriptBlock = {
-        [CmdletBinding(DefaultParameterSetName = 'Default')]
-        Param(
-            [Parameter(Mandatory = $true)]
-            [string]$ScriptBlock,
-            [string[]]$Modules,
-            [Parameter(ValueFromRemainingArguments = $true)]
-            [object[]]$RemainingArgs
-        )
-        foreach ($Module in $Modules) {
-            Import-Module $Module -DisableNameChecking -Force
-        }
-        Invoke-CommandWithArgsAndJsonOutput -ScriptBlock ([scriptblock]::create("$ScriptBlock")) -Arguments $RemainingArgs
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        return Invoke-CommandWithArgs -ScriptBlock $ScriptBlock -ArgumentList $ArgumentList
     }
 
-    Write-Host "Redirecting to powershell core (pwsh)"
-    $output = pwsh -Interactive -CommandWithArgs $coreScriptBlock.ToString() -ScriptBlock $ScriptBlock.ToString() -Modules $MyInvocation.MyCommand.Module.Path @RemainingArgs
-    try {
-        $result = $output | ConvertFrom-Json
-        $result.info | ForEach-Object { Write-Host $_ }
-        $result.warn | ForEach-Object { Write-Warning $_ }
-        $result.err  | ForEach-Object { Write-Error $_ }
-        $result.out
+    $pwshCoreSessionName = "PwshCoreSession"
+    $pwshCoreSessionConfigurationName = "PowerShell.7"
+    $pwshCoreSession = Get-PSSession -Name $pwshCoreSessionName -ea silentlycontinue | Where-Object { $_.State -eq "Opened" } | Select-Object -Last 1
+
+    if (! $pwshCoreSession) {
+        Write-Host ("Creating powershell core session ({0})" -f $pwshCoreSessionConfigurationName)
+        $pwshCoreSession = New-PSSession -Name $pwshCoreSessionName -ConfigurationName $pwshCoreSessionConfigurationName -EnableNetworkAccess 
+        Invoke-Command -Session $pwshCoreSession -ScriptBlock {
+            Param(
+                [string[]]$Modules
+            )
+            foreach ($Module in $Modules) {
+                Import-Module $Module -DisableNameChecking -Force
+            }
+        } -ArgumentList @($MyInvocation.MyCommand.Module.Path)
     }
-    catch {
-        Write-Error ("Powershell core (pwsh) did not return a valid JSON:`n{0}" -f ($output -join "`n"))
-    }
+
+    Write-Host "Redirecting to powershell core session"
+    Invoke-Command -Session $pwshCoreSession -ScriptBlock {
+        Param(
+            [Parameter(Mandatory = $true)]
+            [string]$ScriptBlockString,
+            [object[]]$ArgumentList
+        )
+        $scriptBlock = [scriptBlock]::create($ScriptBlockString)
+        Invoke-CommandWithArgs -ScriptBlock $scriptBlock -ArgumentList $ArgumentList
+    } -ArgumentList @($ScriptBlock.ToString(), $ArgumentList)
 }
 Export-ModuleMember -Function Invoke-CommandWithArgsInPwshCore
