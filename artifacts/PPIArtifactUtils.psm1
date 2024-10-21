@@ -21,11 +21,11 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-NugetTools.ps1")
 
 # Override Handling functions
-. (Join-Path $PSScriptRoot "OverrideHandling/Invoke-CommandWithArgs.ps1")
-. (Join-Path $PSScriptRoot "OverrideHandling/Invoke-CommandWithArgsInPwshCore.ps1")
-. (Join-Path $PSScriptRoot "OverrideHandling/Invoke-WebRequest.ps1")
-. (Join-Path $PSScriptRoot "OverrideHandling/Expand-Archive.ps1")
-. (Join-Path $PSScriptRoot "OverrideHandling/Publish-NAVApp.ps1")
+. (Join-Path $PSScriptRoot "OverridesHandling/Invoke-CommandWithArgs.ps1")
+. (Join-Path $PSScriptRoot "OverridesHandling/Invoke-CommandWithArgsInPwshCore.ps1")
+. (Join-Path $PSScriptRoot "OverridesHandling/Invoke-WebRequest.ps1")
+. (Join-Path $PSScriptRoot "OverridesHandling/Expand-Archive.ps1")
+. (Join-Path $PSScriptRoot "OverridesHandling/Publish-NAVApp.ps1")
 
 # 4PS
 . (Join-Path $PSScriptRoot "4PS/Wait-DataUpgradeToFinish.ps1")
