@@ -17,7 +17,13 @@ function Invoke-CommandWithArgsInPwshCore() {
 
     if (! $pwshCoreSession) {
         Write-Host ("Creating powershell core session ({0})" -f $pwshCoreSessionConfigurationName)
-        $pwshCoreSession = New-PSSession -Name $pwshCoreSessionName -ConfigurationName $pwshCoreSessionConfigurationName -EnableNetworkAccess 
+        try {
+            $pwshCoreSession = New-PSSession -Name $pwshCoreSessionName -ConfigurationName $pwshCoreSessionConfigurationName -EnableNetworkAccess 
+        }
+        catch {
+            Enable-PSRemoting -Force
+            $pwshCoreSession = New-PSSession -Name $pwshCoreSessionName -ConfigurationName $pwshCoreSessionConfigurationName -EnableNetworkAccess 
+        }
         Invoke-Command -Session $pwshCoreSession -ScriptBlock {
             Param(
                 [string[]]$Modules
