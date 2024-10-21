@@ -21,6 +21,12 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-NugetTools.ps1")
 
 # Override Handling functions
+. (Join-Path $PSScriptRoot "OverrideHandling/Invoke-CommandWithArgs.ps1")
+. (Join-Path $PSScriptRoot "OverrideHandling/Invoke-CommandWithArgsAndJsonOutput.ps1")
+. (Join-Path $PSScriptRoot "OverrideHandling/Invoke-CommandWithArgsInPwshCore.ps1")
+. (Join-Path $PSScriptRoot "OverrideHandling/Invoke-WebRequest.ps1")
+. (Join-Path $PSScriptRoot "OverrideHandling/Expand-Archive.ps1")
+. (Join-Path $PSScriptRoot "OverrideHandling/Publish-NAVApp.ps1")
 . (Join-Path $PSScriptRoot "OverrideHandling/Overrides.ps1")
 
 # 4PS
