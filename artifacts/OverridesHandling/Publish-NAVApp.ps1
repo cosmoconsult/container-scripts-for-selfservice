@@ -2,7 +2,7 @@ function Publish-NAVApp() {
     if ($PSVersionTable.PSEdition -ne 'Core') {
         $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
         if (Test-Path "$serviceTierFolder\Admin") {
-            return Invoke-CommandInPwshCore -ScriptBlock { Publish-NAVApp @args }
+            return Invoke-CommandInPwshCore -ScriptBlock { Publish-NAVApp @args } @args
         }
     }
 
