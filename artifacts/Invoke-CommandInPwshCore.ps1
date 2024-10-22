@@ -4,7 +4,8 @@ function Invoke-CommandInPwshCore() {
     )
 
     if ($PSVersionTable.PSEdition -eq 'Core') {
-        return & $ScriptBlock @args
+        & $ScriptBlock @args
+        return
     }
 
     $pwshCoreSessionConfigurationName = "PowerShell.7"
@@ -18,8 +19,8 @@ function Invoke-CommandInPwshCore() {
     if (! $pwshCoreSession) {
         # Check powershell core exists
         if (! (Get-Command pwsh -ea SilentlyContinue)) {
-            Write-Warning "Powershell core not found... using current powershell session"
-            return & $ScriptBlock @args
+            throw "Powershell core not found"
+            return
         }
 
         # Find or setup session configuration
