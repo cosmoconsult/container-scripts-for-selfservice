@@ -1,4 +1,3 @@
-
 function Invoke-WebRequest() { 
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     Param(
@@ -10,7 +9,7 @@ function Invoke-WebRequest() {
         $global:ProgressPreference = 'SilentlyContinue'
 
         Invoke-CommandWithArgs -ScriptBlock { 
-            Microsoft.PowerShell.Utility\Invoke-WebRequest @namedArgs @positionalArgs 
+            Microsoft.PowerShell.Utility\Invoke-WebRequest @args
         } -ArgumentList $RemainingArgs
     }
     finally {

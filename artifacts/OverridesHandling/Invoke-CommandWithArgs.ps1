@@ -30,6 +30,6 @@ function Invoke-CommandWithArgs {
         $namedArgs[$name] = $true
     }
     
-    & $ScriptBlock
+    & $ScriptBlock @namedArgs @positionalArgs
 }
 Export-ModuleMember -Function Invoke-CommandWithArgs
