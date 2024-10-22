@@ -33,8 +33,9 @@ function Import-AppArtifact {
         }
 
         if (! (Get-Module -Name @('Microsoft.BusinessCentral.Apps.Management', 'Microsoft.Dynamics.Nav.Apps.Management', 'Microsoft.Dynamics.Nav.Management') -ErrorAction SilentlyContinue)) {
-            c:\run\prompt.ps1 -silent
+            c:\run\prompt.ps1
         }
+        Get-Module -Name @('Microsoft.BusinessCentral.Apps.Management', 'Microsoft.Dynamics.Nav.Apps.Management', 'Microsoft.Dynamics.Nav.Management') -ErrorAction SilentlyContinue
 
         if (! $telemetryClient) {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
