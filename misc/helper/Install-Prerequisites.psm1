@@ -87,7 +87,7 @@ Export-ModuleMember -Function Install-OpenSSH
   Install-Chocolatey
 #>
 function Install-Chocolatey {
-    Write-Host "##[group]Install OpenSSH Install Chocolatey"
+    Write-Host "##[group]Install Chocolatey"
     Set-ExecutionPolicy Bypass -Scope Process -Force; 
     [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; 
     Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
@@ -106,7 +106,7 @@ Export-ModuleMember -Function Install-Chocolatey
   Install-Nodejs
 #>
 function Install-Nodejs {
-    Write-Host "##[group]Install OpenSSH Install Nodejs"
+    Write-Host "##[group]Install Nodejs"
     choco install nodejs.install --version 20.17.0 -y
     Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
     refreshenv
