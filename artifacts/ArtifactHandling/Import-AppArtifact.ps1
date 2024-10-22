@@ -24,12 +24,16 @@ function Import-AppArtifact {
     )
     
     begin {
-        Write-Host "Powershell: ${PSVersionTable.PSVersion}"
+        Write-Host ("Powershell: {0}" -f $PSVersionTable.PSVersion)
         if ($PSVersionTable.PSEdition -ne 'Core') {
             $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
             if (Test-Path "$serviceTierFolder\Admin") {
                 return Invoke-CommandInPwshCore -ScriptBlock { Import-AppArtifact @args } @PSBoundParameters
             }
+        }
+
+        if (! (Get-Module -Name @('Microsoft.BusinessCentral.Apps.Management', 'Microsoft.Dynamics.Nav.Apps.Management', 'Microsoft.Dynamics.Nav.Management') -ErrorAction SilentlyContinue)) {
+            c:\run\prompt.ps1 -silent
         }
 
         if (! $telemetryClient) {
