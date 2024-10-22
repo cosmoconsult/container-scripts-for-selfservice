@@ -24,3 +24,4 @@
 - Add ability to unpublish all apps as this is required for BC 20 -> 21 upgrades
 - Allow to work with BC Online backups from modified base app clusters
 - Fix potential problem with NavUserPassword auth (see [#3047](https://dev.azure.com/cc-ppi/Self-Service/_workitems/edit/3047))
+- Fix hangup of Publish-NAVApp on BC25 containers

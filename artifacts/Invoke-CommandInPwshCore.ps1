@@ -1,4 +1,5 @@
 function Invoke-CommandInPwshCore() {
+    # Must be a simple function for correct splatting
     Param(
         [scriptblock]$ScriptBlock,
     

@@ -1,4 +1,5 @@
 function Publish-NAVApp() {
+    # Must be a simple function for correct splatting
     if ($PSVersionTable.PSEdition -ne 'Core') {
         $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
         if (Test-Path "$serviceTierFolder\Admin") {
