@@ -15,6 +15,6 @@ function Publish-NAVApp() {
     if (! $module) {
         throw ("Powershell modules not found: {0}" -f ($moduleNames -join ', '))
     }
-    & "${module.Name}\Publish-NAVApp" @args
+    & "$($module.Name)\Publish-NAVApp" @args
 }
 Export-ModuleMember -Function Publish-NAVApp

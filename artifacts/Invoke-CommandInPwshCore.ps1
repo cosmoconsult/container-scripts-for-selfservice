@@ -1,10 +1,25 @@
 function Invoke-CommandInPwshCore() {
     Param(
-        [scriptblock]$ScriptBlock
+        [scriptblock]$ScriptBlock,
+    
+        [Alias('db')][switch]$Debug,
+        [Alias('vb')][switch]$Verbose,
+        [Alias('ea')][string]$ErrorAction,
+        [Alias('ev')][string]$ErrorVariable,
+        [Alias('infa')][string]$InformationAction,
+        [Alias('iv')][string]$InformationVariable,
+        [Alias('ob')][int]$OutBuffer,
+        [Alias('ov')][string]$OutVariable,
+        [Alias('pv')][string]$PipelineVariable,
+        [Alias('pa')][string]$ProgressAction,
+        [Alias('wa')][string]$WarningAction,
+        [Alias('wv')][string]$WarningVariable
     )
+    $commonCmdLetParams = [hashtable]$PSBoundParameters
+    $commonCmdLetParams.Remove('ScriptBlock');
 
     if ($PSVersionTable.PSEdition -eq 'Core') {
-        & $ScriptBlock @args
+        & $ScriptBlock @args @commonCmdLetParams
         return
     }
 
@@ -60,6 +75,6 @@ function Invoke-CommandInPwshCore() {
         )
         $scriptBlock = [scriptBlock]::create($ScriptBlockString)
         & $scriptBlock @using:args
-    } -ArgumentList $ScriptBlock.ToString()
+    } -ArgumentList $ScriptBlock.ToString() @commonCmdLetParams
 }
 Export-ModuleMember -Function Invoke-CommandInPwshCore
