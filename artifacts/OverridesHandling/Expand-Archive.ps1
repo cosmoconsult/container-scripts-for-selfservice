@@ -9,7 +9,7 @@ function Expand-Archive() {
         $global:ProgressPreference = 'SilentlyContinue'
 
         Invoke-CommandWithArgs -ScriptBlock { 
-            Microsoft.PowerShell.Archive\Expand-Archive @args
+            Microsoft.PowerShell.Archive\Expand-Archive @namedArgs @positionalArgs
         } -ArgumentList $RemainingArgs
     }
     finally {

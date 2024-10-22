@@ -2,7 +2,7 @@ function Publish-NAVApp() {
     [CmdletBinding(DefaultParameterSetName = 'Default')]
     Param(
         [Parameter(ValueFromRemainingArguments = $true)]
-        [object[]]$RemainingArgs
+        $RemainingArgs
     )
     
     Invoke-CommandWithArgsInPwshCore -ScriptBlock {
@@ -17,7 +17,7 @@ function Publish-NAVApp() {
         if (! $module) {
             throw ("Powershell modules not found: {0}" -f ($moduleNames -join ', '))
         }
-        & "${module.Name}\Publish-NAVApp" @args
+        & "${module.Name}\Publish-NAVApp" @namedArgs @postionalArgs
     } -ArgumentList $RemainingArgs
 }
 Export-ModuleMember -Function Publish-NAVApp

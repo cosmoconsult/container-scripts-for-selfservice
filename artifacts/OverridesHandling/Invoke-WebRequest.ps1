@@ -9,7 +9,7 @@ function Invoke-WebRequest() {
         $global:ProgressPreference = 'SilentlyContinue'
 
         Invoke-CommandWithArgs -ScriptBlock { 
-            Microsoft.PowerShell.Utility\Invoke-WebRequest @args
+            Microsoft.PowerShell.Utility\Invoke-WebRequest @namedArgs @postionalArgs
         } -ArgumentList $RemainingArgs
     }
     finally {
