@@ -1,4 +1,4 @@
-function Invoke-CommandWithArgsInPwshCore() {
+function Invoke-CommandInPwshCore() {
     Param(
         [scriptblock]$ScriptBlock
     )
@@ -61,4 +61,4 @@ function Invoke-CommandWithArgsInPwshCore() {
         & $scriptBlock @using:args
     } -ArgumentList $ScriptBlock.ToString()
 }
-Export-ModuleMember -Function Invoke-CommandWithArgsInPwshCore
+Export-ModuleMember -Function Invoke-CommandInPwshCore
