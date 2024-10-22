@@ -23,6 +23,7 @@
 # Override Handling functions
 . (Join-Path $PSScriptRoot "OverridesHandling/Invoke-WebRequest.ps1")
 . (Join-Path $PSScriptRoot "OverridesHandling/Expand-Archive.ps1")
+. (Join-Path $PSScriptRoot "OverridesHandling/Publish-NAVApp.ps1")
 
 # Powershell Core functions
 . (Join-Path $PSScriptRoot "Invoke-CommandInPwshCore.ps1")
