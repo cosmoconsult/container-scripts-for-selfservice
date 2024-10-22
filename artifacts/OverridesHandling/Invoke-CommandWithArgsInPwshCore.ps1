@@ -30,7 +30,7 @@ function Invoke-CommandWithArgsInPwshCore() {
             }
 
             # Find or setup session configuration
-            $pwshCoreSessionConfiguration = Get-PSSessionConfiguration -Name $pwshCoreSessionConfigurationName -ea silentlycontinue
+            $pwshCoreSessionConfiguration = Get-PSSessionConfiguration -Force | Where-Object { $_.Name -eq $pwshCoreSessionConfigurationName } | Select-Object -First 1
             if (! $pwshCoreSessionConfiguration) {
                 Write-Warning "Remoting for powershell core not enabled... enabling"
                 pwsh -Command 'Enable-PSRemoting -wa SilentlyContinue'
@@ -39,7 +39,7 @@ function Invoke-CommandWithArgsInPwshCore() {
             if (! $pwshCoreSessionConfiguration) { return }
 
             # Create session
-            Write-Host ("Creating powershell core session ({0})" -f $pwshCoreSessionConfiguration)
+            Write-Host ("Creating powershell core session ({0})" -f $pwshCoreSessionConfiguration.Name)
             $global:pwshCoreSession = New-PSSession -Name $pwshCoreSessionName -ConfigurationName $pwshCoreSessionConfiguration.Name -EnableNetworkAccess
 
             # Install modules in session
