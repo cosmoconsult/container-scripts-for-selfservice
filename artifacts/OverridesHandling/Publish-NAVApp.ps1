@@ -15,7 +15,7 @@ function Publish-NAVApp() {
         if (! $module) {
             throw ("Powershell modules not found: {0}" -f ($moduleNames -join ', '))
         }
-        & "${module.Name}\Publish-NAVApp" @namedArgs @postionalArgs
+        & "${module.Name}\Publish-NAVApp" @namedArgs @positionalArgs
     }
 
     $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
