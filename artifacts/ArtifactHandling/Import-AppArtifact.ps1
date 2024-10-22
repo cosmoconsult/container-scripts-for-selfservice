@@ -1,3 +1,13 @@
+function Get-Memory {
+    $os = Get-Ciminstance Win32_OperatingSystem
+    
+    $pctFree = [math]::Round(($os.FreePhysicalMemory/$os.TotalVisibleMemorySize)*100,2)
+    
+    $os | Select @{Name = "PctFree"; Expression = {$pctFree}},
+    @{Name = "FreeGB";Expression = {[math]::Round($_.FreePhysicalMemory/1mb,2)}},
+    @{Name = "TotalGB";Expression = {[int]($_.TotalVisibleMemorySize/1mb)}}
+}
+
 function Import-AppArtifact {
     [CmdletBinding()]
     param (
@@ -133,6 +143,7 @@ function Import-AppArtifact {
                     Invoke-LogOperation -name "Publish App" -started $started2 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
             }
+            Get-Memory
 
             # Sync NAVApp
             if ($success) {
@@ -156,6 +167,7 @@ function Import-AppArtifact {
                 }
                 $skipInstall = ! $success
             }
+            Get-Memory
 
             # Check for Data Upgrade
             if ((! $skipInstall) -and ($runDataUpgrade)) {
@@ -182,6 +194,7 @@ function Import-AppArtifact {
                     Invoke-LogOperation -name "App Data Upgrade" -started $started2 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
             }
+            Get-Memory
 
             # Install NAVApp
             if (! $skipInstall) {
@@ -203,6 +216,7 @@ function Import-AppArtifact {
                     Invoke-LogOperation -name "Install App" -started $started3 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
             }
+            Get-Memory
 
             # Special handling for modified base app
             if ($IsModifiedBaseApp) {
