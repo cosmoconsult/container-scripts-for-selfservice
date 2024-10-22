@@ -1,16 +1,9 @@
-function Expand-Archive() { 
-    [CmdletBinding(DefaultParameterSetName = 'Default')]
-    Param(
-        [Parameter(ValueFromRemainingArguments = $true)]
-        $RemainingArgs
-    )
+function Expand-Archive() {
     try {
         $previousProgressPreference = $global:ProgressPreference
         $global:ProgressPreference = 'SilentlyContinue'
 
-        Invoke-CommandWithArgs -ScriptBlock { 
-            Microsoft.PowerShell.Archive\Expand-Archive @namedArgs @positionalArgs
-        } -ArgumentList $RemainingArgs
+        Microsoft.PowerShell.Archive\Expand-Archive @args
     }
     finally {
         $global:ProgressPreference = $previousProgressPreference
