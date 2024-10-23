@@ -9,7 +9,7 @@ function Publish-NAVApp() {
     # Must be a simple function for correct splatting
     if ($PSVersionTable.PSEdition -ne 'Core') {
         if (Test-Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Microsoft.BusinessCentral.Apps.Management.dll") {
-            Import-Module "c:\run\helper\PPIPowershellCoreUtils" -DisableNameChecking
+            Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -DisableNameChecking
             return Invoke-CommandInPwshCore `
                 -ScriptBlock { Publish-NAVApp @args } `
                 -Modules $MyInvocation.MyCommand.Module `

@@ -1,6 +1,8 @@
-function Import-Module() {
+function Import-Module([string]$Name) {
     # Must be a simple function for correct splatting
-    Microsoft.PowerShell.Core\Import-Module @args -Global
+    if ($Name -notin @($MyInvocation.MyCommand.Modul.Name, $MyInvocation.MyCommand.Modul.Path)) {
+        Microsoft.PowerShell.Core\Import-Module -Name $Name @args -Global
+    }
 }
 
 . (Join-Path $PSScriptRoot "Overrides/Invoke-WebRequest.ps1")
