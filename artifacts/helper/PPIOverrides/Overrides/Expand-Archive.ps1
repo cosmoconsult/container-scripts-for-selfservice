@@ -4,6 +4,7 @@ function Expand-Archive() {
         $previousProgressPreference = $global:ProgressPreference
         $global:ProgressPreference = 'SilentlyContinue'
 
+        Import-Module Microsoft.PowerShell.Archive -DisableNameChecking
         Microsoft.PowerShell.Archive\Expand-Archive @args
     }
     finally {

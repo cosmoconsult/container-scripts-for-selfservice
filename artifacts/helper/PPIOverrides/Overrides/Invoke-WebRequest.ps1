@@ -4,6 +4,7 @@ function Invoke-WebRequest() {
         $previousProgressPreference = $global:ProgressPreference
         $global:ProgressPreference = 'SilentlyContinue'
         
+        Import-Module Microsoft.PowerShell.Utility -DisableNameChecking
         Microsoft.PowerShell.Utility\Invoke-WebRequest @args
     }
     finally {

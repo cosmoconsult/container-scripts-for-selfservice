@@ -147,9 +147,16 @@ if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)
 
 $ppiau = Get-Module -Name PPIArtifactUtils
 if (-not $ppiau) {
-    if (Test-Path "c:\run\PPIArtifactUtils.psm1") {
-        Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psm1"
-        Import-Module "c:\run\PPIArtifactUtils.psm1" -DisableNameChecking -Force
+    if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
+        Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
+        Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
+    }
+}
+
+if (! (Get-Module PPIOverrides)) {
+    if (Test-Path "c:\run\helper\PPIOverrides") {
+        Write-Host "Import PPI Overrides from c:\run\helper\PPIOverrides"
+        Import-Module "c:\run\helper\PPIOverrides" -DisableNameChecking -Force
     }
 }
 
