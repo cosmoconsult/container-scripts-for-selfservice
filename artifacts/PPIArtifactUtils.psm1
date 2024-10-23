@@ -20,6 +20,14 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-ArtifactJson.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-NugetTools.ps1")
 
+# Override Handling functions
+. (Join-Path $PSScriptRoot "OverridesHandling/Invoke-WebRequest.ps1")
+. (Join-Path $PSScriptRoot "OverridesHandling/Expand-Archive.ps1")
+. (Join-Path $PSScriptRoot "OverridesHandling/Publish-NAVApp.ps1")
+
+# Powershell Core functions
+. (Join-Path $PSScriptRoot "Invoke-CommandInPwshCore.ps1")
+
 # 4PS
 . (Join-Path $PSScriptRoot "4PS/Wait-DataUpgradeToFinish.ps1")
 . (Join-Path $PSScriptRoot "4PS/Check-DataUpgradeExecuted.ps1")

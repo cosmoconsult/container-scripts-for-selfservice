@@ -117,17 +117,15 @@ if ($env:cosmoUpgradeSysApp) {
 Write-Host ""
 Write-Host "=== Additional Setup ==="
 
-$ppiau = Get-Module -Name PPIArtifactUtils
-if (-not $ppiau) {
-    if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
-        Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-        Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
-    }
-}
-
 if (Test-Path "$serviceTierFolder") {
-    Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.psd1"
-    Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psd1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
+    if (Test-Path "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1") {
+        Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1"
+        Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking 2>$null
+    }
+    else {
+        Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.dll"
+        Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.dll" -Force -ErrorAction SilentlyContinue -DisableNameChecking 2>$null
+    }
     if (Test-Path "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
         Write-Host "Import App Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
         Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
@@ -139,12 +137,20 @@ if (Test-Path "$serviceTierFolder") {
 }
 if (Test-Path "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1") {
     Write-Host "Import Nav IDE from $roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1"
-    Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking
+    Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking 2>$null
 }
 
 if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)) {
     Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
     Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
+}
+
+$ppiau = Get-Module -Name PPIArtifactUtils
+if (-not $ppiau) {
+    if (Test-Path "c:\run\PPIArtifactUtils.psm1") {
+        Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psm1"
+        Import-Module "c:\run\PPIArtifactUtils.psm1" -DisableNameChecking -Force
+    }
 }
 
 $env:nugetImported = $false
