@@ -5,6 +5,7 @@ function Import-Module([string]$Name) {
     }
 }
 
-. (Join-Path $PSScriptRoot "Overrides/Invoke-WebRequest.ps1")
-. (Join-Path $PSScriptRoot "Overrides/Expand-Archive.ps1")
-. (Join-Path $PSScriptRoot "Overrides/Publish-NAVApp.ps1")
+. (Join-Path $PSScriptRoot "Invoke-WebRequest.ps1")
+. (Join-Path $PSScriptRoot "Expand-Archive.ps1")
+
+. (Join-Path $PSScriptRoot "NavAppManagement.ps1")
