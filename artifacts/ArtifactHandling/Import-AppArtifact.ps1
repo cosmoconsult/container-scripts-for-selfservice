@@ -62,15 +62,15 @@ function Import-AppArtifact {
             # Special handling for NAV2018
             # '-Force' is only added, when 'SandboxDatabaseName' (NAV2018) is NOT present, 
             # because parameter '-Force' works only, when 'SandboxDatabaseName' is not empty
-            if (! ((Get-Command Publish-NAVApp -All).Parameters.SandboxDatabaseName)) {
+            if (! ((Get-Command Publish-NAVApp).Parameters.SandboxDatabaseName)) {
                 $optionalParameters["Force"] = $true
             }
             # Add scope parameter when available for the command
-            if ((Get-Command Publish-NAVApp -All).Parameters.Scope) {
+            if ((Get-Command Publish-NAVApp).Parameters.Scope) {
                 $optionalParameters["Scope"] = "$Scope"
             }
             # Add tenant specific parameter only for tenant scope
-            if (("$Scope" -eq "Tenant") -and ((Get-Command Publish-NAVApp -All).Parameters.Tenant)) {
+            if (("$Scope" -eq "Tenant") -and ((Get-Command Publish-NAVApp).Parameters.Tenant)) {
                 $optionalParameters["Tenant"] = $Tenant
             }   
 
@@ -113,7 +113,7 @@ function Import-AppArtifact {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..." -data $app
-                    Publish-NavApp -ServerInstance $ServerInstance -Path $Path @optionalParameters -SkipVerification -ErrorAction SilentlyContinue -ErrorVariable global:err -WarningVariable global:warn -InformationVariable global:info
+                    Publish-NavApp -ServerInstance $ServerInstance -Path $Path @optionalParameters -SkipVerification -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
