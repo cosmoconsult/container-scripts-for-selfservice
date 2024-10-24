@@ -1,14 +1,30 @@
-function Expand-Archive() {
-    # Must be a simple function for correct splatting
-    try {
-        $previousProgressPreference = $global:ProgressPreference
-        $global:ProgressPreference = 'SilentlyContinue'
+Import-Module Microsoft.PowerShell.Archive -DisableNameChecking
 
-        Import-Module Microsoft.PowerShell.Archive -DisableNameChecking
-        Microsoft.PowerShell.Archive\Expand-Archive @args
+function Expand-Archive() {
+    [CmdletBinding(DefaultParameterSetName = "PPIOverrides")]
+    Param()
+
+    DynamicParam {
+        Get-DynamicParameters -TargetCommand $MyInvocation.MyCommand -SourceCommandName 'Microsoft.PowerShell.Archive\Expand-Archive'
     }
-    finally {
-        $global:ProgressPreference = $previousProgressPreference
+
+    begin {
+        $dynamicParameters = $PSBoundParameters
+        $MyInvocation.MyCommand.Parameters.Values | Where-Object { ! $_.IsDynamic } | Foreach-Object {
+            $dynamicParameters.Remove($_.Name) | Out-Null
+        }
+    }
+
+    process {
+        try {
+            $previousProgressPreference = $global:ProgressPreference
+            $global:ProgressPreference = 'SilentlyContinue'
+            
+            Microsoft.PowerShell.Archive\Expand-Archive @dynamicParameters
+        }
+        finally {
+            $global:ProgressPreference = $previousProgressPreference
+        }
     }
 }
 Export-ModuleMember -Function Expand-Archive

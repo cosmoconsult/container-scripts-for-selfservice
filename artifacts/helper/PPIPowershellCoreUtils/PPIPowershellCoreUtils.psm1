@@ -1,4 +1,5 @@
+. (Join-Path $PSScriptRoot "Request-PwshCoreSession.ps1")
 . (Join-Path $PSScriptRoot "Invoke-CommandInPwshCore.ps1")
 
 # Enable remoting for powershell core and create remote session
-Invoke-CommandInPwshCore -ScriptBlock { Write-Host ("Powershell core session created (Version: {0})" -f $PSVersionTable.PSVersion ) }
+Request-PwshCoreSession | Out-Null

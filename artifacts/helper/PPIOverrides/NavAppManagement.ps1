@@ -1,27 +1,43 @@
-
 # Overrides only needed if not powershell core
 if ($PSVersionTable.PSEdition -eq 'Core') { return }
 # Overrides only needed if BC24 or higher
 if (! (Test-Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Microsoft.BusinessCentral.Apps.Management.dll")) { return }
-
-$NAVModuleNames = @('Microsoft.BusinessCentral.Apps.Management', 'Microsoft.Dynamics.Nav.Apps.Management', 'Microsoft.Dynamics.Nav.Management')
-if (! (Get-Module -Name $NAVModuleNames)) {
-    Push-Location
-    c:\run\prompt.ps1 -silent
-    Pop-Location
-}
 
 if (! (Get-Module -Name 'PPIPowershellCoreUtils')) {
     Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -DisableNameChecking -Force
 }
 
 function Publish-NAVApp() {
-    # Must be a simple function for correct splatting
-    Invoke-CommandInPwshCore -ScriptBlock { 
-        if (! (Get-Module -Name 'Microsoft.BusinessCentral.Apps.Management')) {
-            c:\run\prompt.ps1 -silent
+    [CmdletBinding()]
+    Param()
+
+    DynamicParam {
+        Get-DynamicParameters -TargetCommand $MyInvocation.MyCommand -SourceParamsScript {
+            Invoke-CommandInPwshCore -ScriptBlock {
+                if (! (Get-Module 'Microsoft.BusinessCentral.Apps.Management')) {
+                    c:\run\prompt.ps1 -silent
+                }
+                (Get-Command Publish-NAVApp).Parameters
+            }
         }
-        Publish-NAVApp @args 
-    } @args
+    }
+
+    begin {
+        $dynamicParameters = $PSBoundParameters
+        $MyInvocation.MyCommand.Parameters.Values | Where-Object { ! $_.IsDynamic } | Foreach-Object {
+            $dynamicParameters.Remove($_.Name) | Out-Null
+        }
+    }
+    
+    process {
+        $pwshCoreSession = Request-PwshCoreSession
+        if (!$pwshCoreSession) { return }
+        Invoke-Command -Session $pwshCoreSession -ScriptBlock {
+            if (! (Get-Module 'Microsoft.BusinessCentral.Apps.Management')) {
+                c:\run\prompt.ps1 -silent
+            }
+            Publish-NAVApp @using:dynamicParameters
+        }
+    }
 }
 Export-ModuleMember -Function Publish-NAVApp
