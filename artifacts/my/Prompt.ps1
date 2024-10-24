@@ -9,6 +9,6 @@ if (! (Test-Path 'c:\run\my\prompt.link.ps1')) {
 # Import PPIOverrides module
 if (! (Get-Module PPIOverrides)) {
     if (Test-Path 'c:\run\helper\PPIOverrides\PPIOverrides.psm1') {
-        Import-Module "c:\run\helper\PPIOverrides\PPIOverrides.psm1" -DisableNameChecking -Global -Force
+        Import-Module "c:\run\helper\PPIOverrides\PPIOverrides.psm1" -DisableNameChecking -Force
     }
 }
