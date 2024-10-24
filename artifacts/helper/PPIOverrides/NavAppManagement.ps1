@@ -1,5 +1,7 @@
 
+# Overrides only needed if not powershell core
 if ($PSVersionTable.PSEdition -eq 'Core') { return }
+# Overrides only needed if BC24 or higher
 if (! (Test-Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Microsoft.BusinessCentral.Apps.Management.dll")) { return }
 
 $NAVModuleNames = @('Microsoft.BusinessCentral.Apps.Management', 'Microsoft.Dynamics.Nav.Apps.Management', 'Microsoft.Dynamics.Nav.Management')
