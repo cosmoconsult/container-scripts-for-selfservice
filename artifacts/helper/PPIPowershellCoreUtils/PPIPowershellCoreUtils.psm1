@@ -2,6 +2,7 @@ function Invoke-CommandInPwshCore() {
     # Must be a simple function for correct splatting
     Param(
         [scriptblock]$ScriptBlock,
+        [PSModuleInfo[]]$Modules,
     
         [Alias('db')][switch]$Debug,
         [Alias('vb')][switch]$Verbose,
@@ -18,6 +19,7 @@ function Invoke-CommandInPwshCore() {
     )
     $commonCmdLetParams = [hashtable]$PSBoundParameters
     $commonCmdLetParams.Remove('ScriptBlock');
+    $commonCmdLetParams.Remove('Modules');
 
     if ($PSVersionTable.PSEdition -eq 'Core') {
         & $ScriptBlock @args @commonCmdLetParams
@@ -51,16 +53,6 @@ function Invoke-CommandInPwshCore() {
         # Create session
         Write-Host ("Creating powershell core session ({0})" -f $pwshCoreSessionConfiguration.Name)
         $pwshCoreSession = New-PSSession -Name $pwshCoreSessionName -ConfigurationName $pwshCoreSessionConfiguration.Name -EnableNetworkAccess
-
-        # Install modules in session
-        Invoke-Command -Session $pwshCoreSession -ScriptBlock {
-            Param(
-                [string[]]$Modules
-            )
-            foreach ($Module in $Modules) {
-                Import-Module $Module -DisableNameChecking -Force
-            }
-        } -ArgumentList @($MyInvocation.MyCommand.Module.Path)
     }
     if (! $pwshCoreSession) { return }
 
@@ -71,11 +63,11 @@ function Invoke-CommandInPwshCore() {
 
     # Invoke scriptblock in session
     Invoke-Command -Session $pwshCoreSession -ScriptBlock {
-        Param(
-            [string]$ScriptBlockString
-        )
-        $scriptBlock = [scriptBlock]::create($ScriptBlockString)
+        $using:Modules | Where-Object { ! (Get-Module $_.Name) } | ForEach-Object {
+            Import-Module $_.Path -DisableNameChecking -Force
+        }
+        $scriptBlock = [scriptBlock]::create($using:ScriptBlock)
         & $scriptBlock @using:args
-    } -ArgumentList $ScriptBlock.ToString() @commonCmdLetParams
+    } @commonCmdLetParams
 }
 Export-ModuleMember -Function Invoke-CommandInPwshCore

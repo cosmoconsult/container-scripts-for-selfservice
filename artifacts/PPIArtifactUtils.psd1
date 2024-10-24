@@ -74,7 +74,7 @@
     'Import-FOBArtifact', 'Import-AppArtifact', 'Import-RIMArtifact', 'Import-Artifacts', 
     'Get-ArtifactsLog', 'Add-ArtifactsLog', 'Import-Fonts', 'Get-ArtifactJson',
     'Invoke-4PSArtifactHandling', 'Check-DataUpgradeExecuted', 'Wait-DataUpgradeToFinish', 'Get-AppDatabaseName', 'Unpublish-AllNavAppsInServerInstance', 'Get-DemoDataFiles',
-    'Import-NugetTools', "Publish-NAVApp", "Invoke-WebRequest", "Expand-Archive", "Invoke-CommandInPwshCore"
+    'Import-NugetTools'
 
     # Aus diesem Modul zu exportierende Cmdlets. Um optimale Leistung zu erzielen, verwenden Sie keine Platzhalter und lueschen den Eintrag nicht. Verwenden Sie ein leeres Array, wenn keine zu exportierenden Cmdlets vorhanden sind.
     CmdletsToExport   = @()
