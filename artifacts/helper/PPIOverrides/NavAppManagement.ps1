@@ -4,7 +4,7 @@ if ($PSVersionTable.PSEdition -eq 'Core') { return }
 if (! (Test-Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Microsoft.BusinessCentral.Apps.Management.dll")) { return }
 
 if (! (Get-Module -Name 'PPIPowershellCoreUtils')) {
-    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -DisableNameChecking -Force
+    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -DisableNameChecking -Global -Force
 }
 
 function Publish-NAVApp() {
@@ -12,20 +12,18 @@ function Publish-NAVApp() {
     Param()
 
     DynamicParam {
-        Get-DynamicParameters -TargetCommand $MyInvocation.MyCommand -SourceParamsScript {
-            Invoke-CommandInPwshCore -ScriptBlock {
-                if (! (Get-Module 'Microsoft.BusinessCentral.Apps.Management')) {
-                    c:\run\prompt.ps1 -silent
-                }
-                (Get-Command Publish-NAVApp).Parameters
+        $sourceParameters = Invoke-CommandInPwshCore -ScriptBlock {
+            if (! (Get-Module 'Microsoft.BusinessCentral.Apps.Management')) {
+                c:\run\prompt.ps1 -silent
             }
+            (Get-Command Publish-NAVApp).Parameters
         }
+        Get-DynamicParameters -TargetCommand $MyInvocation.MyCommand -SourceParameters $sourceParameters
     }
 
     begin {
-        $dynamicParameters = $PSBoundParameters
         $MyInvocation.MyCommand.Parameters.Values | Where-Object { ! $_.IsDynamic } | Foreach-Object {
-            $dynamicParameters.Remove($_.Name) | Out-Null
+            $PSBoundParameters.Remove($_.Name) | Out-Null
         }
     }
     
@@ -36,7 +34,7 @@ function Publish-NAVApp() {
             if (! (Get-Module 'Microsoft.BusinessCentral.Apps.Management')) {
                 c:\run\prompt.ps1 -silent
             }
-            Publish-NAVApp @using:dynamicParameters
+            Publish-NAVApp @using:PSBoundParameters
         }
     }
 }

@@ -1,21 +1,28 @@
-$script:PwshCoreSession = $null
+$Script:PwshCoreSessions = @{}
 
 function Request-PwshCoreSession() {
-    $sessionConfigurationName = "PowerShell.7"
-    $sessionName = "PwshCoreSession"
+    Param(
+        [string]$SessionConfigurationName = "PowerShell.7",
+        [string]$SessionName = "PwshCoreSession"
+    )
 
-    if ($script:PwshCoreSession) {
+    if ($Script:PwshCoreSessions.ContainsKey($SessionName)) {
+        $session = $Script:PwshCoreSessions[$SessionName]
+        $Script:PwshCoreSessions[$SessionName] = $null
+    }
+
+    if ($session) {
         # Check known session
-        if ($script:PwshCoreSession.State -notin @("Opened","Disconnected")) {
-            $script:PwshCoreSession = $null
+        if ($session.State -notin @("Opened","Disconnected")) {
+            $session = $null
         }
     }
-    if (! $script:PwshCoreSession) {
+    if (! $session) {
         # Find existing session (open or disconnected)
-        $script:PwshCoreSession = Get-PSSession -Name $sessionName -ea silentlycontinue | Where-Object { $_.State -in @("Opened","Disconnected") } | Select-Object -Last 1
+        $session = Get-PSSession -Name $SessionName -ea silentlycontinue | Where-Object { $_.State -in @("Opened","Disconnected") } | Select-Object -Last 1
     }
 
-    if (! $script:PwshCoreSession) {
+    if (! $session) {
         # Check powershell core exists
         if (! (Get-Command pwsh -ea SilentlyContinue)) {
             throw "Powershell core not found"
@@ -23,31 +30,32 @@ function Request-PwshCoreSession() {
         }
 
         # Find or setup session configuration
-        $sessionConfiguration = Get-PSSessionConfiguration -Force | Where-Object { $_.Name -eq $sessionConfigurationName } | Select-Object -First 1
+        $sessionConfiguration = Get-PSSessionConfiguration -Force | Where-Object { $_.Name -eq $SessionConfigurationName } | Select-Object -First 1
         if (! $sessionConfiguration) {
             Write-Warning "Remoting for powershell core not enabled... enabling"
             pwsh -Command 'Enable-PSRemoting -wa SilentlyContinue'
-            $sessionConfiguration = Get-PSSessionConfiguration -Name $sessionConfigurationName
+            $sessionConfiguration = Get-PSSessionConfiguration -Name $SessionConfigurationName
         }
         if (! $sessionConfiguration) { return }
 
         # Create session
         Write-Host ("Creating powershell core session (Version: {0})" -f $sessionConfiguration.PSVersion)
-        $script:PwshCoreSession = New-PSSession -Name $sessionName -ConfigurationName $sessionConfiguration.Name -EnableNetworkAccess
+        $session = New-PSSession -Name $SessionName -ConfigurationName $sessionConfiguration.Name -EnableNetworkAccess
     }
-    if (! $script:PwshCoreSession) { return }
+    if (! $session) { return }
 
     # Reconnect disconnected session
-    if ($script:PwshCoreSession.State -eq 'Disconnected') {
+    if ($session.State -eq 'Disconnected') {
         Write-Host "Reopen powershell core session"
-        Connect-PSSession -Session $script:PwshCoreSession
+        Connect-PSSession -Session $session
     }
 
-    if ($script:PwshCoreSession.State -ne 'Opened') {
+    if ($session.State -ne 'Opened') {
         throw "Powershell core session not open"
         return
     }
 
-    return $script:PwshCoreSession
+    $Script:PwshCoreSessions[$SessionName] = $session
+    return $session
 }
 Export-ModuleMember -Function Request-PwshCoreSession

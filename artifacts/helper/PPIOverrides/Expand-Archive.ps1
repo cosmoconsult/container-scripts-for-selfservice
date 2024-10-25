@@ -1,4 +1,4 @@
-Import-Module Microsoft.PowerShell.Archive -DisableNameChecking
+Import-Module Microsoft.PowerShell.Archive -DisableNameChecking -Global
 
 function Expand-Archive() {
     [CmdletBinding(DefaultParameterSetName = "PPIOverrides")]
@@ -9,9 +9,8 @@ function Expand-Archive() {
     }
 
     begin {
-        $dynamicParameters = $PSBoundParameters
         $MyInvocation.MyCommand.Parameters.Values | Where-Object { ! $_.IsDynamic } | Foreach-Object {
-            $dynamicParameters.Remove($_.Name) | Out-Null
+            $PSBoundParameters.Remove($_.Name) | Out-Null
         }
     }
 
@@ -20,7 +19,7 @@ function Expand-Archive() {
             $previousProgressPreference = $global:ProgressPreference
             $global:ProgressPreference = 'SilentlyContinue'
             
-            Microsoft.PowerShell.Archive\Expand-Archive @dynamicParameters
+            Microsoft.PowerShell.Archive\Expand-Archive @PSBoundParameters
         }
         finally {
             $global:ProgressPreference = $previousProgressPreference

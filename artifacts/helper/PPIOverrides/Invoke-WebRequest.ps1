@@ -1,4 +1,4 @@
-Import-Module Microsoft.PowerShell.Utility -DisableNameChecking
+Import-Module Microsoft.PowerShell.Utility -DisableNameChecking -Global
 
 function Invoke-WebRequest() {
     [CmdletBinding()]
@@ -9,17 +9,17 @@ function Invoke-WebRequest() {
     }
     
     begin {
-        $dynamicParameters = $PSBoundParameters
         $MyInvocation.MyCommand.Parameters.Values | Where-Object { ! $_.IsDynamic } | Foreach-Object {
-            $dynamicParameters.Remove($_.Name) | Out-Null
+            $PSBoundParameters.Remove($_.Name) | Out-Null
         }
     }
+    
     process {
         try {
             $previousProgressPreference = $global:ProgressPreference
             $global:ProgressPreference = 'SilentlyContinue'
             
-            Microsoft.PowerShell.Utility\Invoke-WebRequest @dynamicParameters
+            Microsoft.PowerShell.Utility\Invoke-WebRequest @PSBoundParameters
         }
         finally {
             $global:ProgressPreference = $previousProgressPreference

@@ -3,10 +3,13 @@ $script:DynamicParameters = @{}
 function Get-DynamicParameters() {
     Param(
         [Parameter(Mandatory = $true)]
-        [object]$TargetCommand = $null,
-        [object]$SourceCommand = $null,
-        [string]$SourceCommandName = $null,
-        [scriptblock]$SourceParamsScript = $null
+        [System.Management.Automation.CommandInfo]$TargetCommand,
+        [Parameter(ParameterSetName = "SourceCommand", Mandatory = $true)]
+        [System.Management.Automation.CommandInfo]$SourceCommand,
+        [Parameter(ParameterSetName = "SourceCommandName", Mandatory = $true)]
+        [string]$SourceCommandName,
+        [Parameter(ParameterSetName = "SourceParameters", Mandatory = $true)]
+        [hashtable]$SourceParameters
     )
 
     $key = '{0}\{1}' -f $TargetCommand.ModuleName, $TargetCommand.Name
@@ -17,12 +20,13 @@ function Get-DynamicParameters() {
         }
         if ($SourceCommand) {
             $sourceParams = $SourceCommand.Parameters
-        } elseif($SourceParamsScript) {
-            $sourceParams = & $SourceParamsScript
         }
-
+        if ($SourceParameters) {
+            $sourceParams = $SourceParameters
+        }
         if (! $sourceParams) {
             throw "Source parameters not defined or found"
+            return
         }
 
         $script:DynamicParameters[$key] = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
@@ -30,7 +34,7 @@ function Get-DynamicParameters() {
         function _cmdlet_() { [cmdletbinding()]Param() }
         $excludeParams = @((Get-Command _cmdlet_).Parameters.Values.Name)
 
-        foreach ($sourceParam in $SourceParams.Values) {
+        foreach ($sourceParam in $sourceParams.Values) {
             if ($sourceParam.Name -in $excludeParams) {
                 continue
             }
@@ -60,13 +64,6 @@ function Get-DynamicParameters() {
         }
     }
     return $script:DynamicParameters[$key]
-}
-
-function Import-Module([string]$Name) {
-    # Must be a simple function for correct splatting
-    if ($Name -notin @($MyInvocation.MyCommand.Modul.Name, $MyInvocation.MyCommand.Modul.Path)) {
-        Microsoft.PowerShell.Core\Import-Module -Name $Name @args -Global
-    }
 }
 
 . (Join-Path $PSScriptRoot "Invoke-WebRequest.ps1")

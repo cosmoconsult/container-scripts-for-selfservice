@@ -4,8 +4,9 @@ function Invoke-CommandInPwshCore() {
     Param(
         [scriptblock]$ScriptBlock
     )
+
     if ($PSVersionTable.PSEdition -eq 'Core') {
-        & $ScriptBlock @args @commonCmdLetParams
+        & $ScriptBlock @args
         return
     }
 
