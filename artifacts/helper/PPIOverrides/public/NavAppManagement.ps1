@@ -3,9 +3,7 @@ if ($PSVersionTable.PSEdition -eq 'Core') { return }
 # Overrides only needed if BC24 or higher
 if (! (Test-Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Microsoft.BusinessCentral.Apps.Management.dll")) { return }
 
-if (! (Get-Module -Name 'PPIPowershellCoreUtils')) {
-    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -DisableNameChecking -Global -Force
-}
+. "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.ps1"
 
 function Publish-NAVApp() {
     [CmdletBinding()]
@@ -18,7 +16,7 @@ function Publish-NAVApp() {
             }
             (Get-Command Publish-NAVApp).Parameters
         }
-        Get-DynamicParameters -TargetCommand $MyInvocation.MyCommand -SourceParameters $sourceParameters
+        ConvertTo-DynamicParameters -CommandName 'Microsoft.BusinessCentral.Apps.Management\Publish-NAVApp' -Parameters $sourceParameters
     }
 
     begin {

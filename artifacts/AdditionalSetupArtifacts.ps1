@@ -153,11 +153,8 @@ if (-not $ppiau) {
     }
 }
 
-if (! (Get-Module PPIOverrides)) {
-    if (Test-Path "c:\run\helper\PPIOverrides\PPIOverrides.psm1") {
-        Write-Host "Import PPI Overrides from c:\run\helper\PPIOverrides\PPIOverrides.psm1"
-        Import-Module "c:\run\helper\PPIOverrides\PPIOverrides.psm1" -DisableNameChecking -Force
-    }
+if (Test-Path "c:\run\helper\PPIOverrides\PPIOverrides.ps1") {
+    . "c:\run\helper\PPIOverrides\PPIOverrides.ps1" -ShowImportMessage
 }
 
 $env:nugetImported = $false

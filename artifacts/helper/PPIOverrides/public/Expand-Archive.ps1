@@ -5,7 +5,7 @@ function Expand-Archive() {
     Param()
 
     DynamicParam {
-        Get-DynamicParameters -TargetCommand $MyInvocation.MyCommand -SourceCommandName 'Microsoft.PowerShell.Archive\Expand-Archive'
+        ConvertTo-DynamicParameters -CommandName 'Microsoft.PowerShell.Archive\Expand-Archive'
     }
 
     begin {

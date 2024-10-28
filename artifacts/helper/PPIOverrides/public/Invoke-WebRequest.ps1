@@ -5,7 +5,7 @@ function Invoke-WebRequest() {
     Param()
 
     DynamicParam {
-        Get-DynamicParameters -TargetCommand $MyInvocation.MyCommand -SourceCommandName 'Microsoft.PowerShell.Utility\Invoke-WebRequest'
+        ConvertTo-DynamicParameters -CommandName 'Microsoft.PowerShell.Utility\Invoke-WebRequest'
     }
     
     begin {
