@@ -10,13 +10,13 @@ function Publish-NAVApp() {
     Param()
 
     DynamicParam {
-        $sourceParameters = Invoke-CommandInPwshCore -ScriptBlock {
+        $originalParameters = Invoke-CommandInPwshCore -ScriptBlock {
             if (! (Get-Module 'Microsoft.BusinessCentral.Apps.Management')) {
                 c:\run\prompt.ps1 -silent
             }
             (Get-Command Publish-NAVApp).Parameters
         }
-        ConvertTo-DynamicParameters -CommandName 'Microsoft.BusinessCentral.Apps.Management\Publish-NAVApp' -Parameters $sourceParameters
+        ConvertTo-DynamicParameters -CommandName 'Microsoft.BusinessCentral.Apps.Management\Publish-NAVApp' -Parameters $originalParameters
     }
 
     begin {

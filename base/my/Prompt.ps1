@@ -4,13 +4,12 @@ if (! (Test-Path 'c:\run\my\prompt.link.ps1')) {
 }
 
 $scripts = @(
-    (Join-Path "c:\run\helper\PPIOverrides\PPIOverrides.ps1"),
+    "c:\run\helper\PPIOverrides\PPIOverrides.ps1",
     (Join-Path $PSScriptRoot "prompt.link.ps1")
 )
 
 foreach ($script in $scripts) {
     if (Test-Path -Path $script) {
-        Write-Host "Execute $script"
-        . ($script)
+        . ($script) -Silent:$silent
     }
 }
