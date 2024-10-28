@@ -1,5 +1,4 @@
-$publicPath = Join-Path $PSScriptRoot "public"
-. (Join-Path $publicPath "ConvertTo-DynamicParameters.ps1")
-. (Join-Path $publicPath "Expand-Archive.ps1")
-. (Join-Path $publicPath "Invoke-WebRequest.ps1")
-. (Join-Path $publicPath "NavAppManagement.ps1")
+. (Join-Path $PSScriptRoot "public\ConvertTo-DynamicParameters.ps1")
+. (Join-Path $PSScriptRoot "public\Expand-Archive.ps1")
+. (Join-Path $PSScriptRoot "public\Invoke-WebRequest.ps1")
+. (Join-Path $PSScriptRoot "public\NavAppManagement.ps1")

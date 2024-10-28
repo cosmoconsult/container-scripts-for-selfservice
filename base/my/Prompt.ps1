@@ -4,7 +4,7 @@ if (! (Test-Path 'c:\run\my\prompt.link.ps1')) {
 }
 
 $scripts = @(
-    "c:\run\helper\PPIOverrides\PPIOverrides.ps1",
+    (Join-Path $PSScriptRoot "PPIOverrides.ps1"),
     (Join-Path $PSScriptRoot "prompt.link.ps1")
 )
 

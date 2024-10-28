@@ -3,7 +3,13 @@ if ($PSVersionTable.PSEdition -eq 'Core') { return }
 # Overrides only needed if BC24 or higher
 if (! (Test-Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Microsoft.BusinessCentral.Apps.Management.dll")) { return }
 
-. ("c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.ps1")
+# Import PPI Powershell Core Utils
+if (! (Get-Module 'PPIPowershellCoreUtils')) {
+    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -DisableNameChecking -Global -Force
+}
+
+# Create powershell core remote session (may enable remoting for powershell core)
+Request-PwshCoreSession | Out-Null
 
 function Publish-NAVApp() {
     [CmdletBinding()]

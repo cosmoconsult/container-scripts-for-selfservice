@@ -153,8 +153,8 @@ if (-not $ppiau) {
     }
 }
 
-if (Test-Path "c:\run\helper\PPIOverrides\PPIOverrides.ps1") {
-    . "c:\run\helper\PPIOverrides\PPIOverrides.ps1"
+if (Test-Path "c:\run\my\PPIOverrides.ps1") {
+    . "c:\run\my\PPIOverrides.ps1"
 }
 
 $env:nugetImported = $false
