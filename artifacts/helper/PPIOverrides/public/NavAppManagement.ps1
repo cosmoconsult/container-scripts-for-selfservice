@@ -3,7 +3,7 @@ if ($PSVersionTable.PSEdition -eq 'Core') { return }
 # Overrides only needed if BC24 or higher
 if (! (Test-Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Microsoft.BusinessCentral.Apps.Management.dll")) { return }
 
-. "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.ps1"
+. ("c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.ps1")
 
 function Publish-NAVApp() {
     [CmdletBinding()]
