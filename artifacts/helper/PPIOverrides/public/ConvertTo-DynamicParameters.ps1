@@ -4,15 +4,14 @@ function ConvertTo-DynamicParameters() {
     Param(
         [Parameter(Mandatory = $true)]
         [string]$CommandName,
-        [hashtable]$Parameters
+        [hashtable]$Parameters = $null
     )
     $commandKey = $CommandName
     
     if (! $script:DynamicParameters.ContainsKey($commandKey)) {
-        $command = Get-Command $CommandName
         $params = $Parameters
         if (! $params) {
-            $params = $command.Parameters
+            $params = (Get-Command $CommandName).Parameters
         }
         if (! $params) {
             throw ("Parameters not found for command: {0}" -f $CommandName)
