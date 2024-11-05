@@ -61,10 +61,10 @@ function Install-OpenSSH {
   Set-Acl -Path $path -AclObject $acl
   
   # make powershell default shell
-  New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force
+  New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force | Out-Null
   
   # create user
-  New-LocalUser -Name "sshuser" -NoPassword
+  New-LocalUser -Name "sshuser" -NoPassword | Out-Null
   Add-LocalGroupMember -Group "Administrators" -Member "sshuser"
   
   
