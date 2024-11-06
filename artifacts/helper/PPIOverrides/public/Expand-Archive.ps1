@@ -1,7 +1,7 @@
 Import-Module Microsoft.PowerShell.Archive -DisableNameChecking -Global
 
 function Expand-Archive() {
-    [CmdletBinding(DefaultParameterSetName = "PPIOverrides")]
+    [CmdletBinding(DefaultParameterSetName = "Path")]
     Param()
 
     DynamicParam {
