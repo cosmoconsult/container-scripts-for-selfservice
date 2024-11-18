@@ -101,8 +101,8 @@ function Invoke-4PSArtifactHandling {
                         Invoke-NavCodeunit `
                             -ServerInstance BC `
                             -CompanyName $companyName `
-                            -CodeunitId 11012268 `
-                            -MethodName ImportSetupDataFromXmlFile `
+                            -CodeunitId 11012251 `
+                            -MethodName ImportDemoData `
                             -Argument "$($demoDataFile.FullName)"
                         
                         if ($use4PSContainerInitializer) {
@@ -158,7 +158,7 @@ function Invoke-4PSArtifactHandling {
                                 Invoke-NavCodeunit `
                                     -ServerInstance BC `
                                     -CompanyName $companyName `
-                                    -CodeunitId 11128546 `
+                                    -CodeunitId 50189 `
                                     -MethodName InitializeOSA
 
                                 Write-Host "    Initialize License"
