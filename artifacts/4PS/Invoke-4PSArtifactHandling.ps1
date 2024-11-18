@@ -101,8 +101,8 @@ function Invoke-4PSArtifactHandling {
                         Invoke-NavCodeunit `
                             -ServerInstance BC `
                             -CompanyName $companyName `
-                            -CodeunitId 11012268 `
-                            -MethodName ImportSetupDataFromXmlFile `
+                            -CodeunitId 11012251 `
+                            -MethodName ImportDemoData `
                             -Argument "$($demoDataFile.FullName)"
                         
                         if ($use4PSContainerInitializer) {
