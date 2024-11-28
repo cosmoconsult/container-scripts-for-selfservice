@@ -187,6 +187,7 @@ Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock ( Get-Command Import
     Out-Null
 # Import NAV modules for runspace pool
 Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock { 
+        Write-Host "Env:ccOrgName: $env:CcOrgName"
         Write-Host "Import NAV Management Modules with c:\run\prompt.ps1"; 
         . c:\run\prompt.ps1 -silent
     } | 
