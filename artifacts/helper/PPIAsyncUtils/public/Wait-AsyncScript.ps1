@@ -13,20 +13,23 @@ function Wait-AsyncScript {
         [scriptblock]$InformationScriptBlock = { Write-Host $_ },
         [scriptblock]$DefaultScriptBlock = { $_ }
     )
-    $outputs = $Runspace.EndInvoke($Result);
-    $Runspace.Dispose();
 
-    $scriptBlock = $null;
-    foreach ($output in $outputs) {
-        switch($output.GetType()) {
-            ( [System.Management.Automation.ErrorRecord] )       { $scriptBlock = $ErrorScriptBlock }
-            ( [System.Management.Automation.WarningRecord] )     { $scriptBlock = $WarningScriptBlock }
-            ( [System.Management.Automation.VerboseRecord] )     { $scriptBlock = $VerboseScriptBlock }
-            ( [System.Management.Automation.DebugRecord] )       { $scriptBlock = $DebugScriptBlock }
-            ( [System.Management.Automation.InformationRecord] ) { $scriptBlock = $InformationScriptBlock }
-            default                                              { $scriptBlock = $DefaultScriptBlock }
+    process {
+        $outputs = $Runspace.EndInvoke($Result);
+        $Runspace.Dispose();
+
+        $scriptBlock = $null;
+        foreach ($output in $outputs) {
+            switch($output.GetType()) {
+                ( [System.Management.Automation.ErrorRecord] )       { $scriptBlock = $ErrorScriptBlock }
+                ( [System.Management.Automation.WarningRecord] )     { $scriptBlock = $WarningScriptBlock }
+                ( [System.Management.Automation.VerboseRecord] )     { $scriptBlock = $VerboseScriptBlock }
+                ( [System.Management.Automation.DebugRecord] )       { $scriptBlock = $DebugScriptBlock }
+                ( [System.Management.Automation.InformationRecord] ) { $scriptBlock = $InformationScriptBlock }
+                default                                              { $scriptBlock = $DefaultScriptBlock }
+            }
+            $output | ForEach-Object $scriptBlock
         }
-        $output | ForEach-Object $scriptBlock
     }
 }
 Export-ModuleMember -Function Wait-AsyncScript

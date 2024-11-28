@@ -36,9 +36,7 @@ function Invoke-DownloadArtifact {
         [Parameter(Mandatory = $false)]
         [string]$baseUrl = "https://$($env:publicdnsname)",
         [Parameter(Mandatory = $false)]
-        [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
-        [Parameter(Mandatory = $false)]
-        [System.Object]$telemetryClient = $null
+        [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)"
     )
     
     begin {
@@ -52,10 +50,7 @@ function Invoke-DownloadArtifact {
 
         $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName
         if (! $serviceTierFolder) {
-            Add-ArtifactsLog -message "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'" -severity Warn
-        }
-        if (! $telemetryClient) {
-            $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
+            Write-Warning "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'"
         }
         if ("$url" -eq "") {
             # Validate or get the PAT, because no Download URL is present
@@ -80,7 +75,7 @@ function Invoke-DownloadArtifact {
                 }
             }
             if ("" -eq "$accessToken") {
-                Add-ArtifactsLog -message "PAT not present" -severity Warn
+                Write-Warning "PAT not present"
             }
         }
         $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
@@ -101,7 +96,7 @@ function Invoke-DownloadArtifact {
     process {
         # check restart
         if (($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
-            Add-ArtifactsLog -message "Skipping $target download because this seems to be a service restart"
+            Write-Host "Skipping $target download because this seems to be a service restart"
             return
         }
 
@@ -117,10 +112,10 @@ function Invoke-DownloadArtifact {
                 $artifactVersion = $version
                 if (!$getVersionFromAPI) {
                     if ("$artifactVersion" -ne "") {
-                        Add-ArtifactsLog -message "Get Artifact Version for $($name)... skipped, because version is set to v $($artifactVersion)"
+                        Write-Host "Get Artifact Version for $($name)... skipped, because version is set to v $($artifactVersion)"
                     }
                     else {
-                        Add-ArtifactsLog -message "Get Artifact Version for $($name)..."
+                        Write-Host "Get Artifact Version for $($name)..."
                         $artifactVersion = Get-PackageVersion `
                             -organization    $organization `
                             -project         $project `
@@ -130,22 +125,21 @@ function Invoke-DownloadArtifact {
                             -view            $view `
                             -protocolType    $type `
                             -accessToken     $pat `
-                            -telemetryClient $telemetryClient `
                             -artifactVersion $artifactVersion
                     }
                 }
                 else {
-                    Add-ArtifactsLog -message "Get Artifact $($name)..."
+                    Write-Host "Get Artifact $($name)..."
                 }
 
                 if ("$artifactVersion" -eq "" -and !$getVersionFromAPI) {
-                    Add-ArtifactsLog -message "Artifact $name (View: '$view') skipped (no version / release found)" -severity Warn
-                    Invoke-LogEvent -name "Download Artifact - no Artifact found" -properties $properties -telemetryClient $telemetryClient
+                    Write-Warning "Artifact $name (View: '$view') skipped (no version / release found)"
+                    New-EventTelemetry -name "Download Artifact - no Artifact found" -properties $properties
                     $url = ""
                 }
                 else {
                     if (!$getVersionFromAPI) {
-                        Add-ArtifactsLog -message "`Artifact $name (View: '$view') has Version v $artifactVersion"
+                        Write-Host "`Artifact $name (View: '$view') has Version v $artifactVersion"
                     }
 
                     $scope = $scope
@@ -157,12 +151,12 @@ function Invoke-DownloadArtifact {
             }
             elseif ($type -eq "nuget") {
                 Import-NugetTools
-                Add-ArtifactsLog -message "Download $name from nuget feed" 
+                Write-Host "Download $name from nuget feed" 
                 Download-BcNuGetPackageToFolder -packageName $name -folder $tempFolder
 
                 foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
                     if ($file.Name -like "*.app") {
-                        Invoke-DownloadArtifact -name $file.Name -url $file.FullName -target $target -destination $destination -telemetryClient $telemetryClient
+                        Invoke-DownloadArtifact -name $file.Name -url $file.FullName -target $target -destination $destination
                     }
                 }
                 $success = $true
@@ -176,14 +170,14 @@ function Invoke-DownloadArtifact {
             if ($isDownload) {
                 $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
                 if ($url_output.Length -gt 1) {
-                    Add-ArtifactsLog -message "Download Artifact from $($url_output[0])&pat=***"
+                    Write-Host "Download Artifact from $($url_output[0])&pat=***"
                 }
                 else {
-                    Add-ArtifactsLog -message "Download Artifact from $($sourceUri)"
+                    Write-Host "Download Artifact from $($sourceUri)"
                 }
             }
             else {
-                Add-ArtifactsLog -message "Copy Artifact from $sourceUri"
+                Write-Host "Copy Artifact from $sourceUri"
             }
 
             try {
@@ -193,16 +187,16 @@ function Invoke-DownloadArtifact {
                         Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
                     }
                     else {
-                        Add-ArtifactsLog -message "External artifact URL detected, ignoring Authorization header" -severity Debug
+                        Write-Debug "External artifact URL detected, ignoring Authorization header"
                         Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive"
                     }
                 }
                 else {
                     if (Test-Path $sourceUri) {
-                        Add-ArtifactsLog -message "Found Artifact at $sourceUri"
+                        Write-Host "Found Artifact at $sourceUri"
                     }
                     else {
-                        Add-ArtifactsLog -message "No Artifact found at $sourceUri"
+                        Write-Host "No Artifact found at $sourceUri"
                     }                    
                 }
 
@@ -243,44 +237,53 @@ function Invoke-DownloadArtifact {
                     }
 
                     if ($isArchive) {
-                        Add-ArtifactsLog -message "Extract Artifact $name v $artifactVersion to $($folder)..."
+                        Write-Host "Extract Artifact $name v $artifactVersion to $($folder)..."
                         Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force 
                         if ($cosmoArtifactType.Count -gt 0) {
-                            Add-ArtifactsLog -message "Artifact has type selection: $([string]::Join(",", $cosmoArtifactType))"
+                            Write-Host "Artifact has type selection: $([string]::Join(",", $cosmoArtifactType))"
                             $subfolders = Get-ChildItem -Path "$folder" -Directory
                             $subfolders | ForEach-Object {
                                 if (-not $cosmoArtifactType.Contains($_.Name)) {
-                                    Add-ArtifactsLog -message "Artifact has subfolder $($_.Name), which doesn't exist in type selection, therefore removing it: $($_.FullName)"
+                                    Write-host "Artifact has subfolder $($_.Name), which doesn't exist in type selection, therefore removing it: $($_.FullName)"
                                     Remove-Item -Force -Recurse -Path $_.FullName
                                 }
                             }
                         }
                     }
                     else {
-                        Add-ArtifactsLog -message "Copy Artifact '$sourceUri' ($name v $artifactVersion) to $($folder)..."
+                        Write-Host "Copy Artifact '$sourceUri' ($name v $artifactVersion) to $($folder)..."
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force | Out-Null
                         Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
                     }
                     if ($appImportScope) {
                         # Store the Artifact Specific Import Scope Information
-                        $artifactJson = Get-ChildItem -LiteralPath "$folder" -Filter "artifact.json" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 | Get-Content -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue
+                        $artifactJson = Get-ChildItem -LiteralPath "$folder" -Filter "artifact.json" -Recurse -ErrorAction SilentlyContinue | 
+                            Select-Object -First 1 | 
+                            Get-Content -ErrorAction SilentlyContinue | 
+                            ConvertFrom-Json -ErrorAction SilentlyContinue
                         if (! $artifactJson) { $artifactJson = ConvertFrom-Json "{}" }
-                        $artifactJson  | add-member -Name "appImportScope" -value "$appImportScope" -MemberType NoteProperty -ErrorAction Ignore
+                        $artifactJson  | 
+                            add-member -Name "appImportScope" -value "$appImportScope" -MemberType NoteProperty -ErrorAction Ignore
                         $artifactJson.appImportScope = $appImportScope
-                        $artifactJson | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue | Set-Content -LiteralPath "$folder/artifact.json" -ErrorAction SilentlyContinue
+                        $artifactJson | 
+                            ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue | 
+                            Set-Content -LiteralPath "$folder/artifact.json" -ErrorAction SilentlyContinue
                     }
-                    Add-ArtifactsLog -message "  Downloaded Files ($folder):"
-                    Add-ArtifactsLog -message "$((Get-ChildItem $folder -Recurse) | Select-Object FullName, Length | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)"
+                    Write-Host "  Downloaded Files ($folder):"
+                    Write-Host "$((Get-ChildItem $folder -Recurse) | 
+                        Select-Object FullName, Length | 
+                        Format-Table -AutoSize -Wrap:$false | 
+                        Out-String -Width 1024)"
 
                     $success = $true
                 }
                 else {
-                    Add-ArtifactsLog -message "No content available from source: '$sourceUri'" -severity Warn -success skip
+                    Write-Warning "No content available from source: '$sourceUri'" #TODO: success: skip
                     $success = $false
                 }
 
                 $properties = @{"organization" = $organization; "project" = $project; "feed" = $feed; "name" = $name; "scope" = $scope; "view" = $view; "protocolType" = $type; "url" = $url_output }
-                Invoke-LogOperation -name "Download Artifact" -success $success -started $started -properties $properties -telemetryClient $telemetryClient
+                New-RequestTelemetry -name "Download Artifact" -success $success -started $started -properties $properties
             }
             catch { 
                 $errorMessage = $_.ToString()
@@ -295,8 +298,8 @@ function Invoke-DownloadArtifact {
                     catch { }
                 }
 
-                Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -operation "Download Artifact"
-                Add-ArtifactsLog -message "Download Artifact $($name) failed: $($errorMessage)" -severity Error -success fail
+                Write-Error "Download Artifact $($name) failed: $($errorMessage)"
+                New-ExceptionTelemetry -exception $_.Exception -properties $properties
             }
             finally {
                 if (Test-Path $tempArchive) {
@@ -306,7 +309,7 @@ function Invoke-DownloadArtifact {
             }
         }
         else {
-            Add-ArtifactsLog -message "Artifact $name skipped - no Url found." -severity Warn -success skip
+            Write-Warning "Artifact $name skipped - no Url found." #TODO: success: skip
         }
     }
     

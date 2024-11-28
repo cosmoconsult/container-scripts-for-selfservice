@@ -16,24 +16,12 @@ function Invoke-LogEvent {
             $telemetryClient.Context.Operation.Id = $name
             $telemetryClient.Context.Operation.Name = $name
         }
-        try {
-            $request = [Microsoft.ApplicationInsights.DataContracts.EventTelemetry]::new()
-            $request.Name = $name
-        }
-        catch {
-            $request = $null
-        }
-        if ($request) {            
-            $request.Timestamp = Get-Date            
-        }
+        $request = New-EventTelemetry -name $name -properties $properties -metrics $metrics
     }
     
     process {
         if (! $telemetryClient -or ! $request) { return }
         try {
-            $request.Name = "$operation"
-            $properties.Keys | ForEach-Object { $request.Properties[$_] = $properties[$_] }
-            $metrics.Keys    | ForEach-Object { $request.Metrics[$_] = $metrics[$_] }
             $telemetryClient.Track($request)
         }
         catch {
