@@ -268,16 +268,18 @@ try {
         Wait-AsyncScript `
             -ErrorScriptBlock { Add-ArtifactsLog -message $_.Exception.Message -severity Error -success fail } `
             -WarningScriptBlock { Add-ArtifactsLog -message $_ -severity Warn } `
-            -DebugScriptBlock { Add-ArtifactsLog -message $_ -severity Debug } `
-            -DefaultScriptblock {
-                $object = $_
-                switch($object.GetType()) {
-                    ([Microsoft.ApplicationInsights.DataContracts.EventTelemetry])     { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
-                    ([Microsoft.ApplicationInsights.DataContracts.RequestTelemetry])   { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
-                    ([Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry]) { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
-                }
-            } |
-        Out-Null
+            -DebugScriptBlock { Add-ArtifactsLog -message $_ -severity Debug } |
+        ForEach-Object {
+            $object = $_
+            switch($object.GetType()) {
+                ([Microsoft.ApplicationInsights.DataContracts.EventTelemetry])     { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
+                ([Microsoft.ApplicationInsights.DataContracts.RequestTelemetry])   { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
+                ([Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry]) { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
+            }
+        }
+    
+    Add-ArtifactsLog -message "Download Artifacts (Async) done."
+
     $properties["artifacts"] = ($downloadArtifacts.Artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $downloadArtifacts.Started -telemetryClient $telemetryClient -properties $properties
     $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
@@ -286,7 +288,6 @@ catch {
     Add-ArtifactsLog -message "Download Artifacts (Async) Error: $($_.Exception.Message)" -severity Error
 }
 finally {
-    Add-ArtifactsLog -message "Download Artifacts (Async) done."
     Write-Host "##[endgroup]"
 }
 

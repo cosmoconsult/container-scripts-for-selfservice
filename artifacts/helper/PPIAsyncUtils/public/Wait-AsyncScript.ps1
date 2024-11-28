@@ -28,7 +28,7 @@ function Wait-AsyncScript {
                 ( [System.Management.Automation.InformationRecord] ) { $scriptBlock = $InformationScriptBlock }
                 default                                              { $scriptBlock = $DefaultScriptBlock }
             }
-            $output | ForEach-Object ( [scriptblock]::create($scriptBlock) )
+            $output | ForEach-Object $scriptBlock
         }
     }
 }
