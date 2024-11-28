@@ -2,6 +2,10 @@
 . (Join-Path $PSScriptRoot "Telemetry/Invoke-LogEvent.ps1")
 . (Join-Path $PSScriptRoot "Telemetry/Invoke-LogOperation.ps1")
 . (Join-Path $PSScriptRoot "Telemetry/Invoke-LogError.ps1")
+. (Join-Path $PSScriptRoot "Telemetry/New-EventTelemetry.ps1")
+. (Join-Path $PSScriptRoot "Telemetry/New-ExceptionTelemetry.ps1")
+. (Join-Path $PSScriptRoot "Telemetry/New-RequestTelemetry.ps1")
+. (Join-Path $PSScriptRoot "Telemetry/Invoke-Telemetry.ps1")
 . (Join-Path $PSScriptRoot "Telemetry/Get-TelemetryClient.ps1")
 
 # Artifact Handling functions
