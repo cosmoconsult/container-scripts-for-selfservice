@@ -1,4 +1,4 @@
-Import-Module Microsoft.PowerShell.Archive -DisableNameChecking -Global
+Import-Module Microsoft.PowerShell.Archive -DisableNameChecking -Global -WarningAction SilentlyContinue
 
 function Expand-Archive() {
     [CmdletBinding(DefaultParameterSetName = "Path")]

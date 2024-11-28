@@ -181,12 +181,15 @@ Write-Host "##[group]Intialize Runspace Pool"
 # Create and open runspace pool
 $runspacePool = [runspacefactory]::CreateRunspacePool(1, 5);
 $runspacePool.Open();
-# Import NAV modules for runspace pool
-Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock { Write-Host $env:mode; . c:\run\prompt.ps1 } | 
-    Wait-AsyncScript | 
-    Out-Null
 # Import PPI modules for runspace pool
 Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock ( Get-Command Import-PPIModules ).ScriptBlock | 
+    Wait-AsyncScript | 
+    Out-Null
+# Import NAV modules for runspace pool
+Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock { 
+        Write-Host "Import NAV Management Modules with c:\run\prompt.ps1"; 
+        . c:\run\prompt.ps1 -silent
+    } | 
     Wait-AsyncScript | 
     Out-Null
 Write-Host "##[endgroup]"
