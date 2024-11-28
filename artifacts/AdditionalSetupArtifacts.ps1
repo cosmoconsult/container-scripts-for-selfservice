@@ -193,12 +193,12 @@ try {
     $artifacts | 
         Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
         Foreach-Object {
-            $_.Runspace = Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock $downloadArtifactScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
+            $_.Runspace = Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock $downloadArtifacts.ScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
         }
     $artifacts | 
         Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | 
         ForEach-Object {
-            $_.Runspace = Invoke-DownloadArtifact -RunspacePool $runspacePool -ScriptBlock $downloadArtifactScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
+            $_.Runspace = Invoke-DownloadArtifact -RunspacePool $runspacePool -ScriptBlock $downloadArtifacts.ScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
         }
     Add-ArtifactsLog -message "Download Artifacts (Async) started."
 }
