@@ -61,7 +61,7 @@ function Move-Database {
 
 }
 
-function Import-Modules {
+function Import-NAVModules {
     if (Test-Path "$serviceTierFolder") {
         if (Test-Path "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1") {
             Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1"
@@ -89,7 +89,9 @@ function Import-Modules {
         Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
         Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
     }
-    
+}
+
+function Import-PPIModules {    
     $ppiau = Get-Module -Name PPIArtifactUtils
     if (-not $ppiau) {
         if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
@@ -162,7 +164,8 @@ if ($env:cosmoUpgradeSysApp) {
 Write-Host ""
 Write-Host "=== Additional Setup ==="
 
-Import-Modules
+Import-NAVModules
+Import-PPIModules
 
 $env:nugetImported = $false
 
@@ -174,11 +177,19 @@ $properties = @{}
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
 # initialize runspace pool
+Write-Host "##[group]Intialize Runspace Pool"
+# Create and open runspace pool
 $runspacePool = [runspacefactory]::CreateRunspacePool(1, 5);
 $runspacePool.Open();
-
-# Import modules for runspace pool
-Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock (Get-Command Import-Modules).ScriptBlock | Wait-AsyncScript | Out-Null
+# Import NAV modules for runspace pool
+Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock { . c:\run\prompt.ps1 } | 
+    Wait-AsyncScript | 
+    Out-Null
+# Import PPI modules for runspace pool
+Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock ( Get-Command Import-PPIModules ).ScriptBlock | 
+    Wait-AsyncScript | 
+    Out-Null
+Write-Host "##[endgroup]"
 
 # Download Artifacts (Async) - Start
 try {
