@@ -176,17 +176,16 @@ Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryCli
 # initialize runspace pool
 $runspacePool = [runspacefactory]::CreateRunspacePool(1, 5);
 $runspacePool.Open();
-$runspaces = @{};
 
 # Import modules for runspace pool
-Invoke-AsyncScript -ScriptBlock (Get-Command Import-Modules).ScriptBlock -RunspacePool $runspacePool | Wait-AsyncScript | Out-Null
+Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock (Get-Command Import-Modules).ScriptBlock | Wait-AsyncScript | Out-Null
 
 # Download Artifacts (Async) - Start
 try {
     Write-Host "##[group]Download Artifacts (Async) - Start"
+    $downloadArtifacts = @{}
     $downloadArtifacts.Artifacts = @( Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue );
     $downloadArtifacts.Started = Get-Date -Format "o";
-    $downloadArtifacts.Runspaces = @();
     $downloadArtifacts.ScriptBlock = {
         param([object]$artifact, [string]$destination)
         $artifact | Invoke-DownloadArtifact -destination $destination
@@ -201,12 +200,12 @@ try {
         ForEach-Object {
             $_.Runspace = Invoke-DownloadArtifact -RunspacePool $runspacePool -ScriptBlock $downloadArtifactScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
         }
+    Add-ArtifactsLog -message "Download Artifacts (Async) started."
 }
 catch {
     Add-ArtifactsLog -message "Download Artifacts (Async) Error: $($_.Exception.Message)" -severity Error
 }
 finally {
-    Add-ArtifactsLog -message "Download Artifacts (Async) started."
     Write-Host "##[endgroup]"
 }
 
@@ -247,10 +246,10 @@ if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManua
 
 
 # Download Artifacts (Async) - Wait & Finish
-$runspaces.DownloadArtifacts | Wait-AsyncScript
 try {
     Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
     $downloadArtifacts.Artifacts.Runspace | 
+        Where-Object { $_ -ne $null } |
         Wait-AsyncScript `
             -ErrorScriptBlock { Add-ArtifactsLog -message $_.Exception.Message -severity Error -success fail } `
             -WarningScriptBlock { Add-ArtifactsLog -message $_ -severity Warn } `
@@ -262,7 +261,8 @@ try {
                     ([Microsoft.ApplicationInsights.DataContracts.RequestTelemetry])   { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
                     ([Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry]) { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
                 }
-            }
+            } |
+        Out-Null
     $properties["artifacts"] = ($downloadArtifacts.Artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $downloadArtifacts.Started -telemetryClient $telemetryClient -properties $properties
     $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
