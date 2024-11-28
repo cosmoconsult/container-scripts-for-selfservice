@@ -185,20 +185,21 @@ try {
     Write-Host "##[group]Download Artifacts (Async) - Start"
     $downloadArtifacts = @{}
     $downloadArtifacts.Artifacts = @( Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue );
+    $downloadArtifacts.Runspaces = @();
     $downloadArtifacts.Started = Get-Date -Format "o";
     $downloadArtifacts.ScriptBlock = {
         param([object]$artifact, [string]$destination)
         $artifact | Invoke-DownloadArtifact -destination $destination
     }
-    $artifacts | 
+    $downloadArtifacts.Artifacts | 
         Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
         Foreach-Object {
-            $_.Runspace = Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock $downloadArtifacts.ScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
+            $downloadArtifacts.Runspaces += Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock $downloadArtifacts.ScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
         }
-    $artifacts | 
+    $downloadArtifacts.Artifacts | 
         Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | 
         ForEach-Object {
-            $_.Runspace = Invoke-DownloadArtifact -RunspacePool $runspacePool -ScriptBlock $downloadArtifacts.ScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
+            $downloadArtifacts.Runspaces += Invoke-DownloadArtifact -RunspacePool $runspacePool -ScriptBlock $downloadArtifacts.ScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
         }
     Add-ArtifactsLog -message "Download Artifacts (Async) started."
 }
@@ -248,7 +249,7 @@ if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManua
 # Download Artifacts (Async) - Wait & Finish
 try {
     Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
-    $downloadArtifacts.Artifacts.Runspace | 
+    $downloadArtifacts.Runspaces | 
         Where-Object { $_ -ne $null } |
         Wait-AsyncScript `
             -ErrorScriptBlock { Add-ArtifactsLog -message $_.Exception.Message -severity Error -success fail } `
