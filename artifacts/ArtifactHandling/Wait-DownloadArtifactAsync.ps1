@@ -3,11 +3,11 @@ function Wait-DownloadArtifactAsync {
     param (
         # Async Parameters
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [object]$Runspace
+        [object]$Runspaces
     )
     
-    process {
-        $Runspace | 
+    end {
+        $Runspaces | 
             Wait-AsyncScript `
                 -ErrorScriptBlock       { Add-ArtifactsLog -message $_.Exception.Message -severity Error -success fail } `
                 -WarningScriptBlock     { Add-ArtifactsLog -message $_ -severity Warn } `
@@ -19,9 +19,6 @@ function Wait-DownloadArtifactAsync {
                     }
                 } |
             Out-Null
-    }
-    
-    end {
     }
 }
 Export-ModuleMember -Function Wait-DownloadArtifactAsync

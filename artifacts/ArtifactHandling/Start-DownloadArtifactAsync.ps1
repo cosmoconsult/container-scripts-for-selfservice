@@ -3,7 +3,7 @@ function Start-DownloadArtifactAsync {
     param (
         # Artifact Parameter
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [object]$Artifact,
+        [object[]]$Artifacts,
         # Download Parameter
         [Parameter(Mandatory = $false)]
         [string]$Destination = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
@@ -22,7 +22,7 @@ function Start-DownloadArtifactAsync {
             Write-Warning "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'"
         }
 
-        if ((! $AccessToken) -and ($Artifact | Where-Object { ! $_.url })) {
+        if ((! $AccessToken) -and ($Artifacts | Where-Object { ! $_.url })) {
             # Validate or get the PAT, because artifact without Download URL is present
             if (! $AccessToken) {
                 # Try get the PAT from environment
@@ -80,8 +80,8 @@ function Start-DownloadArtifactAsync {
                     -baseUrl $BaseUrl `
                     -accessToken $AccessToken `
                     -ApiFeatures $ApiFeatures `
-                    -folderIdx $FolderIdx
-                    -serviceTierFolder $ServiceTierFolder `
+                    -folderIdx $FolderIdx `
+                    -serviceTierFolder $ServiceTierFolder
         }
 
         $parameters = @{
@@ -96,7 +96,7 @@ function Start-DownloadArtifactAsync {
     }
     
     process {
-        $parameters.Artifact = $Artifact
+        $parameters.Artifact = $_
         $parameters.FolderIdx ++
 
         return Invoke-AsyncScript `
