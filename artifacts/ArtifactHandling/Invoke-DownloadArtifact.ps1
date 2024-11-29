@@ -36,11 +36,74 @@ function Invoke-DownloadArtifact {
         [Parameter(Mandatory = $false)]
         [string]$baseUrl = "https://$($env:publicdnsname)",
         [Parameter(Mandatory = $false)]
-        [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)"
+        [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
+        # Async Parameter
+        [Parameter(Mandatory = $false)]
+        [string]$apiFeatures = $null,
+        [Parameter(Mandatory = $false)]
+        [string]$serviceTierFolder = $null,
+        [Parameter(Mandatory = $false)]
+        [int]$folderIdx = 0
     )
     
     begin {
-        $folderIdx = 0
+        if ($null -eq $serviceTierFolder) {
+            $serviceTierFolder = "$((Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName)"
+            if (! $serviceTierFolder) {
+                Write-Warning "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'"
+            }
+        }
+
+        if ((! $AccessToken) -and ($Artifact | Where-Object { ! $_.url })) {
+            # Validate or get the PAT, because artifact without Download URL is present
+            if (! $AccessToken) {
+                # Try get the PAT from environment
+                $AccessToken = @($env:AZURE_DEVOPS_TOKEN, $env:AZURE_DEVOPS_EXT_PAT, $env:AZP_TOKEN) | 
+                    Where-Object { $_ } | 
+                    Select-Object -First 1
+            }
+            if (! $AccessToken) {
+                # Try to convert PAT from Base64, because it is stored in environment
+                $accessToken64 = @($env:AZURE_DEVOPS_TOKEN64, $env:AZURE_DEVOPS_EXT_PAT64, $env:AZP_TOKEN64, $env:AZURE_DEVOPS_PAT64) | 
+                    Where-Object { $_ } | 
+                    Select-Object -First 1
+                if (! $accessToken64) {
+                    try {
+                        $AccessToken = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String("$accessToken64"))
+                    }
+                    catch {}
+
+                    if (! $AccessToken) {
+                        try {
+                            $AccessToken = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String("$accessToken64"))
+                        }
+                        catch {}
+                    }
+                }
+            }
+            if (! $AccessToken) {
+                Write-Warning "PAT not present"
+            }
+        }
+
+        if ($null -eq $ApiFeatures) {
+            try {
+                $apiFeaturesResult = Invoke-WebRequest -Method Get -uri "$BaseUrl/api/automation/release/Features" -UseBasicParsing
+                if ($apiFeaturesResult.StatusCode -eq 200) {
+                    $apiFeatures = ConvertFrom-Json $apiFeaturesResult.Content
+                }
+            }
+            catch {}
+        }
+
+        if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
+            $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
+        }
+
+        $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
+        # Ensure TSL12
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12                
+
         $rootFolder = $destination
         $tempArchive = "$([System.IO.Path]::GetTempFileName()).zip"
         
@@ -48,49 +111,7 @@ function Invoke-DownloadArtifact {
         if (Test-Path $tempFolder) { Remove-Item $tempFolder }
         New-Item -Path $tempFolder -ItemType "Directory" | Out-Null
 
-        $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName
-        if (! $serviceTierFolder) {
-            Write-Warning "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'"
-        }
-        if ("$url" -eq "") {
-            # Validate or get the PAT, because no Download URL is present
-            if ("$accessToken" -eq "") {
-                # Try get the PAT from environment
-                $accessToken = (@("$($env:AZURE_DEVOPS_TOKEN)", "$($env:AZURE_DEVOPS_EXT_PAT)", "$($env:AZP_TOKEN)") | ? { "$_" -ne "" } | select -First 1)            
-            }
-            if ("$accessToken" -eq "") {
-                # Try to convert PAT from Base64, because it is stored in environment
-                $accessToken64 = (@("$($env:AZURE_DEVOPS_TOKEN64)", "$($env:AZURE_DEVOPS_EXT_PAT64)", "$($env:AZP_TOKEN64)", "$($env:AZURE_DEVOPS_PAT64)") | ? { "$_" -ne "" } | select -First 1)
-                if ("" -ne "$accessToken64" -and "" -eq "$accessToken") {
-                    try {
-                        $accessToken = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String("$accessToken64"))
-                    }
-                    catch {}                    
-                }
-                if ("" -ne "$accessToken64" -and "" -eq "$accessToken") {
-                    try {
-                        $accessToken = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String("$accessToken64"))
-                    }
-                    catch {}
-                }
-            }
-            if ("" -eq "$accessToken") {
-                Write-Warning "PAT not present"
-            }
-        }
-        $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
-        # Ensure TSL12
-        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12                
-        
-        if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
-            $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
-        }
-
-        try {
-            $featuresResult = Invoke-WebRequest -Method Get -uri "$baseUrl/api/automation/release/Features" -UseBasicParsing
-            $getVersionFromAPI = $featuresResult.StatusCode -eq 200 -and ((ConvertFrom-Json $featuresResult.Content) -contains "GetArtifactLatest")
-        }
-        catch {}
+        $getVersionFromAPI = $ApiFeatures -contains "GetArtifactLatest"
     }
     
     process {
@@ -182,7 +203,7 @@ function Invoke-DownloadArtifact {
 
             try {
                 $started = Get-Date -Format "o"
-                if ("$sourceUri".StartsWith("http")) { 
+                if ($isDownload) { 
                     if ("$sourceUri".StartsWith("$baseUrl")) {
                         Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
                     }
