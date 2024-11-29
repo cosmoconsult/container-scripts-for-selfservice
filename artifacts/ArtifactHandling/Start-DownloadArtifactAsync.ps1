@@ -70,8 +70,8 @@ function Start-DownloadArtifactAsync {
                 [string]$BaseUrl,
                 [string]$AccessToken,
                 [string]$ApiFeatures,
-                [string]$ServiceTierFolder,
-                [int]$FolderIdx
+                [int]$FolderIdx,
+                [string]$ServiceTierFolder
             )
 
             $Artifact | 
@@ -80,8 +80,8 @@ function Start-DownloadArtifactAsync {
                     -baseUrl $BaseUrl `
                     -accessToken $AccessToken `
                     -ApiFeatures $ApiFeatures `
-                    -serviceTierFolder $ServiceTierFolder `
                     -folderIdx $FolderIdx
+                    -serviceTierFolder $ServiceTierFolder `
         }
 
         $parameters = @{
@@ -90,8 +90,8 @@ function Start-DownloadArtifactAsync {
             BaseUrl = $BaseUrl
             AccessToken = $AccessToken
             ApiFeatures = $ApiFeatures
-            ServiceTierFolder = $serviceTierFolder
             FolderIdx = 0
+            ServiceTierFolder = $serviceTierFolder
         }
     }
     
@@ -102,7 +102,7 @@ function Start-DownloadArtifactAsync {
         return Invoke-AsyncScript `
             -RunspacePool $RunspacePool `
             -ScriptBlock $scriptBlock `
-            -Parameters $paramters
+            -Parameters $parameters
     }
     
     end {

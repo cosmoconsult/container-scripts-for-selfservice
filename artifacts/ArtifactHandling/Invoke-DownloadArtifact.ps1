@@ -41,9 +41,9 @@ function Invoke-DownloadArtifact {
         [Parameter(Mandatory = $false)]
         [string]$apiFeatures = $null,
         [Parameter(Mandatory = $false)]
-        [string]$serviceTierFolder = $null,
+        [int]$folderIdx = 0,
         [Parameter(Mandatory = $false)]
-        [int]$folderIdx = 0
+        [string]$serviceTierFolder = $null
     )
     
     begin {
