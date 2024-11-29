@@ -6,12 +6,12 @@ function Wait-AsyncScript {
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [System.IAsyncResult]$Result,
         
-        [scriptblock]$ErrorScriptBlock = { if ($_.Exception.WasThrownFromThrowStatement) { throw $_ } else { Write-Error $_ } },
-        [scriptblock]$WarningScriptBlock = { Write-Warning $_ },
-        [scriptblock]$VerboseScriptBlock = { Write-Verbose $_ },
-        [scriptblock]$DebugScriptBlock = { Write-Debug $_ },
+        [scriptblock]$ErrorScriptBlock       = { if ($_.Exception.WasThrownFromThrowStatement) { throw $_ } else { Write-Error $_ } },
+        [scriptblock]$WarningScriptBlock     = { Write-Warning $_ },
+        [scriptblock]$VerboseScriptBlock     = { Write-Verbose $_ },
+        [scriptblock]$DebugScriptBlock       = { Write-Debug $_ },
         [scriptblock]$InformationScriptBlock = { Write-Host $_ },
-        [scriptblock]$DefaultScriptBlock = { $_ }
+        [scriptblock]$OutputScriptBlock      = { $_ }
     )
 
     process {
@@ -26,7 +26,7 @@ function Wait-AsyncScript {
                 ( [System.Management.Automation.VerboseRecord] )     { $scriptBlock = $VerboseScriptBlock }
                 ( [System.Management.Automation.DebugRecord] )       { $scriptBlock = $DebugScriptBlock }
                 ( [System.Management.Automation.InformationRecord] ) { $scriptBlock = $InformationScriptBlock }
-                default                                              { $scriptBlock = $DefaultScriptBlock }
+                default                                              { $scriptBlock = $OutputScriptBlock }
             }
             $output | ForEach-Object $scriptBlock
         }

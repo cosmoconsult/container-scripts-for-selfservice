@@ -96,7 +96,7 @@ function Import-PPIModules {
     if (-not $ppiau) {
         if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
             Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-            Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
+            Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
         }
     }
     
@@ -178,21 +178,10 @@ Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryCli
 
 # initialize runspace pool
 Write-Host "##[group]Intialize Runspace Pool"
-# Create and open runspace pool
-$runspacePool = [runspacefactory]::CreateRunspacePool(1, 5);
+$initialSessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+$initialSessionState.ImportPSModule(@((Get-Module).Path));
+$runspacePool = [runspacefactory]::CreateRunspacePool(1, [Environment]::ProcessorCount, $initialSessionState, $Host);
 $runspacePool.Open();
-# Import PPI modules for runspace pool
-Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock ( Get-Command Import-PPIModules ).ScriptBlock | 
-    Wait-AsyncScript | 
-    Out-Null
-# Import NAV modules for runspace pool
-Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock { 
-        Write-Host "Env:ccOrgName: $env:CcOrgName"
-        Write-Host "Import NAV Management Modules with c:\run\prompt.ps1"; 
-        . c:\run\prompt.ps1 -silent
-    } | 
-    Wait-AsyncScript | 
-    Out-Null
 Write-Host "##[endgroup]"
 
 # Download Artifacts (Async) - Start
@@ -214,7 +203,7 @@ try {
     $downloadArtifacts.Artifacts | 
         Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | 
         ForEach-Object {
-            $downloadArtifacts.Runspaces += Invoke-DownloadArtifact -RunspacePool $runspacePool -ScriptBlock $downloadArtifacts.ScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
+            $downloadArtifacts.Runspaces += Invoke-DownloadArtifact -RunspacePool $runspacePool -ScriptBlock $downloadArtifacts.ScriptBlock -Parameters @{ artifact = $_; destination = $targetDirManuallySorted }
         }
     Add-ArtifactsLog -message "Download Artifacts (Async) started."
 }
@@ -267,17 +256,16 @@ try {
     $downloadArtifacts.Runspaces | 
         Where-Object { $_ -ne $null } |
         Wait-AsyncScript `
-            -ErrorScriptBlock { Add-ArtifactsLog -message $_.Exception.Message -severity Error -success fail } `
-            -WarningScriptBlock { Add-ArtifactsLog -message $_ -severity Warn } `
-            -DebugScriptBlock { Add-ArtifactsLog -message $_ -severity Debug } |
-        ForEach-Object {
-            $object = $_
-            switch($object.GetType()) {
-                ([Microsoft.ApplicationInsights.DataContracts.EventTelemetry])     { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
-                ([Microsoft.ApplicationInsights.DataContracts.RequestTelemetry])   { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
-                ([Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry]) { Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient }
-            }
-        }
+            -ErrorScriptBlock       { Add-ArtifactsLog -message $_.Exception.Message -severity Error -success fail } `
+            -WarningScriptBlock     { Add-ArtifactsLog -message $_ -severity Warn } `
+            -DebugScriptBlock       { Add-ArtifactsLog -message $_ -severity Debug } `
+            -InformationScriptBlock { Add-ArtifactsLog -message $_ } `
+            -OutputScriptBlock      {
+                if ($_.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
+                    Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient
+                }
+            } |
+        Out-Null
     
     Add-ArtifactsLog -message "Download Artifacts (Async) done."
 
@@ -611,6 +599,13 @@ if (![string]::IsNullOrEmpty($env:saasbakfile)) {
 }
 
 Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
+
+# initialize runspace pool
+Write-Host "##[group]Close Runspace Pool"
+# Close and dispose runspace pool
+$runspacePool.Close()
+$runspacePool.Dispose();
+Write-Host "##[endgroup]"
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="

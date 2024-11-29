@@ -74,7 +74,7 @@
     'Get-PackageVersion', 'Invoke-DownloadArtifact', 'Get-AppFilesSortedByDependencies', 'Get-ArtifactsFromEnvironment',
     'Import-FOBArtifact', 'Import-AppArtifact', 'Import-RIMArtifact', 'Import-Artifacts', 
     'Get-ArtifactsLog', 'Add-ArtifactsLog', 'Import-Fonts', 'Get-ArtifactJson',
-    'Invoke-4PSArtifactHandling', 'Check-DataUpgradeExecuted', 'Wait-DataUpgradeToFinish', 'Get-AppDatabaseName', 'Unpublish-AllNavAppsInServerInstance', 'Get-DemoDataFiles',
+    'Invoke-4PSArtifactHandling', 'Test-DataUpgradeExecuted', 'Wait-DataUpgradeToFinish', 'Get-AppDatabaseName', 'Unpublish-AllNavAppsInServerInstance', 'Get-DemoDataFiles',
     'Import-NugetTools'
 
     # Aus diesem Modul zu exportierende Cmdlets. Um optimale Leistung zu erzielen, verwenden Sie keine Platzhalter und lueschen den Eintrag nicht. Verwenden Sie ein leeres Array, wenn keine zu exportierenden Cmdlets vorhanden sind.
@@ -84,7 +84,7 @@
     # VariablesToExport = @()
 
     # Aus diesem Modul zu exportierende Aliase. Um optimale Leistung zu erzielen, verwenden Sie keine Platzhalter und lueschen den Eintrag nicht. Verwenden Sie ein leeres Array, wenn keine zu exportierenden Aliase vorhanden sind.
-    AliasesToExport   = 'Invoke-LogException', 'Invoke-LogRequest'
+    AliasesToExport   = 'Invoke-LogException', 'Invoke-LogRequest', 'Check-DataUpgradeExecuted'
 
     # Aus diesem Modul zu exportierende DSC-Ressourcen
     # DscResourcesToExport = @()

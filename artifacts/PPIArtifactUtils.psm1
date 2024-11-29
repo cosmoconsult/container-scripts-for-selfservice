@@ -26,7 +26,7 @@
 
 # 4PS
 . (Join-Path $PSScriptRoot "4PS/Wait-DataUpgradeToFinish.ps1")
-. (Join-Path $PSScriptRoot "4PS/Check-DataUpgradeExecuted.ps1")
+. (Join-Path $PSScriptRoot "4PS/Test-DataUpgradeExecuted.ps1")
 . (Join-Path $PSScriptRoot "4PS/Invoke-4PSArtifactHandling.ps1")
 . (Join-Path $PSScriptRoot "4PS/Get-AppDatabaseName.ps1")
 . (Join-Path $PSScriptRoot "4PS/Unpublish-AllNavAppsInServerInstance.ps1")
