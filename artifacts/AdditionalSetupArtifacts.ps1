@@ -608,7 +608,7 @@ Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -
 
 # initialize runspace pool
 Write-Host "##[group]Close Runspace Pool"
-Open-RunspacePool -RunspacePool $runspacePool
+Close-RunspacePool -RunspacePool $runspacePool
 Write-Host "##[endgroup]"
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
