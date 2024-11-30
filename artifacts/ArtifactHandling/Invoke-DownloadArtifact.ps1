@@ -30,6 +30,7 @@ function Invoke-DownloadArtifact {
         [string]$pat = "",
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [string[]]$cosmoArtifactType = @(),
+
         # Download Parameter
         [Parameter(Mandatory = $false)]
         [string]$destination = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
@@ -37,6 +38,7 @@ function Invoke-DownloadArtifact {
         [string]$baseUrl = "https://$($env:publicdnsname)",
         [Parameter(Mandatory = $false)]
         [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
+        
         # Async Parameter
         [Parameter(Mandatory = $false)]
         [string]$apiFeatures = $null,
