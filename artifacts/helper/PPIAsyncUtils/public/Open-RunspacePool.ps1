@@ -1,11 +1,20 @@
 function Open-RunspacePool {
     [cmdletbinding()]
-    Param()
+    Param(
+        [Parameter(Mandatory = $false)]
+        [string[]]$Modules = @(),
+        [Parameter(Mandatory = $false)]
+        [int]$MinRunspaces = 1,
+        [Parameter(Mandatory = $false)]
+        [int]$MaxRunspaces = [Environment]::ProcessorCount
+    )
     
     $initialSessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
-    $initialSessionState.ImportPSModule(@((Get-Module).Path));
+    if ($Modules) {
+        $initialSessionState.ImportPSModule($Modules);
+    }
 
-    $runspacePool = [runspacefactory]::CreateRunspacePool(1, [Environment]::ProcessorCount, $initialSessionState, $Host);
+    $runspacePool = [runspacefactory]::CreateRunspacePool($MinRunspaces, $MaxRunspaces, $initialSessionState, $Host);
     $runspacePool.Open();
     $runspacePool
 }

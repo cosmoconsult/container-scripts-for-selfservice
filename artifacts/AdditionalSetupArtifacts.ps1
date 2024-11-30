@@ -178,7 +178,7 @@ Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryCli
 
 # initialize runspace pool
 Write-Host "##[group]Intialize Runspace Pool"
-$runspacePool = Open-RunspacePool
+$runspacePool = Open-RunspacePool -Modules @((Get-Module).Path)
 Write-Host "##[endgroup]"
 
 # Download Artifacts (Async) - Start
