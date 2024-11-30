@@ -22,7 +22,7 @@ function Invoke-AsyncScript {
         }
     }) | Out-Null;
     $runspace.AddParameter("ScriptBlock", $ScriptBlock) | Out-Null;
-    $runspace.AddParameter("Parameters", $Parameters) | Out-Null;
+    $runspace.AddParameter("Parameters", $Parameters.Clone()) | Out-Null;
 
     $result = $runspace.BeginInvoke();
     
