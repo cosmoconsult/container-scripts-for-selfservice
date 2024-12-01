@@ -1,4 +1,4 @@
-function Wait-AsyncScript {
+function Wait-Async {
     [cmdletbinding()]
     param (
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
@@ -32,4 +32,4 @@ function Wait-AsyncScript {
         }
     }
 }
-Export-ModuleMember -Function Wait-AsyncScript
+Export-ModuleMember -Function Wait-Async

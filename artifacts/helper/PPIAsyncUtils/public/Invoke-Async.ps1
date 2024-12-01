@@ -1,4 +1,4 @@
-function Invoke-AsyncScript {
+function Invoke-Async {
     [cmdletbinding()]
     param (
         [Parameter(Mandatory = $true)]
@@ -31,4 +31,4 @@ function Invoke-AsyncScript {
         Result = $result
     }
 }
-Export-ModuleMember -Function Invoke-AsyncScript
+Export-ModuleMember -Function Invoke-Async

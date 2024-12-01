@@ -15,7 +15,7 @@ function Wait-DownloadArtifactAsync {
     }
     
     process {
-        Wait-AsyncScript `
+        Wait-Async `
             -Runspace $Runspace `
             -Result $Result `
             -ErrorScriptBlock       { Add-ArtifactsLog -message $_.Exception.Message -severity Error -success fail } `

@@ -115,7 +115,7 @@ function Start-DownloadArtifactAsync {
             $parameters.Artifact = $_
             $parameters.FolderIdx ++
 
-            return Invoke-AsyncScript `
+            return Invoke-Async `
                 -RunspacePool $RunspacePool `
                 -ScriptBlock $scriptBlock `
                 -Parameters $parameters
