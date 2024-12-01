@@ -1,4 +1,4 @@
-function Start-DownloadArtifactAsync {
+function Invoke-DownloadArtifactAsync {
     [CmdletBinding()]
     param (
         # Artifact Parameter
@@ -42,8 +42,9 @@ function Start-DownloadArtifactAsync {
                     -baseUrl $BaseUrl `
                     -accessToken $AccessToken `
                     -ApiFeatures $ApiFeatures `
+                    -serviceTierFolder $ServiceTierFolder `
                     -folderIdx $FolderIdx `
-                    -serviceTierFolder $ServiceTierFolder
+                    -isAsync $true
         }
 
         $parameters = @{
@@ -52,8 +53,8 @@ function Start-DownloadArtifactAsync {
             BaseUrl = $BaseUrl
             AccessToken = $AccessToken
             ApiFeatures = ""
-            FolderIdx = 0
             ServiceTierFolder = ""
+            FolderIdx = 0
         }
     }
     
@@ -122,4 +123,4 @@ function Start-DownloadArtifactAsync {
         }
     }
 }
-Export-ModuleMember -Function Start-DownloadArtifactAsync
+Export-ModuleMember -Function Invoke-DownloadArtifactAsync

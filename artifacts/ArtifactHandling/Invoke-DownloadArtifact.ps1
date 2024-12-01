@@ -30,6 +30,8 @@ function Invoke-DownloadArtifact {
         [string]$pat = "",
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [string[]]$cosmoArtifactType = @(),
+        [Parameter(Mandatory = $false)]
+        [System.Object]$telemetryClient = $null,
 
         # Download Parameter
         [Parameter(Mandatory = $false)]
@@ -38,57 +40,92 @@ function Invoke-DownloadArtifact {
         [string]$baseUrl = "https://$($env:publicdnsname)",
         [Parameter(Mandatory = $false)]
         [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
+        [Parameter(Mandatory = $false)]
+        [string]$apiFeatures,
+        [Parameter(Mandatory = $false)]
+        [string]$serviceTierFolder,
+        [Parameter(Mandatory = $false)]
+        [int]$folderIdx = 0,
         
         # Async Parameter
         [Parameter(Mandatory = $false)]
-        [string]$apiFeatures = $null,
-        [Parameter(Mandatory = $false)]
-        [int]$folderIdx = 0,
-        [Parameter(Mandatory = $false)]
-        [string]$serviceTierFolder = $null
+        [bool]$isAsync = $false
     )
     
     begin {
-        if ($null -eq $serviceTierFolder) {
+        function Write-Host($Message) {
+            if ($isAsync) {
+                Microsoft.PowerShell.Utility\Write-Host $Message
+            } else {
+                Add-ArtifactsLog -message $Message
+            }
+        }
+
+        function Write-Warning($Message) {
+            if ($isAsync) {
+                Microsoft.PowerShell.Utility\Write-Warning $Message
+            } else {
+                Add-ArtifactsLog -message $Message -severity Warn
+            }
+        }
+
+        function Write-Error($Message) {
+            if ($isAsync) {
+                Microsoft.PowerShell.Utility\Write-Error $Message
+            } else {
+                Add-ArtifactsLog -message $Message -severity Error -success fail
+            }
+        }
+
+        function Write-Debug($Message) {
+            if ($isAsync) {
+                Microsoft.PowerShell.Utility\Write-Debug $Message
+            } else {
+                Add-ArtifactsLog -message $Message -severity Debug
+            }
+        }
+
+        if ((! $isAsync) -and (! $telemetryClient)) {
+            $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
+        }
+
+        if ((! $isAsync) -and (! $serviceTierFolder)) {
             $serviceTierFolder = "$((Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName)"
             if (! $serviceTierFolder) {
                 Write-Warning "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'"
             }
         }
 
-        if ((! $AccessToken) -and ($Artifact | Where-Object { ! $_.url })) {
-            # Validate or get the PAT, because artifact without Download URL is present
-            if (! $AccessToken) {
-                # Try get the PAT from environment
-                $AccessToken = @($env:AZURE_DEVOPS_TOKEN, $env:AZURE_DEVOPS_EXT_PAT, $env:AZP_TOKEN) | 
-                    Where-Object { $_ } | 
-                    Select-Object -First 1
-            }
-            if (! $AccessToken) {
-                # Try to convert PAT from Base64, because it is stored in environment
-                $accessToken64 = @($env:AZURE_DEVOPS_TOKEN64, $env:AZURE_DEVOPS_EXT_PAT64, $env:AZP_TOKEN64, $env:AZURE_DEVOPS_PAT64) | 
-                    Where-Object { $_ } | 
-                    Select-Object -First 1
-                if (! $accessToken64) {
-                    try {
-                        $AccessToken = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String("$accessToken64"))
-                    }
-                    catch {}
-
-                    if (! $AccessToken) {
+        if ((! $isAsync) -and (! $accessToken)) {
+            if ("$url" -eq "") {
+                # Validate or get the PAT, because no Download URL is present
+                if ("$accessToken" -eq "") {
+                    # Try get the PAT from environment
+                    $accessToken = (@("$($env:AZURE_DEVOPS_TOKEN)", "$($env:AZURE_DEVOPS_EXT_PAT)", "$($env:AZP_TOKEN)") | ? { "$_" -ne "" } | select -First 1)            
+                }
+                if ("$accessToken" -eq "") {
+                    # Try to convert PAT from Base64, because it is stored in environment
+                    $accessToken64 = (@("$($env:AZURE_DEVOPS_TOKEN64)", "$($env:AZURE_DEVOPS_EXT_PAT64)", "$($env:AZP_TOKEN64)", "$($env:AZURE_DEVOPS_PAT64)") | ? { "$_" -ne "" } | select -First 1)
+                    if ("" -ne "$accessToken64" -and "" -eq "$accessToken") {
                         try {
-                            $AccessToken = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String("$accessToken64"))
+                            $accessToken = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String("$accessToken64"))
+                        }
+                        catch {}                    
+                    }
+                    if ("" -ne "$accessToken64" -and "" -eq "$accessToken") {
+                        try {
+                            $accessToken = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String("$accessToken64"))
                         }
                         catch {}
                     }
                 }
-            }
-            if (! $AccessToken) {
-                Write-Warning "PAT not present"
+                if ("" -eq "$accessToken") {
+                    Write-Warning "PAT not present"
+                }
             }
         }
 
-        if ($null -eq $ApiFeatures) {
+        if ((! $isAsync) -and (! $apiFeatures)) {
             try {
                 $apiFeaturesResult = Invoke-WebRequest -Method Get -uri "$BaseUrl/api/automation/release/Features" -UseBasicParsing
                 if ($apiFeaturesResult.StatusCode -eq 200) {
@@ -113,7 +150,7 @@ function Invoke-DownloadArtifact {
         if (Test-Path $tempFolder) { Remove-Item $tempFolder }
         New-Item -Path $tempFolder -ItemType "Directory" | Out-Null
 
-        $getVersionFromAPI = $ApiFeatures -contains "GetArtifactLatest"
+        $getVersionFromAPI = $apiFeatures -contains "GetArtifactLatest"
     }
     
     process {
@@ -157,7 +194,12 @@ function Invoke-DownloadArtifact {
 
                 if ("$artifactVersion" -eq "" -and !$getVersionFromAPI) {
                     Write-Warning "Artifact $name (View: '$view') skipped (no version / release found)"
-                    New-EventTelemetry -name "Download Artifact - no Artifact found" -properties $properties
+                    $telemetry = New-EventTelemetry -name "Download Artifact - no Artifact found" -properties $properties
+                    if ($isAsync) {
+                        $telemetry
+                    } else {
+                        Invoke-Telemetry -operation "Download Artifact" -data $telemetry -telemetryClient $telemetryClient
+                    }
                     $url = ""
                 }
                 else {
@@ -179,7 +221,7 @@ function Invoke-DownloadArtifact {
 
                 foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
                     if ($file.Name -like "*.app") {
-                        Invoke-DownloadArtifact -name $file.Name -url $file.FullName -target $target -destination $destination
+                        Invoke-DownloadArtifact -name $file.Name -url $file.FullName -target $target -destination $destination -apiFeatures $apiFeatures -serviceTierFolder $serviceTierFolder -folderIdx $folderIdx -isAsync $isAsync
                     }
                 }
                 $success = $true
@@ -306,7 +348,12 @@ function Invoke-DownloadArtifact {
                 }
 
                 $properties = @{"organization" = $organization; "project" = $project; "feed" = $feed; "name" = $name; "scope" = $scope; "view" = $view; "protocolType" = $type; "url" = $url_output }
-                New-RequestTelemetry -name "Download Artifact" -success $success -started $started -properties $properties
+                $telemetry = New-RequestTelemetry -name "Download Artifact" -success $success -started $started -properties $properties
+                if ($isAsync) {
+                    $telemetry
+                } else {
+                    Invoke-Telemetry -operation "Download Artifact" -data $telemetry -telemetryClient $telemetryClient
+                }
             }
             catch { 
                 $errorMessage = $_.ToString()
@@ -320,9 +367,14 @@ function Invoke-DownloadArtifact {
                     }
                     catch { }
                 }
-
+                
                 Write-Error "Download Artifact $($name) failed: $($errorMessage)"
-                New-ExceptionTelemetry -exception $_.Exception -properties $properties
+                $telemetry = New-ExceptionTelemetry -exception $_.Exception -properties $properties
+                if ($isAsync) {
+                    $telemetry
+                } else {
+                    Invoke-Telemetry -operation "Download Artifact" -data $telemetry -telemetryClient $telemetryClient
+                }
             }
             finally {
                 if (Test-Path $tempArchive) {

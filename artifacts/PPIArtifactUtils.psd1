@@ -71,7 +71,7 @@
     # Aus diesem Modul zu exportierende Funktionen. Um optimale Leistung zu erzielen, verwenden Sie keine Platzhalter und lueschen den Eintrag nicht. Verwenden Sie ein leeres Array, wenn keine zu exportierenden Funktionen vorhanden sind.
     FunctionsToExport = 'Get-TelemetryClient', 'Invoke-LogEvent', 'Invoke-LogOperation', 'Invoke-LogError', 
     'New-EventTelemetry', 'New-ExceptionTelemetry', 'New-RequestTelemetry', 'Invoke-Telemetry',
-    'Get-PackageVersion', 'Invoke-DownloadArtifact', 'Start-DownloadArtifactAsync', 'Wait-DownloadArtifactAsync', 'Get-AppFilesSortedByDependencies', 'Get-ArtifactsFromEnvironment',
+    'Get-PackageVersion', 'Invoke-DownloadArtifact', 'Invoke-DownloadArtifactAsync', 'Wait-DownloadArtifactAsync', 'Get-AppFilesSortedByDependencies', 'Get-ArtifactsFromEnvironment',
     'Import-FOBArtifact', 'Import-AppArtifact', 'Import-RIMArtifact', 'Import-Artifacts', 
     'Get-ArtifactsLog', 'Add-ArtifactsLog', 'Import-Fonts', 'Get-ArtifactJson',
     'Invoke-4PSArtifactHandling', 'Test-DataUpgradeExecuted', 'Wait-DataUpgradeToFinish', 'Get-AppDatabaseName', 'Unpublish-AllNavAppsInServerInstance', 'Get-DemoDataFiles',

@@ -188,28 +188,14 @@ try {
     $downloadArtifacts.Started = Get-Date -Format "o";
     $downloadArtifacts.Artifacts = @( Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue );
     $downloadArtifacts.Runspaces = @();
-    # $downloadArtifacts.ScriptBlock = {
-    #     param([object]$artifact, [string]$destination)
-    #     $artifact | Invoke-DownloadArtifact -destination $destination
-    # }
-    # $downloadArtifacts.Artifacts | 
-    #     Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
-    #     Foreach-Object {
-    #         $downloadArtifacts.Runspaces += Invoke-AsyncScript -RunspacePool $runspacePool -ScriptBlock $downloadArtifacts.ScriptBlock -Parameters @{ artifact = $_; destination = $targetDir }
-    #     }
-    # $downloadArtifacts.Artifacts | 
-    #     Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | 
-    #     ForEach-Object {
-    #         $downloadArtifacts.Runspaces += Invoke-DownloadArtifact -RunspacePool $runspacePool -ScriptBlock $downloadArtifacts.ScriptBlock -Parameters @{ artifact = $_; destination = $targetDirManuallySorted }
-    #     }
     $downloadArtifacts.Runspaces += 
         $downloadArtifacts.Artifacts | 
             Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
-            Start-DownloadArtifactAsync -RunspacePool $runspacePool -Destination $targetDir
+            Invoke-DownloadArtifactAsync -RunspacePool $runspacePool -Destination $targetDir
     $downloadArtifacts.Runspaces += 
         $downloadArtifacts.Artifacts | 
             Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | 
-            Start-DownloadArtifactAsync -RunspacePool $runspacePool -Destination $targetDirManuallySorted
+            Invoke-DownloadArtifactAsync -RunspacePool $runspacePool -Destination $targetDirManuallySorted
     Add-ArtifactsLog -message "Download Artifacts (Async) started."
 }
 catch {
@@ -258,19 +244,6 @@ if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManua
 # Download Artifacts (Async) - Wait & Finish
 try {
     Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
-    # $downloadArtifacts.Runspaces | 
-    #     Where-Object { $_ -ne $null } |
-    #     Wait-AsyncScript `
-    #         -ErrorScriptBlock       { Add-ArtifactsLog -message $_.Exception.Message -severity Error -success fail } `
-    #         -WarningScriptBlock     { Add-ArtifactsLog -message $_ -severity Warn } `
-    #         -DebugScriptBlock       { Add-ArtifactsLog -message $_ -severity Debug } `
-    #         -InformationScriptBlock { Add-ArtifactsLog -message $_ } `
-    #         -OutputScriptBlock      {
-    #             if ($_.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
-    #                 Invoke-Telemetry -operation "Download Artifact" -data $object -telemetryClient $telemetryClient
-    #             }
-    #         } |
-    #     Out-Null
     $downloadArtifacts.Runspaces | Wait-DownloadArtifactAsync
     
     Add-ArtifactsLog -message "Download Artifacts (Async) done."
