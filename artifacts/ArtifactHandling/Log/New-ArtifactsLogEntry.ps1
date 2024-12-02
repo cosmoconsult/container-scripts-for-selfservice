@@ -3,19 +3,19 @@ function New-ArtifactsLogEntry {
     param (
         [DateTime]$Time = [DateTime]::Now,
         [string]$Message = "",
-        [System.Object]$data = $null,
-        [ArtifactsLogEntryKind]$Kind = [ArtifactsLogEntryKind]::Unknown,
+        [System.Object]$Data = $null,
         [ArtifactsLogEntrySeverity]$Severity = [ArtifactsLogEntrySeverity]::Info,
-        [ArtifactsLogEntrySuccess]$Success = [ArtifactsLogEntrySuccess]::Unknown
+        [Nullable[ArtifactsLogEntrySuccess]]$Success = $null,
+        [Nullable[ArtifactsLogEntryKind]]$Kind = $null
     )
 
     $entry = [ArtifactsLogEntry]::new()
     $entry.Time = $Time
     $entry.Message = $Message
-    $entry.Data = $data
-    $entry.Kind = $Kind
+    $entry.Data = $Data
     $entry.Severity = $Severity
     $entry.Success = $Success
+    $entry.Kind = $Kind
     $entry
 }
 Export-ModuleMember -Function New-ArtifactsLogEntry

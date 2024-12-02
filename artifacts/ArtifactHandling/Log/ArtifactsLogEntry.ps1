@@ -1,5 +1,4 @@
 enum ArtifactsLogEntryKind {
-    Unknown
     FOB
     App
     RIM
@@ -15,7 +14,6 @@ enum ArtifactsLogEntrySeverity {
 }
 
 enum ArtifactsLogEntrySuccess {
-    Unknown
     Success
     Fail
     Skip
@@ -25,7 +23,7 @@ class ArtifactsLogEntry {
     [DateTime] $Time
     [string] $Message
     [object] $Data
-    [ArtifactsLogEntryKind] $Kind
     [ArtifactsLogEntrySeverity] $Severity
-    [ArtifactsLogEntrySuccess] $Success
+    [Nullable[ArtifactsLogEntrySuccess]] $Success
+    [Nullable[ArtifactsLogEntryKind]] $Kind
 }
