@@ -42,7 +42,7 @@ function Get-PackageVersion {
             }            
         }
         if ("" -eq "$accessToken") {
-            Write-Warning "PAT not present"
+            New-ArtifactsLogEntry -Message "PAT not present"
         }
     }
     process {
@@ -52,15 +52,15 @@ function Get-PackageVersion {
         $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
         $baseuri = [string]::Join('/', (@($organization, $project) | Where-Object { "$_" -ne "" }))
         $uri = "https://feeds.dev.azure.com/$baseuri/_apis/packaging/feeds/$feed/packages?api-version=5.1-preview.1"
-        Write-Host "Get Package for $name ... $uri" #$($headers | ConvertTo-Json -Compress)
+        New-ArtifactsLogEntry -Message "Get Package for $name ... $uri" #$($headers | ConvertTo-Json -Compress)
         $package = (((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | 
             ConvertFrom-Json).value | 
             Where-Object { $_.name -eq $name -and $_.protocolType -eq $protocolType } | 
             Select-Object -first 1)
         $uri = "https://feeds.dev.azure.com/$baseuri/_apis/packaging/feeds/$feed/packages/$($package.id)/versions?isListed=true&isDeleted=false&api-version=5.1-preview.1"
-        Write-Host "Get Version for $name ... $uri" #$($headers | ConvertTo-Json -Compress)
+        New-ArtifactsLogEntry -Message "Get Version for $name ... $uri" #$($headers | ConvertTo-Json -Compress)
         if ($artifactVersion -ne "") {
-            Write-Host "Requested Version: $artifactVersion"
+            New-ArtifactsLogEntry -Message "Requested Version: $artifactVersion"
         }
         $artifactVersion = $artifactVersion.Replace("*", "")
         if ($artifactVersion -eq "") {

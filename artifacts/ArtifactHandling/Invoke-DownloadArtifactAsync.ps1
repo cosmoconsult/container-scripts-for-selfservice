@@ -65,7 +65,7 @@ function Invoke-DownloadArtifactAsync {
     
     end {
         # Get the Service Tier Folder
-        $parameters.ServiceTierFolder = "$((Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName)"
+        $parameters.ServiceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName
         if (! $parameters.ServiceTierFolder) {
             Add-ArtifactsLog -message "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'" -severity Warn
         }

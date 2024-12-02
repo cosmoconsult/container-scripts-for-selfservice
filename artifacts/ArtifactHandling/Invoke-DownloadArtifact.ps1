@@ -30,8 +30,6 @@ function Invoke-DownloadArtifact {
         [string]$pat = "",
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [string[]]$cosmoArtifactType = @(),
-        [Parameter(Mandatory = $false)]
-        [System.Object]$telemetryClient = $null,
 
         # Download Parameter
         [Parameter(Mandatory = $false)]
@@ -39,7 +37,9 @@ function Invoke-DownloadArtifact {
         [Parameter(Mandatory = $false)]
         [string]$baseUrl = "https://$($env:publicdnsname)",
         [Parameter(Mandatory = $false)]
-        [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)"
+        [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
+        [Parameter(Mandatory = $false)]
+        [System.Object]$telemetryClient = $null
     )
     
     begin {
@@ -56,7 +56,7 @@ function Invoke-DownloadArtifact {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
 
-        $serviceTierFolder = "$((Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName)"
+        $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName
         if (! $serviceTierFolder) {
             Add-ArtifactsLog -message "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'" -severity Warn
         }
