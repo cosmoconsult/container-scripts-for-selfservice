@@ -23,8 +23,6 @@ function Invoke-DownloadArtifactAsync {
             throw "PPI Async Utils not loaded"
         }
 
-        $artifacts = @()
-
         $scriptBlock = {
             param(
                 [object]$Artifact, 
@@ -37,14 +35,14 @@ function Invoke-DownloadArtifactAsync {
             )
 
             $Artifact | 
-                Invoke-DownloadArtifact `
+                Invoke-DownloadArtifactInternal `
                     -destination $Destination `
                     -baseUrl $BaseUrl `
                     -accessToken $AccessToken `
                     -ApiFeatures $ApiFeatures `
                     -serviceTierFolder $ServiceTierFolder `
-                    -folderIdx $FolderIdx `
-                    -isAsync $true
+                    -folderIdx $FolderIdx
+
         }
 
         $parameters = @{
@@ -56,6 +54,8 @@ function Invoke-DownloadArtifactAsync {
             ServiceTierFolder = ""
             FolderIdx = 0
         }
+
+        $artifacts = @()
     }
     
     process {
@@ -114,12 +114,13 @@ function Invoke-DownloadArtifactAsync {
         # Start the download for each artifact
         $artifacts | ForEach-Object {
             $parameters.Artifact = $_
-            $parameters.FolderIdx ++
 
-            return Invoke-Async `
+            Invoke-Async `
                 -RunspacePool $RunspacePool `
                 -ScriptBlock $scriptBlock `
                 -Parameters $parameters
+            
+            $parameters.FolderIdx ++
         }
     }
 }

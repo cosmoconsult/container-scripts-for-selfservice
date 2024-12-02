@@ -1,27 +1,29 @@
 function New-EventTelemetry {
     [CmdletBinding()]
     param (
-        [string]$name,
-        [hashtable]$properties = @{},
-        [hashtable]$metrics = @{}
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+        [DateTime]$Timestamp = [DateTime]::Now,
+        [hashtable]$Properties = @{},
+        [hashtable]$Metrics = @{}
     )
     
     process {
         try {
-            $data = [Microsoft.ApplicationInsights.DataContracts.EventTelemetry]::new()
+            $eventTelemetry = [Microsoft.ApplicationInsights.DataContracts.EventTelemetry]::new()
         }
         catch {
             return
         }
 
-        $data.Name = $name
-        $data.Timestamp = Get-Date
-        $properties.Keys | 
-            ForEach-Object { $data.Properties[$_] = $properties[$_] }
-        $metrics.Keys    | 
-            ForEach-Object { $data.Metrics[$_] = $metrics[$_] }
+        $eventTelemetry.Name = $Name
+        $eventTelemetry.Timestamp = $Timestamp
+        $Properties.Keys | 
+            ForEach-Object { $eventTelemetry.Properties[$_] = $Properties[$_] }
+        $Metrics.Keys    | 
+            ForEach-Object { $eventTelemetry.Metrics[$_] = $Metrics[$_] }
 
-        return $data
+        $eventTelemetry
     }
 }
 Export-ModuleMember -Function New-EventTelemetry

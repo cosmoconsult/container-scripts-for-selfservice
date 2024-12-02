@@ -1,52 +1,34 @@
 function New-RequestTelemetry {
     [CmdletBinding()]
     param (
-        [string]$name,
-        [string]$started = $null,
-        [string]$ended = $null,
-        [hashtable]$properties = @{},
-        [hashtable]$metrics = @{},
-        [bool]$success = $true
+        [Parameter(Mandatory = $true)]
+        [string]$Name,
+        [DateTime]$Timestamp = [DateTime]::Now,
+        [DateTime]$StartTime = $Timestamp,
+        [DateTime]$EndTime = $Timestamp,
+        [hashtable]$Properties = @{},
+        [hashtable]$Metrics = @{},
+        [bool]$Success = $true
     )
     
     process {
         try {
-            $data = [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry]::new()
+            $requestTelemetry = [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry]::new()
         } catch {
             return
         }
-        
-        $started = Get-DateOrNow -date $started -format "o"
-        $ended = Get-DateOrNow -date $ended -format "o"
-        $duration = (Get-Date -Date $ended) - (Get-Date -Date $started)
 
-        $data.Name = $name
-        $data.StartTime = $started            
-        $data.Duration = $duration
-        $data.Success = $success
-        $properties.Keys | 
-            ForEach-Object { $data.Properties[$_] = $properties[$_] }
-        $metrics.Keys    | 
-            ForEach-Object { $data.Metrics[$_] = $metrics[$_] }
+        $requestTelemetry.Name = $Name
+        $requestTelemetry.Timestamp = $Timestamp
+        $requestTelemetry.StartTime = $StartTime            
+        $requestTelemetry.Duration = $EndTime - $StartTime
+        $requestTelemetry.Success = $Success
+        $Properties.Keys | 
+            ForEach-Object { $requestTelemetry.Properties[$_] = $Properties[$_] }
+        $Metrics.Keys    | 
+            ForEach-Object { $requestTelemetry.Metrics[$_] = $Metrics[$_] }
 
-        return $data
+        $requestTelemetry
     }
 }
 Export-ModuleMember -Function New-RequestTelemetry
-
-function Get-DateOrNow {
-    [CmdletBinding()]
-    param (
-        [string]$date,
-        [string]$format = "o"
-    )
-    
-    try {
-        $date = Get-Date -Date "$date" -Format $format
-    }
-    catch {
-        $date = Get-Date -Format $format
-    }
-    
-    return $date
-}
