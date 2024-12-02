@@ -176,6 +176,14 @@ $properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
+# Show installed apps
+Write-Host "##[group]Initially installed apps"
+Get-NAVAppInfo -Tenant $tenantId -TenantSpecificProperties -ServerInstance $ServerInstance | 
+    Select-Object Name, Publisher, Version, Scope, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion | 
+    Format-Table -AutoSize | 
+    Out-String -Width 1024
+Write-Host "##[endgroup]"
+
 # initialize runspace pool
 Write-Host "##[group]Intialize Runspace Pool"
 $runspacePool = Open-RunspacePool -Modules @((Get-Module).Path)
@@ -224,14 +232,6 @@ catch {
 finally {
     Write-Host "##[endgroup]"
 }
-
-# Show installed apps
-Write-Host "##[group]Initially installed apps"
-Get-NAVAppInfo -Tenant $tenantId -TenantSpecificProperties -ServerInstance $ServerInstance | 
-    Select-Object Name, Publisher, Version, Scope, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion | 
-    Format-Table -AutoSize | 
-    Out-String -Width 1024
-Write-Host "##[endgroup]"
 
 # Initialize company
 if ($env:mode -eq "4ps") {
