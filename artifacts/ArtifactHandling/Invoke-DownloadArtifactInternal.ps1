@@ -132,7 +132,7 @@ function Invoke-DownloadArtifactInternal {
                     }
                 }
                 $success = $true
-                New-RequestTelemetry -name "Download Artifact" -success $success -started $started -properties $properties
+                New-RequestTelemetry -Name "Download Artifact" -Success $success -StartTime $startTime -properties $properties
                 return
             }
         }
@@ -154,7 +154,7 @@ function Invoke-DownloadArtifactInternal {
             }
 
             try {
-                $started = Get-Date -Format "o"
+                $startTime = Get-Date
                 if ($isDownload) { 
                     if ("$sourceUri".StartsWith("$baseUrl")) {
                         Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
@@ -256,7 +256,7 @@ function Invoke-DownloadArtifactInternal {
                 }
 
                 $properties = @{"organization" = $organization; "project" = $project; "feed" = $feed; "name" = $name; "scope" = $scope; "view" = $view; "protocolType" = $type; "url" = $url_output }
-                New-RequestTelemetry -name "Download Artifact" -success $success -started $started -properties $properties
+                New-RequestTelemetry -Name "Download Artifact" -Success $success -StartTime $startTime -Properties $properties
             }
             catch { 
                 $errorMessage = $_.ToString()

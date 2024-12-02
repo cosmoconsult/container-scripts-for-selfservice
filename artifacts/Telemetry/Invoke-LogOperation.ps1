@@ -11,7 +11,10 @@ function Invoke-LogOperation {
         [System.Object]$telemetryClient = $null        
     )
 
-    $requestTelemetry = New-RequestTelemetry -name $name -started $started -ended $ended -properties $properties -metrics $metrics -success $success
+    $startTime = try { Get-Date $started } catch { Get-Date }
+    $endTime = try { Get-Date $ended } catch { Get-Date }
+    
+    $requestTelemetry = New-RequestTelemetry -Name $name -StartTime $startTime -EndTime $endTime -Properties $properties -Metrics $metrics -Success $success
     Push-Telemetry -Operation $name -Telemetry $requestTelemetry -TelemetryClient $telemetryClient
 }
 Set-Alias -Name Invoke-LogRequest -Value Invoke-LogOperation

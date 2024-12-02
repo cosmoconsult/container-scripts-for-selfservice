@@ -46,7 +46,7 @@ function Get-PackageVersion {
         }
     }
     process {
-        $started = Get-Date -Format "o"
+        $startTime = Get-Date
 
         if ("$scope" -ne "project") { $project = "" }
         $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
@@ -79,7 +79,7 @@ function Get-PackageVersion {
                 Select-Object version -First 1).version
         }
         
-        New-RequestTelemetry -name "Get-PakageVersion" -started $started -success $true
+        New-RequestTelemetry -Name "Get-PakageVersion" -StartTime $startTime -success $true
         return $version        
     }
     end {
