@@ -2,34 +2,8 @@ function Invoke-DownloadArtifact {
     [CmdletBinding()]
     param (
         # Artifact Parameter
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$organization = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$project = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$feed = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$name = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$type = "upack",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$view = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$version = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$scope = "project",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$url = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$target = "",        
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$targetFolder = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$appImportScope = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$pat = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string[]]$cosmoArtifactType = @(),
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [object]$Artifact,
 
         # Download Parameter
         [Parameter(Mandatory = $false)]
@@ -97,7 +71,7 @@ function Invoke-DownloadArtifact {
         catch {}
         
         $artifacts | 
-            Invoke-DownloadArtifactInternal `
+            Invoke-DownloadArtifactProcess `
                 -destination $destination `
                 -baseUrl $baseUrl `
                 -accessToken $accessToken `

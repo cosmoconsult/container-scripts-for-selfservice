@@ -14,6 +14,7 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifact.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifactAsync.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Wait-DownloadArtifactAsync.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifactProcess.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-ArtifactsFromEnvironment.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-FOBArtifact.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-AppArtifact.ps1")
@@ -23,7 +24,7 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-ArtifactJson.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-NugetTools.ps1")
 
-# Artifact Handling Log functions
+# Artifact Log Handling functions
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/Get-ArtifactsLog.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/Set-ArtifactsLog.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/Add-ArtifactsLog.ps1")

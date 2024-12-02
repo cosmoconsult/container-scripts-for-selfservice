@@ -35,7 +35,7 @@ function Invoke-DownloadArtifactAsync {
             )
 
             $Artifact | 
-                Invoke-DownloadArtifactInternal `
+                Invoke-DownloadArtifactProcess `
                     -destination $Destination `
                     -baseUrl $BaseUrl `
                     -accessToken $AccessToken `

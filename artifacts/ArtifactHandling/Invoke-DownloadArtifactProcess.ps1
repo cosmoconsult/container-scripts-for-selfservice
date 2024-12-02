@@ -1,4 +1,4 @@
-function Invoke-DownloadArtifactInternal {
+function Invoke-DownloadArtifactProcess {
     [CmdletBinding()]
     param (
         # Artifact Parameter
@@ -290,3 +290,4 @@ function Invoke-DownloadArtifactInternal {
         $artifactVersion = ""
     }
 }
+Export-ModuleMember -Function Invoke-DownloadArtifactProcess
