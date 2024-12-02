@@ -219,7 +219,7 @@ try {
     Add-ArtifactsLog -message "Download Artifacts (Async) started."
 }
 catch {
-    Add-ArtifactsLog -message "Download Artifacts (Async) Error: $($_.Exception.Message)" -severity Error
+    Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
 }
 finally {
     Write-Host "##[endgroup]"
@@ -273,7 +273,7 @@ try {
     $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
 }
 catch {
-    Add-ArtifactsLog -message "Download Artifacts (Async) Error: $($_.Exception.Message)" -severity Error
+    Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
 }
 finally {
     Write-Host "##[endgroup]"
