@@ -9,6 +9,6 @@ function Invoke-LogEvent {
     )
     
     $eventTelemetry = New-EventTelemetry -Name $name -Properties $properties -Metrics $metrics
-    Push-Telemetry -Operation $name -Data $eventTelemetry -TelemetryClient $telemetryClient
+    Push-Telemetry -Operation $name -Telemetry $eventTelemetry -TelemetryClient $telemetryClient
 }
 Export-ModuleMember -Function Invoke-LogEvent

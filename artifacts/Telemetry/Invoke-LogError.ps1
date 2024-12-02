@@ -10,7 +10,7 @@ function Invoke-LogError {
     )
 
     $exceptionTelemetry = New-ExceptionTelemetry -Exception $exception -Properties $properties
-    Push-Telemetry -Data $exceptionTelemetry -TelemetryClient $telemetryClient
+    Push-Telemetry -Telemetry $exceptionTelemetry -TelemetryClient $telemetryClient
 }
 Set-Alias -Name Invoke-LogException -Value Invoke-LogError
 Export-ModuleMember -Function Invoke-LogError -Alias Invoke-LogException
