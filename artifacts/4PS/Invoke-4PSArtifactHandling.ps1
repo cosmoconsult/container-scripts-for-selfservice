@@ -17,6 +17,10 @@ function Invoke-4PSArtifactHandling {
             $appDatabaseName = Get-AppDatabaseName
             Write-Host "  app database name is: $appDatabaseName"
 
+            Write-Host "Add client certificate for KeyVault access to Service Tier."
+            Set-AlpacaContainerKeyVaultAadAppAndCertificate
+            Write-Host "Client certificate for KeyVault access imported."
+
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
             }
@@ -43,10 +47,6 @@ function Invoke-4PSArtifactHandling {
                 }
                 New-NAVServerUserPermissionSet -ServerInstance BC -Username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 1
-
-                Write-Host "Add client certificate for KeyVault access to Service Tier."
-                Set-AlpacaContainerKeyVaultAadAppAndCertificate
-                Write-Host "Client certificate for KeyVault access imported."
 
                 $use4PSContainerInitializer = $env:AZP_SERVICE_DISPLAYNAME -notlike "*Skip4PSContainerInitializer*"
                 $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
