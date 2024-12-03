@@ -18,7 +18,7 @@ function Invoke-4PSArtifactHandling {
             Write-Host "  app database name is: $appDatabaseName"
 
             Write-Host "Add client certificate for KeyVault access to Service Tier."
-            Set-AlpacaContainerKeyVaultAadAppAndCertificate
+            Set-AlpacaContainerKeyVaultAadAppAndCertificate -doNotRestartServiceTier $true
             Write-Host "Client certificate for KeyVault access imported."
 
             if ($env:cosmoServiceRestart -eq $true) {
