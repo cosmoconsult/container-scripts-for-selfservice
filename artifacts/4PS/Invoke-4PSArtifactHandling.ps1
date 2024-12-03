@@ -17,10 +17,6 @@ function Invoke-4PSArtifactHandling {
             $appDatabaseName = Get-AppDatabaseName
             Write-Host "  app database name is: $appDatabaseName"
 
-            Write-Host "Add client certificate for KeyVault access to Service Tier."
-            Set-AlpacaContainerKeyVaultAadAppAndCertificate -doNotRestartServiceTier $true
-            Write-Host "Client certificate for KeyVault access imported."
-
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
             }
