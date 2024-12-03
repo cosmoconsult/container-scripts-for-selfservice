@@ -9,7 +9,7 @@ Write-Host "Add client certificate for KeyVault access to Service Tier."
 $serverInstance = "BC";
 $enablePublisherValidation = $false;
 $pfxFile = "C:/azurefileshare/common/AlpacaContainerKeyVaultReader.pfx";
-$pfxPassword = (git  -String "P@ssw0rd" -AsPlainText -Force);
+$pfxPassword = (ConvertTo-SecureString -String "P@ssw0rd" -AsPlainText -Force);
 $clientId = "6efd7c53-94d3-489e-95a4-30e25de612ba";
 $doNotRestartServiceTier = $true;
 
