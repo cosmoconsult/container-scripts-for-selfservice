@@ -10,6 +10,7 @@ function Open-RunspacePool {
     )
     
     $initialSessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
+    $initialSessionState.ThrowOnRunspaceOpenError = $true
     if ($Modules) {
         $initialSessionState.ImportPSModule($Modules);
     }

@@ -1,4 +1,4 @@
-function Setup-Compiler {
+function Initialize-Compiler {
     $vsixFile = "c:\inetpub\wwwroot\http\ALLanguage.vsix"
     $vsixZipFile = "c:\inetpub\wwwroot\http\ALLanguage.zip"
     $extractFolder = "c:\ALLanguage"
@@ -12,4 +12,5 @@ function Setup-Compiler {
     Write-Host ("Extracting compiler to 'c:\alc\alc.exe'" )
     Write-Host ("Extraction took {0}" -f $durationExtract.TotalSeconds)
 }
-Export-ModuleMember -Function Setup-Compiler
+Set-Alias -Name Setup-Compiler -Value Initialize-Compiler
+Export-ModuleMember -Function Initialize-Compiler -Alias Setup-Compiler
