@@ -6,7 +6,7 @@ function Get-PwshCoreSessionConfiguration() {
     )
 
     if ($Script:PwshCoreSessionConfigurations.ContainsKey($SessionConfigurationName)) {
-        return $Script:PwshCoreSessionConfigurations.ContainsKey($SessionConfigurationName)
+        return $Script:PwshCoreSessionConfigurations[$SessionConfigurationName]
     }
 
     $sessionConfiguration = Get-PSSessionConfiguration -Force | Where-Object { $_.Name -eq $SessionConfigurationName } | Select-Object -First 1
