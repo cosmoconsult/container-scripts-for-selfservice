@@ -1,4 +1,4 @@
-Import-Module Microsoft.PowerShell.Utility -DisableNameChecking -Global -WarningAction SilentlyContinue
+Import-Module Microsoft.PowerShell.Utility -Global -WarningAction SilentlyContinue
 
 function Invoke-WebRequest() {
     [CmdletBinding()]
