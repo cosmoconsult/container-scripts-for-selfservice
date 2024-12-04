@@ -18,10 +18,14 @@ function New-ExceptionTelemetry {
 
         $exceptionTelemetry.Exception = $Exception
         $exceptionTelemetry.Timestamp = $Timestamp
-        $Properties.Keys | 
-            ForEach-Object { $exceptionTelemetry.Properties[$_] = $Properties[$_] }
-        $Metrics.Keys    | 
-            ForEach-Object { $exceptionTelemetry.Metrics[$_] = $Metrics[$_] }
+        if ($Properties) {
+            $Properties.Keys | 
+                ForEach-Object { $exceptionTelemetry.Properties[$_] = $Properties[$_] }
+        }
+        if ($Metrics) {
+            $Metrics.Keys    | 
+                ForEach-Object { $exceptionTelemetry.Metrics[$_] = $Metrics[$_] }
+        }
 
         $exceptionTelemetry
     }

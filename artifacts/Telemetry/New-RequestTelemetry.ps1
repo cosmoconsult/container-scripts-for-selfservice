@@ -23,10 +23,14 @@ function New-RequestTelemetry {
         $requestTelemetry.StartTime = $StartTime            
         $requestTelemetry.Duration = $EndTime - $StartTime
         $requestTelemetry.Success = $Success
-        $Properties.Keys | 
-            ForEach-Object { $requestTelemetry.Properties[$_] = $Properties[$_] }
-        $Metrics.Keys    | 
-            ForEach-Object { $requestTelemetry.Metrics[$_] = $Metrics[$_] }
+        if ($Properties) {
+            $Properties.Keys | 
+                ForEach-Object { $requestTelemetry.Properties[$_] = $Properties[$_] }
+        }
+        if ($Metrics) {
+            $Metrics.Keys    | 
+                ForEach-Object { $requestTelemetry.Metrics[$_] = $Metrics[$_] }
+        }
 
         $requestTelemetry
     }

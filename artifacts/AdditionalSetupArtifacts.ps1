@@ -84,14 +84,10 @@ function Import-NAVModules {
         Write-Host "Import Nav IDE from $roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1"
         Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking 2>$null
     }
-    
-    if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)) {
-        Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
-        Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
-    }
 }
 
-function Import-PPIModules {    
+function Import-PPIModules {
+
     $ppiau = Get-Module -Name PPIArtifactUtils
     if (-not $ppiau) {
         if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
@@ -106,6 +102,11 @@ function Import-PPIModules {
 
     if (Test-Path "c:\run\my\PPIAsyncUtils.ps1") {
         . "c:\run\my\PPIAsyncUtils.ps1"
+    }
+
+    if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)) {
+        Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
+        Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
     }
 }
 
@@ -186,7 +187,8 @@ Write-Host "##[endgroup]"
 
 # initialize runspace pool
 Write-Host "##[group]Intialize Runspace Pool"
-$runspacePool = Open-RunspacePool -Modules @((Get-Module).Path)
+# Only load ppi modules with initialization of each runspace, because loading module "Microsoft.Dynamics.Nav.Management" results in an error
+$runspacePool = Open-RunspacePool -Modules @((Get-Module -Name 'PPI*').Path) 
 Write-Host "##[endgroup]"
 
 # # Download Artifacts

@@ -18,10 +18,14 @@ function New-EventTelemetry {
 
         $eventTelemetry.Name = $Name
         $eventTelemetry.Timestamp = $Timestamp
-        $Properties.Keys | 
-            ForEach-Object { $eventTelemetry.Properties[$_] = $Properties[$_] }
-        $Metrics.Keys    | 
-            ForEach-Object { $eventTelemetry.Metrics[$_] = $Metrics[$_] }
+        if ($Properties) {
+            $Properties.Keys | 
+                ForEach-Object { $eventTelemetry.Properties[$_] = $Properties[$_] }
+        }
+        if ($Metrics) {
+            $Metrics.Keys    | 
+                ForEach-Object { $eventTelemetry.Metrics[$_] = $Metrics[$_] }
+        }
 
         $eventTelemetry
     }
