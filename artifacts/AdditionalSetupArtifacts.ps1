@@ -182,6 +182,7 @@ try {
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
     $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
+    $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
 }
 catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
