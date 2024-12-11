@@ -4,7 +4,7 @@ function ConvertTo-DynamicParameters() {
     Param(
         [Parameter(Mandatory = $true)]
         [string]$CommandName,
-        [hashtable]$Parameters = $null
+        [object]$Parameters = $null
     )
     $commandKey = $CommandName
     
