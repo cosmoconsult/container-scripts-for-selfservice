@@ -33,7 +33,7 @@ function Request-PwshCoreSession() {
         $sessionConfiguration = Get-PSSessionConfiguration -Force | Where-Object { $_.Name -eq $SessionConfigurationName } | Select-Object -First 1
         if (! $sessionConfiguration) {
             Write-Warning "Remoting for powershell core not enabled... enabling"
-            pwsh -Command 'Enable-PSRemoting -wa SilentlyContinue'
+            pwsh -Command 'Enable-PSRemoting -wa SilentlyContinue' | Out-Null
             $sessionConfiguration = Get-PSSessionConfiguration -Name $SessionConfigurationName
         }
         if (! $sessionConfiguration) { return }
