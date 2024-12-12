@@ -182,7 +182,10 @@ try {
     $artifacts | Where-Object { $_.name -match "^downloadonly" } | Invoke-DownloadArtifact -destination $targetDirAppsToPublishLater -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     Start-Sleep (60*5)
     $appsToPublishLater = Get-AppFilesSortedByDependencies -Path $targetDirAppsToPublishLater
-    [string[]] $appFullNames = $appsToPublishLater.FullName
+    Write-Host "Apps to publish later:"
+    $appsToPublishLater
+    Write-Host ""
+    [string[]] $appFullNames = $appsToPublishLater.Path
     $appFullNames | ForEach-Object { Write-Host "  $($_)" }
     Get-ChildItem -Path $targetDirAppsToPublishLater -Recurse -Filter "*.app" | Where-Object { $_.FullName -notin $appFullNames } | ForEach-Object { 
         Write-Host "  Removing $($_.FullName)"
