@@ -62,6 +62,7 @@ function Get-AppFilesSortedByDependencies {
         $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Recurse @optionalParameters | Where { $_.Name -NotMatch $ExcludeExpr }
 
         $AllApps = [System.Collections.ArrayList]@()
+        $ApplicationAppId = ""
         foreach ($AppFile in $AllAppFiles) {
             try {
                 $App = Get-NAVAppInfo -Path $AppFile.FullName 
@@ -76,8 +77,13 @@ function Get-AppFilesSortedByDependencies {
                         }
                     }
                 }
+                $AppId = $App.AppId
+                if ($App.Name -eq "Application") {
+                    $ApplicationAppId = $App.AppId
+                    $AppId = "00000000-0000-0000-0000-000000000000" 
+                }
                 $AllApps.Add([PSCustomObject]@{
-                        AppId        = $App.AppId
+                        AppId        = $AppId
                         Version      = $App.Version
                         Name         = $App.Name
                         Publisher    = $App.Publisher
@@ -98,6 +104,7 @@ function Get-AppFilesSortedByDependencies {
         }
 
         $FinalResult = $FinalResult | Sort-Object ProcessOrder
+        $FinalResult | Where-Object { $_.Name -eq "Application" } | Foreach-Object { $_.AppId = $ApplicationAppId }
 
         return $FinalResult
     }
