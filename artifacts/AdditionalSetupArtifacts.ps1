@@ -182,10 +182,17 @@ try {
     $artifacts | Where-Object { $_.name -match "^downloadonly" } | Invoke-DownloadArtifact -destination $targetDirAppsToPublishLater -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $appsToPublishLater = Get-AppFilesSortedByDependencies -Path $targetDirAppsToPublishLater -ExcludeExpr "I_DONT_WANT_TO_EXCLUDE_ANYTHING" -ErrorAction SilentlyContinue
     [string[]] $appFullNames = $appsToPublishLater.Path
+    Write-Host "##[group]Apps to publish later"
     $appFullNames | ForEach-Object { Write-Host "  $($_)" }
-    Get-ChildItem -Path $targetDirAppsToPublishLater -Recurse -Filter "*.app" | Where-Object { $_.FullName -notin $appFullNames } | ForEach-Object { 
-        Write-Host "  Removing $($_.FullName)"
-        Remove-Item -Path $_.FullName -Force 
+    Write-Host "##[endgroup]"
+    $appsToRemove = Get-ChildItem -Path $targetDirAppsToPublishLater -Recurse -Filter "*.app" | Where-Object { $_.FullName -notin $appFullNames }
+    if ($appsToRemove) {
+        Write-Host "##[group]Removing apps as they are older versions of apps that are already in the list to publish later"
+        $appsToRemove | ForEach-Object { 
+            Write-Host "  Removing $($_.FullName)"
+            Remove-Item -Path $_.FullName -Force 
+        }
+        Write-Host "##[endgroup]"
     }
  
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
