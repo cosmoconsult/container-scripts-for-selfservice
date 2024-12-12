@@ -161,6 +161,7 @@ $env:nugetImported = $false
 
 $targetDir = "C:\run\my\apps"
 $targetDirManuallySorted = "C:\run\my\manuallysorted-apps"
+$targetDirAppsToPublishLater = "C:\run\my\apps-to-publish-later"
 $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
 $properties = @{}
 
@@ -176,13 +177,15 @@ try {
     Write-Host "##[group]Download Artifacts"
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { "$($_.target)".ToLower() -notin @("bak", "saasbak") -and ($_.name -notmatch "^(sortorder|downloadonly)") } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.name -match "^sortorder" } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.name -match "^downloadonly" } | Invoke-DownloadArtifact -destination $targetDirAppsToPublishLater -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
  
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
     $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
     $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
+    
 }
 catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
