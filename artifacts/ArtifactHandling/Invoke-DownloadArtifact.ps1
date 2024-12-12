@@ -48,7 +48,7 @@ function Invoke-DownloadArtifact {
         
         $tempFolder = [System.IO.Path]::GetTempFileName()
         if (Test-Path $tempFolder) { Remove-Item $tempFolder }
-        New-Item -Path $tempFolder -ItemType "Directory"
+        New-Item -Path $tempFolder -ItemType "Directory" | Out-Null
 
         $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName
         if (! $serviceTierFolder) {
@@ -135,11 +135,11 @@ function Invoke-DownloadArtifact {
                     }
                 }
                 else {
-                    Add-ArtifactsLog -message "Get Artiact $($name)..."
+                    Add-ArtifactsLog -message "Get Artifact $($name)..."
                 }
 
                 if ("$artifactVersion" -eq "" -and !$getVersionFromAPI) {
-                    Add-ArtifactsLog -message "Artiact $name (View: '$view') skipped (no version / release found)" -severity Warn
+                    Add-ArtifactsLog -message "Artifact $name (View: '$view') skipped (no version / release found)" -severity Warn
                     Invoke-LogEvent -name "Download Artifact - no Artifact found" -properties $properties -telemetryClient $telemetryClient
                     $url = ""
                 }
@@ -258,7 +258,7 @@ function Invoke-DownloadArtifact {
                     }
                     else {
                         Add-ArtifactsLog -message "Copy Artifact '$sourceUri' ($name v $artifactVersion) to $($folder)..."
-                        New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force
+                        New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force | Out-Null
                         Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
                     }
                     if ($appImportScope) {

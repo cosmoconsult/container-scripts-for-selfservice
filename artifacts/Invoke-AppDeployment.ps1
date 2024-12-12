@@ -21,11 +21,11 @@ try {
         $headers = @{}
         $headers.Add("authorization", "Bearer $BearerToken")
         if (-not (Test-Path $basePath)) {
-            New-Item "$basePath" -ItemType Directory
+            New-Item "$basePath" -ItemType Directory | Out-Null
         }
         $subfolder = $([convert]::tostring((get-random 65535), 16).padleft(8, '0'))
         $folder = Join-Path $basePath $subfolder
-        New-Item "$folder" -ItemType Directory
+        New-Item "$folder" -ItemType Directory | Out-Null
         $filename = "downloadedapp.app"
         if ($AppToDeploy.EndsWith("zip")) {
             $filename = "downloadedapp.zip"

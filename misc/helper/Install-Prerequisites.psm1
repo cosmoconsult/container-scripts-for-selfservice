@@ -61,10 +61,10 @@ function Install-OpenSSH {
   Set-Acl -Path $path -AclObject $acl
   
   # make powershell default shell
-  New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force
+  New-ItemProperty -Path "HKLM:\SOFTWARE\OpenSSH" -Name DefaultShell -Value "C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe" -PropertyType String -Force | Out-Null
   
   # create user
-  New-LocalUser -Name "sshuser" -NoPassword
+  New-LocalUser -Name "sshuser" -NoPassword | Out-Null
   Add-LocalGroupMember -Group "Administrators" -Member "sshuser"
   
   
@@ -79,41 +79,4 @@ function Install-OpenSSH {
 }
 
 Export-ModuleMember -Function Install-OpenSSH
-
-<#
- .Synopsis
-  Install Chocolatey in Container
- .Example
-  Install-Chocolatey
-#>
-function Install-Chocolatey {
-    Write-Host "##[group]Install Chocolatey"
-    Set-ExecutionPolicy Bypass -Scope Process -Force; 
-    [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; 
-    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))
-    refreshenv
-    Write-Output "Installation Chocolatey completed"
-    Write-Host "##[endgroup]"
-}
-
-Export-ModuleMember -Function Install-Chocolatey
-
-
-<#
- .Synopsis
-  Install Nodejs in Container
- .Example
-  Install-Nodejs
-#>
-function Install-Nodejs {
-    Write-Host "##[group]Install Nodejs"
-    choco install nodejs.install --version 20.17.0 -y
-    Import-Module $env:ChocolateyInstall\helpers\chocolateyProfile.psm1
-    refreshenv
-    Write-Output "Installation Nodejs completed"
-    Write-Host "##[endgroup]"
-}
-
-Export-ModuleMember -Function Install-Nodejs
-
 
