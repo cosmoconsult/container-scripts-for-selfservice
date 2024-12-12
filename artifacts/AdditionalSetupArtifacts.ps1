@@ -180,8 +180,14 @@ try {
     $artifacts | Where-Object { "$($_.target)".ToLower() -notin @("bak", "saasbak") -and ($_.name -notmatch "^(sortorder|downloadonly)") } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.name -match "^sortorder" } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
     $artifacts | Where-Object { $_.name -match "^downloadonly" } | Invoke-DownloadArtifact -destination $targetDirAppsToPublishLater -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    Start-Sleep (60*5)
     $appsToPublishLater = Get-AppFilesSortedByDependencies -Path $targetDirAppsToPublishLater
-    Get-ChildItem -Path $targetDirAppsToPublishLater -Recurse -Filter "*.app" | Where-Object { $_.FullName -notin $appsToPublishLater.FullName } | ForEach-Object { Remove-Item -Path $_.FullName -Force }
+    [string[]] $appFullNames = $appsToPublishLater.FullName
+    $appFullNames | ForEach-Object { Write-Host "  $($_)" }
+    Get-ChildItem -Path $targetDirAppsToPublishLater -Recurse -Filter "*.app" | Where-Object { $_.FullName -notin $appFullNames } | ForEach-Object { 
+        Write-Host "  Removing $($_.FullName)"
+        Remove-Item -Path $_.FullName -Force 
+    }
  
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
