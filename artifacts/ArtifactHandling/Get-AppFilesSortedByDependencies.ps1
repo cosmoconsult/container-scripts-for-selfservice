@@ -104,8 +104,12 @@ function Get-AppFilesSortedByDependencies {
         }
 
         $FinalResult = $FinalResult | Sort-Object ProcessOrder
+        Write-Host "Before"
+        $FinalResult | ForEach-Object { ConvertTo-Json $_ -Compress -Depth 100 | Write-Host}
+        Write-Host "Now changing the Application AppId to $ApplicationAppId"
         $FinalResult | Where-Object { $_.Name -eq "Application" } | Foreach-Object { $_.AppId = $ApplicationAppId }
-
+        Write-Host "After"
+        $FinalResult | ForEach-Object { ConvertTo-Json $_ -Compress -Depth 100 | Write-Host}
         return $FinalResult
     }
 }
