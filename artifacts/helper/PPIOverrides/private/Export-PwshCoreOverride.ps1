@@ -1,3 +1,8 @@
+# Import PPI Powershell Core Utils
+if (! (Get-Module 'PPIPowershellCoreUtils')) {
+    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -DisableNameChecking -Global -Force
+}
+
 $script:PwshCoreOverrides = @{}
 
 function Export-PwshCoreOverride() {
@@ -20,7 +25,7 @@ function Export-PwshCoreOverride() {
                     if (! (Get-Module $using:override.ModuleName)) {
                         Import-Module $using:override.ModulePath -wa SilentlyContinue
                     }
-                    (Get-Command $using:override.CommandName).Parameters | Select-Object -Property *
+                    (Get-Command $using:override.CommandName).Parameters
                 }
                 ConvertTo-DynamicParameters -CommandName $override.CommandName -Parameters $overwrittenParameters
             }

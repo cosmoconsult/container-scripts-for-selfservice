@@ -3,11 +3,6 @@ if ($PSVersionTable.PSEdition -eq 'Core') { return }
 # Overrides only needed if BC24 or higher
 if (! (Test-Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Microsoft.BusinessCentral.Apps.Management.dll")) { return }
 
-# Import PPI Powershell Core Utils
-if (! (Get-Module 'PPIPowershellCoreUtils')) {
-    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -DisableNameChecking -Global -Force
-}
-
 $commands = Invoke-CommandInPwshCore -ScriptBlock {
     $moduleName = 'Microsoft.BusinessCentral.Apps.Management'
     if (! (Get-Module $moduleName)) {

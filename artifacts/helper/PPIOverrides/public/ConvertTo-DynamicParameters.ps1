@@ -49,6 +49,14 @@ function ConvertTo-DynamicParameters() {
                 $dynamicParam.Attributes.Add($dynamicParamParameterAttribute)
             }
 
+            if ($param.Aliases) {
+                $dynamicParamAliasAttribute = $dynamicParam.Attributes | Where-Object { $_ -is [System.Management.Automation.AliasAttribute] } | Select-Object -First 1
+                if (! $dynamicParamAliasAttribute) {
+                    $dynamicParamAliasAttribute = New-Object System.Management.Automation.AliasAttribute($param.Aliases)
+                    $dynamicParam.Attributes.Add($dynamicParamAliasAttribute)
+                }
+            }
+
             $script:DynamicParameters[$commandKey].Add($dynamicParam.Name, $dynamicParam)
         }
     }
