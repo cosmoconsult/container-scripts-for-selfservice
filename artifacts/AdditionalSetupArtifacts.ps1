@@ -161,6 +161,7 @@ $env:nugetImported = $false
 
 $targetDir = "C:\run\my\apps"
 $targetDirManuallySorted = "C:\run\my\manuallysorted-apps"
+$targetDirAppsToPublishLater = "C:\run\my\apps-to-publish-later"
 $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
 $properties = @{}
 
@@ -179,12 +180,28 @@ try {
     Write-Host "##[group]Download Artifacts"
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { "$($_.target)".ToLower() -notin @("bak", "saasbak") -and ($_.name -notmatch "^(sortorder|downloadonly)") } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.name -match "^sortorder" } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | Where-Object { $_.name -match "^downloadonly" } | Invoke-DownloadArtifact -destination $targetDirAppsToPublishLater -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $appsToPublishLater = Get-AppFilesSortedByDependencies -Path $targetDirAppsToPublishLater -ExcludeExpr "I_DONT_WANT_TO_EXCLUDE_ANYTHING" -ErrorAction SilentlyContinue
+    [string[]] $appFullNames = $appsToPublishLater.Path
+    Write-Host "##[group]Apps to publish later"
+    $appFullNames | ForEach-Object { Write-Host "  $($_)" }
+    Write-Host "##[endgroup]"
+    $appsToRemove = Get-ChildItem -Path $targetDirAppsToPublishLater -Recurse -Filter "*.app" | Where-Object { $_.FullName -notin $appFullNames }
+    if ($appsToRemove) {
+        Write-Host "##[group]Removing apps as they are older versions of apps that are already in the list to publish later"
+        $appsToRemove | ForEach-Object { 
+            Write-Host "  Removing $($_.FullName)"
+            Remove-Item -Path $_.FullName -Force 
+        }
+        Write-Host "##[endgroup]"
+    }
  
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
-    $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
+    $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct ??_*" })
+    $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)    
 }
 catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
@@ -196,6 +213,13 @@ finally {
 
 # Initialize company
 if ($env:mode -eq "4ps") {
+    if(![string]::IsNullOrEmpty($env:removeAllCompanies)){
+        $companies = Get-NAVCompany -ServerInstance BC | Where-Object { $_.CompanyName -like "CRONUS*" }
+        foreach ($company in $companies) {
+            Write-Host "Remove company $($company.CompanyName)"
+            Remove-NAVCompany -CompanyName $company.CompanyName -ServerInstance BC
+        }
+    }
     $files = Get-DemoDataFiles
     foreach ($demoDataFile in $files) {
         $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
