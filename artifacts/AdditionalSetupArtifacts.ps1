@@ -218,6 +218,7 @@ if ($env:mode -eq "4ps") {
         foreach ($company in $companies) {
             Write-Host "Remove company $($company.CompanyName)"
             Remove-NAVCompany -CompanyName $company.CompanyName -ServerInstance BC
+            Write-Host "Company $($company.CompanyName) removed."
         }
     }
     $files = Get-DemoDataFiles
