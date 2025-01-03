@@ -211,7 +211,13 @@ function Import-AppArtifact {
                 try {
                     $started3 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Install App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
-                    Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    if ($app.Name -eq "_Exclude_Master_Data_Management") {
+                        Write-Host "Use ForceSync for App $($app.Name) $($app.Publisher) $($app.Version)"
+                        Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info -SyncMode ForceSync
+                    }
+                    else {
+                        Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    }
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app -lowerCase }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app -lowerCase }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app -lowerCase }
