@@ -217,7 +217,7 @@ if ($env:mode -eq "4ps") {
         $companies = Get-NAVCompany -ServerInstance BC | Where-Object { $_.CompanyName -like "CRONUS*" }
         foreach ($company in $companies) {
             Write-Host "Remove company $($company.CompanyName)"
-            Remove-NAVCompany -CompanyName $company.CompanyName -ServerInstance BC
+            # Remove-NAVCompany -CompanyName $company.CompanyName -ServerInstance BC
             Write-Host "Company $($company.CompanyName) removed."
         }
     }
