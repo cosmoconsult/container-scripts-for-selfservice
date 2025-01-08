@@ -390,6 +390,13 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     if (!(Test-Path -Path $databaseFolder -PathType Container)) {
         New-Item -Path $databaseFolder -itemtype Directory | Out-Null
     }
+
+    if ($bak.StartsWith("http")) {
+        $uri = New-Object System.Uri($bak)
+        $bak = Join-Path -Path $databaseFolder -ChildPath $uri.Segments[-1]
+        Write-Host " - Downloading SaaS DB from $bak"
+        Invoke-WebRequest -Uri $uri -OutFile $bak
+    }
     
     Write-Host " - Restoring SaaS DB to $databaseFolder"
     New-NAVDatabase -DatabaseServer $DatabaseServer `
