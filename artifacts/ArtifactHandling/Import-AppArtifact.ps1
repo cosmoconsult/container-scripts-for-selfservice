@@ -79,6 +79,7 @@ function Import-AppArtifact {
             
             # Uninstall old NAVApp, when present
             if ($oldApp -and $oldApp.IsInstalled) {
+                $sameVersionAlreadyPublished = $false
                 try {
                     if ($oldApp.Version -ge $app.Version) {
                         Write-Host "Skipping installation of App $($app.Name) $($app.Publisher) $($app.Version) as version $($oldApp.Version) is already installed."
@@ -104,7 +105,8 @@ function Import-AppArtifact {
                 }
             }
             else {
-                if ($oldApp) {
+                $sameVersionAlreadyPublished = $oldApp -and $oldApp.IsPublished -and ($oldApp.Version -ge $app.Version)
+                if ($oldApp -and !$sameVersionAlreadyPublished) {
                     $runDataUpgrade = $true
                 }
                 else {
@@ -115,22 +117,27 @@ function Import-AppArtifact {
     
             # Publish NAVApp
             if ($success) {
-                try {
-                    $started2 = Get-Date -Format "o"
-                    Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..." -data $app
-                    Publish-NavApp -ServerInstance $ServerInstance -Path $Path @optionalParameters -SkipVerification -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-                    $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
-                    $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
-                    $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
-                    $success = ! $err
-                    if ($success) { Add-ArtifactsLog -kind App -message "Publish App successful" -data $app -success success }
+                if ($sameVersionAlreadyPublished) {
+                    Write-Host "Skipping publishing of App $($app.Name) $($app.Publisher) $($app.Version) as version $($oldApp.Version) is already published."
                 }
-                catch {
-                    Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
-                    $success = $false
-                }
-                finally {
-                    Invoke-LogOperation -name "Publish App" -started $started2 -properties $properties -success $success -telemetryClient $telemetryClient
+                else {
+                    try {
+                        $started2 = Get-Date -Format "o"
+                        Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..." -data $app
+                        Publish-NavApp -ServerInstance $ServerInstance -Path $Path @optionalParameters -SkipVerification -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                        $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
+                        $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
+                        $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
+                        $success = ! $err
+                        if ($success) { Add-ArtifactsLog -kind App -message "Publish App successful" -data $app -success success }
+                    }
+                    catch {
+                        Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
+                        $success = $false
+                    }
+                    finally {
+                        Invoke-LogOperation -name "Publish App" -started $started2 -properties $properties -success $success -telemetryClient $telemetryClient
+                    }
                 }
                 $skipInstall = ! $success
             }
