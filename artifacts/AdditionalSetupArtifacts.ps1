@@ -371,6 +371,21 @@ $excludeAppsFromSaaSBak = @(
         Name   = "Business Central Intelligent Cloud";
         Id     = '334ef79e-547e-4631-8ba1-7a7f18e14de6';
         Reason = "works only on SaaS"
+    },
+    [pscustomobject]@{
+        Name   = "Dynamics GP Intelligent Cloud";
+        Id     = 'feeb3504-556e-4790-b28d-a2b9ce302d81';
+        Reason = "works only on SaaS"
+    },
+    [pscustomobject]@{
+        Name   = "Business Central Cloud Migration API";
+        Id     = '57623bfa-0559-4bc2-ae1c-0979c29fc8d1';
+        Reason = "works only on SaaS"
+    }
+    [pscustomobject]@{
+        Name   = "Business Central Cloud Migration - Previous Release";
+        Id     = '6992416f-3f39-4d3c-8242-3fff61350bea';
+        Reason = "works only on SaaS"
     }
 )
 if ($global:excludeAppsFromSaaSBak -is [array] -and $global:excludeAppsFromSaaSBak.Length -gt 0) {
@@ -413,7 +428,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     }
 
     foreach ($excludeApp in $excludeAppsFromSaaSBak) {
-        Write-Host "   - Removing app '$($excludeApp.Name)' if installed, reason '$($excludeApp.Reason)', id '$($excludeApp.Id)'"
+        Write-Host "   - Removing app '$($excludeApp.Name)' with id '$($excludeApp.Id)' if installed, reason: '$($excludeApp.Reason)'"
         Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Published App] WHERE [App ID] = '$($excludeApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Installed App] WHERE [App ID] = '$($excludeApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
