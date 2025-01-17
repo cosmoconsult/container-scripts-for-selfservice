@@ -158,7 +158,7 @@ function Invoke-4PSArtifactHandling {
                                 Invoke-NavCodeunit `
                                     -ServerInstance BC `
                                     -CompanyName $companyName `
-                                    -CodeunitId 11128546 `
+                                    -CodeunitId 50189 `
                                     -MethodName InitializeOSA
 
                                 Write-Host "    Initialize License"
