@@ -179,8 +179,16 @@ try {
     Write-Host "##[group]Download Artifacts"
     $started = Get-Date -Format "o"
     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    $artifacts | 
+        Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
+        Group-Object -Property dependsOn | 
+        ForEach-Object {
+            # Download per dependency for separated indexes
+            $_.Group | Invoke-DownloadArtifact -destination $targetDir -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+        }
+    $artifacts | 
+        Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } |
+        Invoke-DownloadArtifact -destination $targetDirManuallySorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
  
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
@@ -232,7 +240,7 @@ try {
     }
 
     Import-Artifacts `
-        -Path            $targetDirManuallySorted `
+        -Path            (Join-Path $targetDirManuallySorted '/independent') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
@@ -243,7 +251,7 @@ try {
         -SkipFontImport  $true
 
     Import-Artifacts `
-        -Path            $targetDir `
+        -Path            (Join-Path $targetDir '/independent') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `

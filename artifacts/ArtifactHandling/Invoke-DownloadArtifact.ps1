@@ -30,9 +30,13 @@ function Invoke-DownloadArtifact {
         [string]$pat = "",
         [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
         [string[]]$cosmoArtifactType = @(),
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
+        [string]$dependsOn = "",
         # Download Parameter
         [Parameter(Mandatory = $false)]
         [string]$destination = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
+        [Parameter(Mandatory = $false)]
+        [switch]$groupByDependency = $false,
         [Parameter(Mandatory = $false)]
         [string]$baseUrl = "https://$($env:publicdnsname)",
         [Parameter(Mandatory = $false)]
@@ -162,7 +166,7 @@ function Invoke-DownloadArtifact {
 
                 foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
                     if ($file.Name -like "*.app") {
-                        Invoke-DownloadArtifact -name $file.Name -url $file.FullName -target $target -destination $destination -telemetryClient $telemetryClient
+                        Invoke-DownloadArtifact -name $file.Name -url $file.FullName -target $target -destination $destination -dependsOn $dependsOn -telemetryClient $telemetryClient
                     }
                 }
                 $success = $true
@@ -230,16 +234,23 @@ function Invoke-DownloadArtifact {
                     else {
                         $folderSuffix = "$targetFolder"
                     }
-                    $folder = Join-Path $rootFolder "$folderSuffix"
 
                     # Overrule the Target Folder, when a special target (app, dll, font) is set
                     switch ("$target".ToLower()) {
-                        "dll" { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
-                        "add-ins" { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
-                        #"app"     { $folder = "c:/apps" }
-                        "font" { $folder = "c:/fonts" }
-                        "fonts" { $folder = "c:/fonts" }
+                        "dll"      { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
+                        "add-ins"  { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
+                        "font"     { $folder = "c:/fonts" }
+                        "fonts"    { $folder = "c:/fonts" }
                         "demodata" { $folder = "c:/demodata" }
+                        else       {
+                            if (!$groupByDependency) {
+                                $folder = Join-Path $rootFolder "/$folderSuffix"
+                            } elseif ($dependsOn) {
+                                $folder = Join-Path $rootFolder "/dependent/$($dependsOn.ToLower())/$folderSuffix"
+                            } else {
+                                $folder = Join-Path $rootFolder "/independent/$folderSuffix"
+                            }e
+                        }
                     }
 
                     if ($isArchive) {
