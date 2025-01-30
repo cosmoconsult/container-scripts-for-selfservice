@@ -246,7 +246,7 @@ function Invoke-DownloadArtifact {
                             if (!$groupByDependency) {
                                 $folder = Join-Path $rootFolder "/$folderSuffix"
                             } elseif ($dependsOn) {
-                                $folder = Join-Path $rootFolder "/depends-on-$($dependsOn.ToLower())/$folderSuffix"
+                                $folder = Join-Path $rootFolder "/depend-on-$($dependsOn.ToLower())/$folderSuffix"
                             } else {
                                 $folder = Join-Path $rootFolder "/general/$folderSuffix"
                             }
