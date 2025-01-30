@@ -27,3 +27,4 @@
 - Fix hangup of Publish-NAVApp on BC25 containers
 - Check if app is already installed when installing apps
 - Remove error-causing configuration "ServerFileCacheDirectory" for BC26
+- Reenabled configuration "ServerFileCacheDirectory" for BC26
