@@ -242,14 +242,14 @@ function Invoke-DownloadArtifact {
                         "font"     { $folder = "c:/fonts" }
                         "fonts"    { $folder = "c:/fonts" }
                         "demodata" { $folder = "c:/demodata" }
-                        else       {
+                        default    {
                             if (!$groupByDependency) {
                                 $folder = Join-Path $rootFolder "/$folderSuffix"
                             } elseif ($dependsOn) {
                                 $folder = Join-Path $rootFolder "/dependent/$($dependsOn.ToLower())/$folderSuffix"
                             } else {
                                 $folder = Join-Path $rootFolder "/independent/$folderSuffix"
-                            }e
+                            }
                         }
                     }
 
