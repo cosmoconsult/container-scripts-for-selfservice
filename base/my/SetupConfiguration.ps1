@@ -15,3 +15,11 @@ foreach ($script in $scripts) {
         . ($script)
     }
 }
+
+# Workaround for BC26 (NextMajor)
+$version = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+if ($version -and $version.Major -eq 26) {
+    if (Get-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName 'ServerFileCacheDirectory') { 
+        Set-NAVServerConfiguration -ServerInstance $ServerInstance -KeyName 'ServerFileCacheDirectory' -KeyValue '' -WA SilentlyContinue
+    }
+}
