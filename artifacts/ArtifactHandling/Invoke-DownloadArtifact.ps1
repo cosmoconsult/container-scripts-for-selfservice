@@ -166,7 +166,7 @@ function Invoke-DownloadArtifact {
 
                 foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
                     if ($file.Name -like "*.app") {
-                        Invoke-DownloadArtifact -name $file.Name -url $file.FullName -target $target -destination $destination -dependsOn $dependsOn -telemetryClient $telemetryClient
+                        Invoke-DownloadArtifact -name $file.Name -url $file.FullName -target $target -destination $destination -dependsOn $dependsOn -groupByDependency:$groupByDependency -telemetryClient $telemetryClient
                     }
                 }
                 $success = $true
