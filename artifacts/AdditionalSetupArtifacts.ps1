@@ -240,7 +240,7 @@ try {
     }
 
     Import-Artifacts `
-        -Path            (Join-Path $targetDirManuallySorted '/independent') `
+        -Path            (Join-Path $targetDirManuallySorted '/general') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
@@ -251,7 +251,7 @@ try {
         -SkipFontImport  $true
 
     Import-Artifacts `
-        -Path            (Join-Path $targetDir '/independent') `
+        -Path            (Join-Path $targetDir '/general') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
