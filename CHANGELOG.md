@@ -29,3 +29,4 @@
 - Remove error-causing configuration "ServerFileCacheDirectory" for BC26
 - Download artifacts grouped by dependency and import only independent
 - Add pwsh as ssh default shell for BC24+
+- Find path of pwsh.exe with where.exe
