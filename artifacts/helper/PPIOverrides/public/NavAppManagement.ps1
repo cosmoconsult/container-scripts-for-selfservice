@@ -1,14 +1,29 @@
 # Overrides only needed if not powershell core
 if ($PSVersionTable.PSEdition -eq 'Core') { return }
 # Overrides only needed if BC24 or higher
-if (! (Test-Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Microsoft.BusinessCentral.Apps.Management.dll")) { return }
+$bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+if ($bcVersion -and $bcVersion.Major -lt 24) { return }
 
 $commands = Invoke-CommandInPwshCore -ScriptBlock {
     $moduleName = 'Microsoft.BusinessCentral.Apps.Management'
     if (! (Get-Module $moduleName)) {
         c:\run\prompt.ps1 -silent
     }
-    Get-Command -Module $moduleName | Select-Object -Property *
+
+    $commands = @(
+        'Get-NavAppRuntimePackage', 
+        'Install-NAVApp', 
+        'Invoke-InplacePublishing', 
+        'Publish-NAVApp', 
+        'Repair-NAVApp', 
+        'Start-NAVAppDataUpgrade', 
+        'Sync-NAVApp', 
+        'Uninstall-NAVApp', 
+        'Unpublish-NAVApp'
+     ) 
+     $commands |
+        Foreach-Object { Get-Command -Module $moduleName -Name $_ } |
+        Select-Object -Property *
 }
 if (! $commands) { return }
 

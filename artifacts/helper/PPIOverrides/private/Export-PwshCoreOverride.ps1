@@ -44,7 +44,7 @@ function Export-PwshCoreOverride() {
                     if (! (Get-Module $using:override.ModuleName)) {
                         Import-Module $using:override.ModulePath -wa SilentlyContinue
                     }
-                    & $using:override.CommandName @using:PSBoundParameters # | Select-Object -Property *
+                    & $using:override.CommandName @using:PSBoundParameters | Select-Object -Property *
                 }
             }
         }
