@@ -63,11 +63,7 @@ function Install-OpenSSH {
     # pwsh as default shell for BC24+
     $bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
     if ($bcVersion -and $bcVersion.Major -ge 24) {
-        $defaultShellPath = $env:Path -split [System.IO.Path]::PathSeparator | 
-            Where-Object { -not [System.String]::IsNullOrWhiteSpace($_) } | 
-            ForEach-Object { Join-Path $_ "pwsh.exe" } | 
-            Where-Object { Test-Path -Path $_ -PathType Leaf } | 
-            Select-Object -last 1
+        $defaultShellPath = where.exe 'pwsh.exe' | Select-Object -last 1
     }
 
     if (! $defaultShellPath) {
