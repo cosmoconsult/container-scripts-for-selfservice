@@ -192,7 +192,8 @@ try {
  
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
-    $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
+    $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct ??_*" })
+    $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)    
 }
 catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
@@ -204,6 +205,14 @@ finally {
 
 # Initialize company
 if ($env:mode -eq "4ps") {
+    if(![string]::IsNullOrEmpty($env:removeAllCompanies)){
+        $companies = Get-NAVCompany -ServerInstance BC | Where-Object { $_.CompanyName -like "CRONUS*" }
+        foreach ($company in $companies) {
+            Write-Host "Remove company $($company.CompanyName)"
+            Remove-NAVCompany -CompanyName $company.CompanyName -ServerInstance BC -Force
+            Write-Host "Company $($company.CompanyName) removed."
+        }
+    }
     $files = Get-DemoDataFiles
     foreach ($demoDataFile in $files) {
         $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
