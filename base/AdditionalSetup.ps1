@@ -7,7 +7,12 @@ $scripts = @(
 Write-Host "Start AdditionalSetup"
 
 if (!$TenantId) { $TenantId = "default" }
-$serverInstanceState = (Get-NAVServerInstance BC).State
+$InstanceName="BC"
+$bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+if ($bcVersion -and $bcVersion.Major -le 14) {
+    $InstanceName="NAV"
+}
+$serverInstanceState = (Get-NAVServerInstance $InstanceName).State
 if ($serverInstanceState -ne "Running") {
     Write-Error "NAV ServerInstance not running, skipping AdditionalSetup..."
     return
