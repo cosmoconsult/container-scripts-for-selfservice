@@ -41,10 +41,10 @@ function Install-OpenSSH {
   
     @"
   Port 22
-  SyslogFacility LOCAL0
   MaxAuthTries 1
   LoginGraceTime 5
   MaxStartups 60:30:100
+  SyslogFacility LOCAL0
   PubkeyAuthentication yes
   PasswordAuthentication no
   ClientAliveInterval 60
