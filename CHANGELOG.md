@@ -27,4 +27,8 @@
 - Fix hangup of Publish-NAVApp on BC25 containers
 - Check if app is already installed when installing apps
 - Remove error-causing configuration "ServerFileCacheDirectory" for BC26
+- Download artifacts grouped by dependency and import only independent
+- Add pwsh as ssh default shell for BC24+
+- Find path of pwsh.exe with where.exe
+- Add version of bc server executable to output at startup
 - Reenabled configuration "ServerFileCacheDirectory" for BC26
