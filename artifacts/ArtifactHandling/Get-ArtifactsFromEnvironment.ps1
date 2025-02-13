@@ -77,6 +77,18 @@ function Get-ArtifactsFromEnvironment {
                 }
                 else {
                     $artifacts = $artifacts | Where-Object { -not ($_.ignorein -contains "dev") }
+
+                    # Add AL Test Runner App
+                    $bcMajorVersion = Get-BcMajorVersion
+                    if ($bcMajorVersion -ge 22) {
+                        $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service.app"
+                    } else if ($bcMajorVersion -ge 15) {
+                        $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service_pre22.app"
+                    }
+                    $artifact += @{
+                        url = $testRunnerUrl
+                        type = "app"
+                    }
                 }
             }
         }

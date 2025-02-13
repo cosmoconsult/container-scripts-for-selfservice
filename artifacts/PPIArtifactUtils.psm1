@@ -19,6 +19,7 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-Fonts.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-ArtifactJson.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-NugetTools.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/Get-BcMajorVersion.ps1")
 
 # 4PS
 . (Join-Path $PSScriptRoot "4PS/Wait-DataUpgradeToFinish.ps1")

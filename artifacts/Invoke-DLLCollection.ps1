@@ -23,16 +23,7 @@ try {
   $sharedFolderTarget = "C:\temp\shared\"
   
   # Identify version
-  $sysAppPath = 'C:\Applications\system application\source\Microsoft_System Application.app'
-  $twentyTwoOrLater = $true
-  if (Test-Path $sysAppPath) {
-    c:\run\prompt.ps1
-    $sysAppInfoFS = Get-NAVAppInfo -Path $sysAppPath
-    $sysAppVersionFS = $sysAppInfoFS.Version
-    if ($sysAppVersionFS.Major -lt 22) {
-      $twentyTwoOrLater = $false
-    }
-  }
+  $twentyTwoOrLater = Get-BcMajorVersion -ge 22
   
   # Cleanup in the beginning (just in case)
   Write-Host "Cleanup"
