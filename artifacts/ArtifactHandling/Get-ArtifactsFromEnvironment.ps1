@@ -15,9 +15,25 @@ function Get-ArtifactsFromEnvironment {
     }
     
     process {
+        $artifacts = @()
+
+        if (-not $env:IsBuildContainer) {
+            # Add AL Test Runner App by default
+            $bcMajorVersion = Get-BcMajorVersion
+            if ($bcMajorVersion -ge 22) {
+                $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service.app"
+            } elseif ($bcMajorVersion -ge 15) {
+                $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service_pre22.app"
+            }
+            $artifacts += @{
+                url = $testRunnerUrl
+                type = "app"
+            }
+        }
+        
+
         if ("$env:AZURE_DEVOPS_PACKAGES" -eq "" -and (-not $global:extendedEnv.AzureDevOpsArtifacts)) {
             Write-Host "not packages / artifacts found"
-            $artifacts = [System.Collections.ArrayList]@()
             if (("$path" -ne "") -and (Test-Path "$path")) {
                 $artifactJson = (Get-Content $path -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue)
                 if ($artifactJson.artifacts) {
@@ -30,7 +46,6 @@ function Get-ArtifactsFromEnvironment {
             return $artifacts
         }
 
-        $artifacts = @()
         try {
             if ("$env:AZURE_DEVOPS_PACKAGES" -ne "") {
                 $packages = "$env:AZURE_DEVOPS_PACKAGES".Split(@(',', ';'))
@@ -64,9 +79,8 @@ function Get-ArtifactsFromEnvironment {
 
                 Write-Host "Artifacts: $artifactJson"
                 $envArtifacts = ($artifactJson | ConvertFrom-Json -ErrorAction SilentlyContinue)
-                $artifacts = $envArtifacts.artifacts
-                if (! $artifacts) {
-                    $artifacts = @()
+                if ($envArtifacts.artifacts) {
+                    $artifacts += $loadedEnvArtifacts
                 }
                 if ($envArtifacts.devopsArtifacts) {
                     $artifacts += $envArtifacts.devopsArtifacts
@@ -77,18 +91,6 @@ function Get-ArtifactsFromEnvironment {
                 }
                 else {
                     $artifacts = $artifacts | Where-Object { -not ($_.ignorein -contains "dev") }
-
-                    # Add AL Test Runner App
-                    $bcMajorVersion = Get-BcMajorVersion
-                    if ($bcMajorVersion -ge 22) {
-                        $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service.app"
-                    } elseif ($bcMajorVersion -ge 15) {
-                        $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service_pre22.app"
-                    }
-                    $artifact += @{
-                        url = $testRunnerUrl
-                        type = "app"
-                    }
                 }
             }
         }
