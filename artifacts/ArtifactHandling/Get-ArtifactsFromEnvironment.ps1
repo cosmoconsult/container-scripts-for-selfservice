@@ -82,7 +82,7 @@ function Get-ArtifactsFromEnvironment {
                     $bcMajorVersion = Get-BcMajorVersion
                     if ($bcMajorVersion -ge 22) {
                         $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service.app"
-                    } else if ($bcMajorVersion -ge 15) {
+                    } elseif ($bcMajorVersion -ge 15) {
                         $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service_pre22.app"
                     }
                     $artifact += @{
