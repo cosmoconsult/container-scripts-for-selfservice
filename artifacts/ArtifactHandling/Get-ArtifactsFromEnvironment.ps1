@@ -18,7 +18,7 @@ function Get-ArtifactsFromEnvironment {
         $artifacts = @()
 
         if (-not $env:IsBuildContainer) {
-            # Add AL Test Runner App by default
+            Write-Host "Adding AL-Test-Runner app as default app artifact"
             $bcMajorVersion = Get-BcMajorVersion
             if ($bcMajorVersion -ge 22) {
                 $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service.app"
