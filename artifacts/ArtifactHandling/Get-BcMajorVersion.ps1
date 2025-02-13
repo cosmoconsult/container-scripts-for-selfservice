@@ -7,7 +7,7 @@ function Get-BcMajorVersion {
     
     process {
         if (Test-Path $sysAppPath) {
-            if (-not Get-Command Get-NAVAppInfo -ErrorAction SilentlyContinue) {
+            if (-not (Get-Command Get-NAVAppInfo -ErrorAction SilentlyContinue)) {
                 c:\run\prompt.ps1
             }
             
