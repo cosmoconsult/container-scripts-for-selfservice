@@ -206,10 +206,10 @@ finally {
 # Initialize company
 if ($env:mode -eq "4ps") {
     if(![string]::IsNullOrEmpty($env:removeAllCompanies)){
-        $companies = Get-NAVCompany -ServerInstance BC | Where-Object { $_.CompanyName -like "CRONUS*" }
+        $companies = Get-NAVCompany -ServerInstance BC -Tenant $TenantId | Where-Object { $_.CompanyName -like "CRONUS*" }
         foreach ($company in $companies) {
             Write-Host "Remove company $($company.CompanyName)"
-            Remove-NAVCompany -CompanyName $company.CompanyName -ServerInstance BC -Force
+            Remove-NAVCompany -CompanyName $company.CompanyName -ServerInstance BC -Force -Tenant $TenantId
             Write-Host "Company $($company.CompanyName) removed."
         }
     }
@@ -220,7 +220,7 @@ if ($env:mode -eq "4ps") {
         if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
             $companyName = $Matches[1]
             Write-Host "  Create company $companyName"
-            New-NAVCompany -CompanyName $companyName -ServerInstance BC
+            New-NAVCompany -CompanyName $companyName -ServerInstance BC -Tenant $TenantId
         }
     }
 }
