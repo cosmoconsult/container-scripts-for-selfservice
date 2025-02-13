@@ -15,7 +15,7 @@ function Get-ArtifactsFromEnvironment {
     }
     
     process {
-        $artifacts = @()
+        $artifacts = [System.Collections.ArrayList]@()
 
         if (-not $env:IsBuildContainer) {
             Write-Host "Adding AL-Test-Runner app as default app artifact"
