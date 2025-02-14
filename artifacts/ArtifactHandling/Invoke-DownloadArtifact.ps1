@@ -323,7 +323,6 @@ function Invoke-DownloadArtifact {
     
     end {
         $artifactVersion = ""
-        Write-Host "##vso[task.setvariable variable=folder-dependent-on-app-exists;isOutput=true]$(Test-Path (Join-Path $destination "dependent-on-app"))"
     }
 }
 Export-ModuleMember -Function Invoke-DownloadArtifact

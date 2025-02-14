@@ -186,6 +186,8 @@ try {
             # Download per dependency for separated indexes
             $_.Group | Invoke-DownloadArtifact -destination $targetDir -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
         }
+    Write-Host "##vso[task.setvariable variable=folder-dependent-on-app-exists;isOutput=true]$(Test-Path (Join-Path $targetDir "dependent-on-app"))"
+    
     $artifacts | 
         Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } |
         Invoke-DownloadArtifact -destination $targetDirManuallySorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
