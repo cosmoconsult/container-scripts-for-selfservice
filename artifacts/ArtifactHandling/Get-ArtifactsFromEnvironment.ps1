@@ -53,7 +53,7 @@ function Get-ArtifactsFromEnvironment {
                 Write-Host "Artifacts from AZURE_DEVOPS_PACKAGES ..."
                 
                 $packages | ForEach-Object {
-                    $artifacts += @{
+                    $artifacts += [PSCustomObject]@{
                         name         = "$_";
                         organization = "$($env:AZURE_DEVOPS_ORGANIZATION)";
                         project      = "$($env:AZURE_DEVOPS_PROJECT)";
@@ -81,10 +81,10 @@ function Get-ArtifactsFromEnvironment {
                 Write-Host "Artifacts: $artifactJson"
                 $envArtifacts = ($artifactJson | ConvertFrom-Json -ErrorAction SilentlyContinue)
                 if ($envArtifacts.artifacts) {
-                    $artifacts += $loadedEnvArtifacts
+                    $artifacts.AddRange($envArtifacts.artifacts)
                 }
                 if ($envArtifacts.devopsArtifacts) {
-                    $artifacts += $envArtifacts.devopsArtifacts
+                    $artifacts.AddRange($envArtifacts.devopsArtifacts)
                 }
 
                 if ($env:IsBuildContainer) {
