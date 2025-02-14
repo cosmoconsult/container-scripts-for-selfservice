@@ -25,7 +25,7 @@ function Get-ArtifactsFromEnvironment {
             } elseif ($bcMajorVersion -ge 15) {
                 $testRunnerUrl = "https://cosmoalpaca.blob.core.windows.net/cosmoalpaca/James%20Pearson_Test%20Runner%20Service_pre22.zip?sp=r&st=2025-02-13T16:08:08Z&se=2999-02-14T00:08:08Z&spr=https&sv=2022-11-02&sr=b&sig=iuisPtfR41MaAMxe6qzBkrTpZnuJCPB0aTaqSIWgg2o%3D"
             }
-            $artifacts += @{
+            $artifacts += [PSCustomObject]@{
                 name = "AL Test Runner"
                 url = $testRunnerUrl
                 type = "app"
