@@ -21,9 +21,9 @@ function Get-ArtifactsFromEnvironment {
             Write-Host "Adding AL-Test-Runner app as default app artifact"
             $bcMajorVersion = Get-BcMajorVersion
             if ($bcMajorVersion -ge 22) {
-                $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service.app"
+                $testRunnerUrl = "https://cosmoalpaca.blob.core.windows.net/cosmoalpaca/James%20Pearson_Test%20Runner%20Service.zip?sp=r&st=2025-02-14T08:40:03Z&se=2999-02-14T16:40:03Z&spr=https&sv=2022-11-02&sr=b&sig=DpVpYH88eAF4UCQfKw3e1dMUI75bshubC9ygJh4Jous%3D"
             } elseif ($bcMajorVersion -ge 15) {
-                $testRunnerUrl = "https://github.com/jimmymcp/test-runner-service/raw/master/James%20Pearson_Test%20Runner%20Service_pre22.app"
+                $testRunnerUrl = "https://cosmoalpaca.blob.core.windows.net/cosmoalpaca/James%20Pearson_Test%20Runner%20Service_pre22.zip?sp=r&st=2025-02-14T08:40:18Z&se=2999-02-14T16:40:18Z&spr=https&sv=2022-11-02&sr=b&sig=swgRlSaRzQYABMYNjyhmyVnNVxv4nZkxhRkI3tmL5gs%3D"
             }
             $artifacts += [PSCustomObject]@{
                 name = "AL Test Runner"
