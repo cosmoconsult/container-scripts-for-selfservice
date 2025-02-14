@@ -37,6 +37,14 @@ function Import-Artifacts {
     }
     
     process {
+        $moduleName = "Microsoft.Dynamics.Nav.Management.psm1"
+        if (-not (Get-Module -Name $moduleName)) {
+            $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName
+            if (Test-Path "$serviceTierFolder\$moduleName") {
+                Write-Host "Import Management Utils from $serviceTierFolder\$moduleName"
+                Import-Module "$serviceTierFolder\$moduleName" -Force -ErrorAction Stop -DisableNameChecking 2>$null
+            }
+        }
         $maxDepth = 4 # max recurse folder depth for searching Apps, FOBs, RIMs, ...
         
         # Import FOBs
@@ -57,7 +65,7 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import FOBs Error: $($_.Exception.Message)" -f Red  | Out-String
-                if($throwErrors) {
+                if ($throwErrors) {
                     throw $_
                 }
             }
@@ -112,7 +120,7 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import Apps Error: $($_.Exception.Message)" -f Red
-                if($throwErrors) {
+                if ($throwErrors) {
                     throw $_
                 }
             }
@@ -142,7 +150,7 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import RapidStart packages Error: $($_.Exception.Message)" -f Red
-                if($throwErrors) {
+                if ($throwErrors) {
                     throw $_
                 }
             }
@@ -171,7 +179,7 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import Fonts Error: $($_.Exception.Message)" -f Red  | Out-String
-                if($throwErrors) {
+                if ($throwErrors) {
                     throw $_
                 }
             }
