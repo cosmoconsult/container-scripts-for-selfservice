@@ -48,23 +48,9 @@ function Unpublish-AllNavAppsInServerInstance {
             
             $ExistingApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant 
             Write-Host "Before foreach $(ConvertTo-Json $ExistingApps -Compress)"
-            $appsToSkip = @(
-                @{ Name = "System Application"; Prio = 20 },
-                @{ Name = "Business Foundation"; Prio = 30 },
-                @{ Name = "Base Application"; Prio = 40 },
-                @{ Name = "Application"; Prio = 60 },
-                @{ Name = "Intrastat Core"; Prio = 100 },
-                @{ Name = "Library Assert"; Prio = 115 },
-                @{ Name = "Business Foundation Test Libraries"; Prio = 110 }
-            )
-            $ExistingApps2 = $ExistingApps
-            if($firstRun){
-                $ExistingApps2 = $ExistingApps  | Where-Object { $_.Name -notin $appsToSkip.Name }
-                $firstRun = $false
-            }
             
-            foreach ($ExistingApp in $ExistingApps2) {  
-                Write-Host "in foreach $(ConvertTo-Json $ExistingApp -Compress)"
+            foreach ($ExistingApp in $ExistingApps) {  
+                Write-Host "in foreach of $($ExistingApp.name): $(ConvertTo-Json $ExistingApp -Compress)"
                 try {
                     Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance
                     Write-Host "After unpublish"
@@ -74,6 +60,8 @@ function Unpublish-AllNavAppsInServerInstance {
                     Write-Host "End of foreach"
                 }catch{
                     Write-Host "Error: $(ConvertTo-Json $_ -Compress)"
+                    Write-Host "Sleep 2 seconds for the tenant to calm down"
+                    Start-Sleep -Seconds 2
                 }
             }
             Write-Host "After foreach"  
