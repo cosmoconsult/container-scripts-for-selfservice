@@ -57,8 +57,8 @@ function Unpublish-AllNavAppsInServerInstance {
                     "App {0} with version {1} unpublished..." -f $ExistingApp.name, $ExistingApp.Version
                 }
                 Write-Host "End of foreach"
-                Write-Host "Sleep 500 milliseconds for the tenant to calm down"
-                Start-Sleep -Milliseconds 500
+                Write-Host "Sleep 5 seconds for the tenant to calm down"
+                Start-Sleep -seconds 5
             }
             Write-Host "After foreach"  
         } 
