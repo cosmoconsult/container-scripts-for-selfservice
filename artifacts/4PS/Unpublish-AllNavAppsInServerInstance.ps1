@@ -43,6 +43,7 @@ function Unpublish-AllNavAppsInServerInstance {
             Write-Host "After Uninstall"
         }
         Write-Host "After foreach InstalledApps"
+        $firstRun = $true
         while (Get-NAVAppInfo -ServerInstance $ServerInstance) {
             
             $ExistingApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant 
@@ -56,8 +57,13 @@ function Unpublish-AllNavAppsInServerInstance {
                 @{ Name = "Library Assert"; Prio = 115 },
                 @{ Name = "Business Foundation Test Libraries"; Prio = 110 }
             )
+            $ExistingApps2 = $ExistingApps
+            if($firstRun){
+                $ExistingApps2 = $ExistingApps  | Where-Object { $_.Name -notin $appsToSkip.Name }
+                $firstRun = $false
+            }
             
-            foreach ($ExistingApp in ($ExistingApps | Where-Object { $_.Name -notin $appsToSkip.Name })) {  
+            foreach ($ExistingApp in $ExistingApps2) {  
                 Write-Host "in foreach $(ConvertTo-Json $ExistingApp -Compress)"
                 try {
                     Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance
@@ -70,24 +76,7 @@ function Unpublish-AllNavAppsInServerInstance {
                     Write-Host "Error: $(ConvertTo-Json $_ -Compress)"
                 }
             }
-            Write-Host "After foreach"
-            
-            Write-Host "Before foreach of appsToUnpublishLater"
-            foreach ($AppName in ($appsToSkip | Sort-Object { $_.Prio } -Descending ).Name) {  
-                $ExistingApp = $ExistingApps | Where-Object { $_.Name -eq $AppName }
-                Write-Host "in foreach $(ConvertTo-Json $ExistingApp -Compress)"
-                try {
-                    Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance
-                    Write-Host "After unpublish"
-                    if (!(Get-NAVAppInfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance)) {
-                        "App {0} with version {1} unpublished..." -f $ExistingApp.name, $ExistingApp.Version
-                    }
-                    Write-Host "End of foreach"
-                }catch{
-                    Write-Host "Error: $(ConvertTo-Json $_ -Compress)"
-                }
-            }
-            Write-Host "After foreach"
+            Write-Host "After foreach"  
         } 
         Write-Host "After while Get-NAVAppInfo"
     }
