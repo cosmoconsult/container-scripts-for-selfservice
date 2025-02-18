@@ -52,7 +52,9 @@ function Unpublish-AllNavAppsInServerInstance {
                 @{ Name = "Business Foundation"; Prio = 30 },
                 @{ Name = "Base Application"; Prio = 40 },
                 @{ Name = "Application"; Prio = 60 },
-                @{ Name = "Intrastat Core"; Prio = 100 }
+                @{ Name = "Intrastat Core"; Prio = 100 },
+                @{ Name = "Library Assert"; Prio = 115 },
+                @{ Name = "Business Foundation Test Libraries"; Prio = 110 }
             )
             
             foreach ($ExistingApp in ($ExistingApps | Where-Object { $_.Name -notin $appsToSkip.Name })) {  
@@ -72,7 +74,7 @@ function Unpublish-AllNavAppsInServerInstance {
             
             Write-Host "Before foreach of appsToUnpublishLater"
             foreach ($AppName in ($appsToSkip | Sort-Object { $_.Prio } -Descending ).Name) {  
-                $ExistingApp = $ExistingApps | Where-Object { $_.Name = $AppName }
+                $ExistingApp = $ExistingApps | Where-Object { $_.Name -eq $AppName }
                 Write-Host "in foreach $(ConvertTo-Json $ExistingApp -Compress)"
                 try {
                     Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance
