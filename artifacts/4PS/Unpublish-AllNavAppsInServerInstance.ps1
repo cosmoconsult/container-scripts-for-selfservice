@@ -43,7 +43,8 @@ function Unpublish-AllNavAppsInServerInstance {
             Write-Host "After Uninstall"
         }
         Write-Host "After foreach InstalledApps"
-        
+        Write-Host "Do not unpublish apps"
+        return
         while (Get-NAVAppInfo -ServerInstance $ServerInstance) {
             
             $ExistingApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant 
