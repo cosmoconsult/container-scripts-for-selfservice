@@ -51,10 +51,10 @@ function Unpublish-AllNavAppsInServerInstance {
             
             foreach ($ExistingApp in $ExistingApps) {  
                 Write-Host "in foreach $(ConvertTo-Json $ExistingApp -Compress)"
-                Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance -ErrorAction SilentlyContinue
+                Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance
                 Write-Host "After unpublish"
                 do{
-                    $appinfo = Get-NAVAppInfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance;
+                    $appinfo = Get-NAVAppInfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant;
                     if(!$appinfo) { break; }
                     Write-Host "Still got Get-NAVAppInfo $(ConvertTo-Json $appinfo -Compress)"
                     Start-Sleep -Seconds 5
