@@ -35,10 +35,10 @@ function Unpublish-AllNavAppsInServerInstance {
         foreach ($InstalledApp in $InstalledApps) {
             Write-Host "Before Uninstall $(ConvertTo-Json $InstalledApp -Compress)"
             if($KeepData) {
-                Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force -WarningAction SilentlyContinue
+                Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force
             }
             else {
-                Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force -DoNotSaveData -WarningAction SilentlyContinue
+                Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force -DoNotSaveData
             }
             Write-Host "After Uninstall"
         }
