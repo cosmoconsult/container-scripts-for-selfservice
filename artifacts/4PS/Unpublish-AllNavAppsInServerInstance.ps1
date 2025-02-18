@@ -31,27 +31,36 @@ function Unpublish-AllNavAppsInServerInstance {
 
         $InstalledApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant | where-object 'IsInstalled' -eq $true 
         
+        Write-Host "Before foreach InstalledApps $(ConvertTo-Json $InstalledApps -Compress)"
         foreach ($InstalledApp in $InstalledApps) {
+            Write-Host "Before Uninstall $(ConvertTo-Json $InstalledApp -Compress)"
             if($KeepData) {
                 Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force -WarningAction SilentlyContinue
             }
             else {
                 Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force -DoNotSaveData -WarningAction SilentlyContinue
             }
+            Write-Host "After Uninstall"
         }
+        Write-Host "After foreach InstalledApps"
         
         while (Get-NAVAppInfo -ServerInstance $ServerInstance) {
-           
+            
             $ExistingApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant 
-        
+            Write-Host "Before foreach $(ConvertTo-Json $ExistingApps -Compress)"
+            
             foreach ($ExistingApp in $ExistingApps) {  
+                Write-Host "in foreach $(ConvertTo-Json $ExistingApp -Compress)"
                 Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance -ErrorAction SilentlyContinue
+                Write-Host "After unpublish"
                 if (!(Get-NAVAppInfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance)) {
                     "App {0} with version {1} unpublished..." -f $ExistingApp.name, $ExistingApp.Version
                 }
+                Write-Host "End of foreach"
             }
-        
+            Write-Host "After foreach"
         } 
+        Write-Host "After while Get-NAVAppInfo"
     }
 }
 
