@@ -34,7 +34,7 @@ function Unpublish-AllNavAppsInServerInstance {
         Write-Host "Before foreach InstalledApps $(ConvertTo-Json $InstalledApps -Compress)"
         foreach ($InstalledApp in $InstalledApps) {
             Write-Host "Before Uninstall $(ConvertTo-Json $InstalledApp -Compress)"
-            if($KeepData) {
+            if ($KeepData) {
                 Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force
             }
             else {
@@ -51,18 +51,16 @@ function Unpublish-AllNavAppsInServerInstance {
             
             foreach ($ExistingApp in $ExistingApps) {  
                 Write-Host "in foreach $(ConvertTo-Json $ExistingApp -Compress)"
-                Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance
-                Write-Host "After unpublish"
-                do{
-                    $appinfo = Get-NAVAppInfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant;
-                    if(!$appinfo) { break; }
-                    Write-Host "Still got Get-NAVAppInfo $(ConvertTo-Json $appinfo -Compress)"
-                    Start-Sleep -Seconds 5
-                } while ($true)
-                if (!(Get-NAVAppInfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance)) {
-                    "App {0} with version {1} unpublished..." -f $ExistingApp.name, $ExistingApp.Version
+                try {
+                    Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance
+                    Write-Host "After unpublish"
+                    if (!(Get-NAVAppInfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance)) {
+                        "App {0} with version {1} unpublished..." -f $ExistingApp.name, $ExistingApp.Version
+                    }
+                    Write-Host "End of foreach"
+                }catch{
+                    Write-Host "Error: $(ConvertTo-Json $_ -Compress)"
                 }
-                Write-Host "End of foreach"
             }
             Write-Host "After foreach"
         } 
