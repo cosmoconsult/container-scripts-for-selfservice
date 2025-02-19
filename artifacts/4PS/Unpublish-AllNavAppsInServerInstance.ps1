@@ -32,18 +32,14 @@ function Unpublish-AllNavAppsInServerInstance {
         #$InstalledApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant | where-object 'IsInstalled' -eq $true 
 
         function AddAnApp { Param($anApp)
-            Write-Host "AddAnApp $($anapp.Name) $($anapp.Version)"
             $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId -and $_.Version -eq $anApp.Version }
             if (-not ($alreadyAdded)) {
-                Write-Host "add dependencies"
                 AddDependencies -anApp $anApp
-                Write-Host "add the app $($anapp.Name)"
                 [array]$script:installedApps += $anApp
             }
         }
         
         function AddDependency { Param($dependency)
-            Write-Host "Add Dependency $($dependency.Name) $($dependency.Version)"
             $dependentApp = $apps | Where-Object { "$($_.AppId)" -eq "$($dependency.AppId)"  }
             if ($dependentApp) {
                 @($dependentApp) | ForEach-Object { AddAnApp -AnApp $_ }
@@ -51,7 +47,6 @@ function Unpublish-AllNavAppsInServerInstance {
         }
         
         function AddDependencies { Param($anApp)
-            Write-Host "Add Dependencies for $($anApp.Name)"
             if (($anApp) -and ($anApp.Dependencies)) {
                 $anApp.Dependencies | % { AddDependency -Dependency $_ }
             }
