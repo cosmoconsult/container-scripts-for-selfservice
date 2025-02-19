@@ -57,7 +57,7 @@ function Unpublish-AllNavAppsInServerInstance {
             }
         }
         
-        $apps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $Tenant | where-object 'IsInstalled' -eq $true  | ForEach-Object { Get-NAVAppInfo -id "$($_.AppId)" -publisher $_.publisher -name $_.name -version $_.Version -ServerInstance $ServerInstance -Tenant $Tenant }
+        $apps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $Tenant -TenantSpecificProperties | where-object 'IsInstalled' -eq $true  | ForEach-Object { Get-NAVAppInfo -id "$($_.AppId)" -publisher $_.publisher -name $_.name -version $_.Version -ServerInstance $ServerInstance -Tenant $Tenant -TenantSpecificProperties }
         $apps | ForEach-Object { AddAnApp -AnApp $_ }
         $apps = $script:installedApps
         [Array]::Reverse($apps)
@@ -77,7 +77,7 @@ function Unpublish-AllNavAppsInServerInstance {
         $runNo = 1
         while (Get-NAVAppInfo -ServerInstance $ServerInstance) {
             
-            $ExistingApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $Tenant | ForEach-Object { Get-NAVAppInfo -id "$($_.AppId)" -publisher $_.publisher -name $_.name -version $_.Version -ServerInstance $ServerInstance -Tenant $Tenant }
+            $ExistingApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $Tenant -TenantSpecificProperties | ForEach-Object { Get-NAVAppInfo -id "$($_.AppId)" -publisher $_.publisher -name $_.name -version $_.Version -ServerInstance $ServerInstance -Tenant $Tenant -TenantSpecificProperties }
             $ExistingApps | ForEach-Object { AddAnApp -AnApp $_ }
             $ExistingApps = $script:installedApps
             [Array]::Reverse($ExistingApps)
