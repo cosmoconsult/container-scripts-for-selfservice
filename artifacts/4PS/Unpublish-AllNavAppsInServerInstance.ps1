@@ -27,12 +27,43 @@ function Unpublish-AllNavAppsInServerInstance {
             $ServerInstance = 'BC'
         }
         
-        $InstalledApps = @{}
+        #$InstalledApps = @{}
 
-        $InstalledApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant | where-object 'IsInstalled' -eq $true 
+        #$InstalledApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant | where-object 'IsInstalled' -eq $true 
+
+        function AddAnApp { Param($anApp)
+            #Write-Host "AddAnApp $($anapp.Name) $($anapp.Version)"
+            $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId -and $_.Version -eq $anApp.Version }
+            if (-not ($alreadyAdded)) {
+                #Write-Host "add dependencies"
+                AddDependencies -anApp $anApp
+                #Write-Host "add the app $($anapp.Name)"
+                [array]$script:installedApps += $anApp
+            }
+        }
+        
+        function AddDependency { Param($dependency)
+            #Write-Host "Add Dependency $($dependency.Name) $($dependency.Version)"
+            $dependentApp = $apps | Where-Object { "$($_.AppId)" -eq "$($dependency.AppId)"  }
+            if ($dependentApp) {
+                @($dependentApp) | ForEach-Object { AddAnApp -AnApp $_ }
+            }
+        }
+        
+        function AddDependencies { Param($anApp)
+            #Write-Host "Add Dependencies for $($anApp.Name)"
+            if (($anApp) -and ($anApp.Dependencies)) {
+                $anApp.Dependencies | % { AddDependency -Dependency $_ }
+            }
+        }
+        
+        $apps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $Tenant | where-object 'IsInstalled' -eq $true  | ForEach-Object { Get-NAVAppInfo -id "$($_.AppId)" -publisher $_.publisher -name $_.name -version $_.Version -ServerInstance $ServerInstance -Tenant $Tenant }
+        $apps | ForEach-Object { AddAnApp -AnApp $_ }
+        $apps = $script:installedApps
+        [Array]::Reverse($apps)
         
         Write-Host "Before foreach InstalledApps $(ConvertTo-Json $InstalledApps -Compress)"
-        foreach ($InstalledApp in $InstalledApps) {
+        foreach ($InstalledApp in $apps) {
             Write-Host "Before Uninstall $(ConvertTo-Json $InstalledApp -Compress)"
             if ($KeepData) {
                 Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force
@@ -46,9 +77,12 @@ function Unpublish-AllNavAppsInServerInstance {
         $runNo = 1
         while (Get-NAVAppInfo -ServerInstance $ServerInstance) {
             
-            $ExistingApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant 
+            $ExistingApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $Tenant | ForEach-Object { Get-NAVAppInfo -id "$($_.AppId)" -publisher $_.publisher -name $_.name -version $_.Version -ServerInstance $ServerInstance -Tenant $Tenant }
+            $ExistingApps | ForEach-Object { AddAnApp -AnApp $_ }
+            $ExistingApps = $script:installedApps
+            [Array]::Reverse($ExistingApps)
             Write-Host "Before foreach $(ConvertTo-Json $ExistingApps -Compress)"
-            $appsToUnpublishLater = @(
+            <#$appsToUnpublishLater = @(
                 @{ Name = "System Application"; Prio = 8 },
                 @{ Name = "Business Foundation"; Prio = 7 },
                 @{ Name = "Business Foundation W1"; Prio = 7 },
@@ -63,9 +97,9 @@ function Unpublish-AllNavAppsInServerInstance {
             )
             $appsToSkipThisRun = $appsToUnpublishLater | Where-Object { $_.Prio -gt $runNo }
             [string[]]$names = $appsToSkipThisRun.Name
-            $ExistingApps2 = $ExistingApps  | Where-Object { $_.Name -notin $names }
+            $ExistingApps2 = $ExistingApps  | Where-Object { $_.Name -notin $names }#>
             
-            foreach ($ExistingApp in $ExistingApps2) {  
+            foreach ($ExistingApp in $ExistingApps) {  
                 Write-Host "in foreach $(ConvertTo-Json $ExistingApp -Compress)"
                 try {
                     Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance
