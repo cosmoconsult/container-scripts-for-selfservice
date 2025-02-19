@@ -51,11 +51,15 @@ function Unpublish-AllNavAppsInServerInstance {
             $appsToUnpublishLater = @(
                 @{ Name = "System Application"; Prio = 8 },
                 @{ Name = "Business Foundation"; Prio = 7 },
+                @{ Name = "Business Foundation W1"; Prio = 7 },
                 @{ Name = "Base Application"; Prio = 6 },
+                @{ Name = "4PS Construct De"; Prio = 6 },
                 @{ Name = "Application"; Prio = 5 },
                 @{ Name = "Intrastat Core"; Prio = 4 },
+                @{ Name = "4PS System Application W1"; Prio = 4 },
                 @{ Name = "Library Assert"; Prio = 3 },
-                @{ Name = "Business Foundation Test Libraries"; Prio = 2 }
+                @{ Name = "4PS Base Application W1"; Prio = 3 },
+                @{ Name = "Business Foundation Test Libraries"; Prio = 2 }                
             )
             $appsToSkipThisRun = $appsToUnpublishLater | Where-Object { $_.Prio -gt $runNo }
             [string[]]$names = $appsToSkipThisRun.Name
