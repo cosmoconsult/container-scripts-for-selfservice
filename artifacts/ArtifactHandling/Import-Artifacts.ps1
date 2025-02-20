@@ -85,6 +85,21 @@ function Import-Artifacts {
                 Write-Host "Import $($items.Length) Apps..."
                 
                 Add-ArtifactsLog -message "Install Apps:$([System.Environment]::NewLine)$($items | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)" -data $app
+
+                # Figure out whether we are also importing the Application app, as that might indicate that we are importing a modified base app. If yes, try to
+                # identify the modified base app by looking at the dependencies 
+                $applicationApp = Get-ChildItem -Path "C:\run\my\apps" -Recurse -Filter "4PS B.V._Application_*.app" | Select-Object -First 1
+                if ($applicationApp) {
+                    $applicationAppInfo = Get-NAVAppInfo -Path $applicationApp.FullName
+                    $modifiedBaseAppInfo = $applicationAppInfo.Dependencies | Where-Object { $_.Publisher -eq "4PS B.V." -and $_.Name.StartsWith("4PS Construct ") }
+                    if ($modifiedBaseAppInfo -is [array]) {
+                        Write-Error "Multiple modified potential base apps found. Unable to choose, please adjust filter (startup scripts -> artifacts/ArtifactHandling/Import-Artifacts.ps1)"
+                        $modifiedBaseAppName = ""
+                    }
+                    else {
+                        $modifiedBaseAppName = $modifiedBaseAppInfo.Name
+                    }
+                }
                 
                 # Import all Apps
                 foreach ($item in $items) {
@@ -97,7 +112,7 @@ function Import-Artifacts {
                         }
                     }
 
-                    $IsModifiedBaseApp = $item.Path.IndexOf("sortorder01") -gt -1
+                    $IsModifiedBaseApp = $item.Publisher -eq "4PS B.V." -and $item.Name -eq $modifiedBaseAppName
                         
                     @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $SyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue -IsModifiedBaseApp:$IsModifiedBaseApp
                 }                
