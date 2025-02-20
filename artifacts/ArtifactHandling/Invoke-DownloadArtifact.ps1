@@ -9,6 +9,8 @@ function Invoke-DownloadArtifact {
         [Parameter(Mandatory = $false)]
         [string]$destination = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
         [Parameter(Mandatory = $false)]
+        [switch]$groupByDependency = $false,
+        [Parameter(Mandatory = $false)]
         [string]$baseUrl = "https://$($env:publicdnsname)",
         [Parameter(Mandatory = $false)]
         [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
@@ -73,6 +75,7 @@ function Invoke-DownloadArtifact {
         $artifacts | 
             Invoke-DownloadArtifactProcess `
                 -destination $destination `
+                -groupByDependency:$groupByDependency `
                 -baseUrl $baseUrl `
                 -accessToken $accessToken `
                 -ApiFeatures $apiFeatures `

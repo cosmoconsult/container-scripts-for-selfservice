@@ -196,9 +196,17 @@ Write-Host "##[endgroup]"
 #     Write-Host "##[group]Download Artifacts"
 #     $started = Get-Date -Format "o"
 #     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-#     $artifacts | Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-#     $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-
+#     $artifacts | 
+#         Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
+#         Group-Object -Property dependsOn | 
+#         ForEach-Object {
+#             # Download per dependency for separated indexes
+#             $_.Group | Invoke-DownloadArtifact -destination $targetDir -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+#         }
+#     $artifacts | 
+#         Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } |
+#         Invoke-DownloadArtifact -destination $targetDirManuallySorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+ 
 #     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
 #     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
 #     $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
@@ -221,11 +229,15 @@ try {
     $downloadArtifacts.Runspaces += 
         $downloadArtifacts.Artifacts | 
             Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
-            Invoke-DownloadArtifactAsync -RunspacePool $runspacePool -Destination $targetDir
+            Group-Object -Property dependsOn | 
+            ForEach-Object {
+                # Download per dependency for separated indexes
+                $_.Group | Invoke-DownloadArtifactAsync -RunspacePool $runspacePool -Destination $targetDir -GroupByDependency
+            }
     $downloadArtifacts.Runspaces += 
         $downloadArtifacts.Artifacts | 
             Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | 
-            Invoke-DownloadArtifactAsync -RunspacePool $runspacePool -Destination $targetDirManuallySorted
+            Invoke-DownloadArtifactAsync -RunspacePool $runspacePool -Destination $targetDirManuallySorted -GroupByDependency
     Add-ArtifactsLog -message "Download Artifacts (Async) started."
 }
 catch {
@@ -292,7 +304,7 @@ try {
     }
 
     Import-Artifacts `
-        -Path            $targetDirManuallySorted `
+        -Path            (Join-Path $targetDirManuallySorted '/general') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
@@ -303,7 +315,7 @@ try {
         -SkipFontImport  $true
 
     Import-Artifacts `
-        -Path            $targetDir `
+        -Path            (Join-Path $targetDir '/general') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
@@ -431,6 +443,21 @@ $excludeAppsFromSaaSBak = @(
         Name   = "Business Central Intelligent Cloud";
         Id     = '334ef79e-547e-4631-8ba1-7a7f18e14de6';
         Reason = "works only on SaaS"
+    },
+    [pscustomobject]@{
+        Name   = "Dynamics GP Intelligent Cloud";
+        Id     = 'feeb3504-556e-4790-b28d-a2b9ce302d81';
+        Reason = "works only on SaaS"
+    },
+    [pscustomobject]@{
+        Name   = "Business Central Cloud Migration API";
+        Id     = '57623bfa-0559-4bc2-ae1c-0979c29fc8d1';
+        Reason = "works only on SaaS"
+    }
+    [pscustomobject]@{
+        Name   = "Business Central Cloud Migration - Previous Release";
+        Id     = '6992416f-3f39-4d3c-8242-3fff61350bea';
+        Reason = "works only on SaaS"
     }
 )
 if ($global:excludeAppsFromSaaSBak -is [array] -and $global:excludeAppsFromSaaSBak.Length -gt 0) {
@@ -450,6 +477,13 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     if (!(Test-Path -Path $databaseFolder -PathType Container)) {
         New-Item -Path $databaseFolder -itemtype Directory | Out-Null
     }
+
+    if ($bak.StartsWith("http")) {
+        $uri = New-Object System.Uri($bak)
+        $bak = Join-Path -Path $databaseFolder -ChildPath $uri.Segments[-1]
+        Write-Host " - Downloading SaaS DB from $bak"
+        Invoke-WebRequest -Uri $uri -OutFile $bak
+    }
     
     Write-Host " - Restoring SaaS DB to $databaseFolder"
     New-NAVDatabase -DatabaseServer $DatabaseServer `
@@ -466,7 +500,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     }
 
     foreach ($excludeApp in $excludeAppsFromSaaSBak) {
-        Write-Host "   - Removing app '$($excludeApp.Name)' if installed, reason '$($excludeApp.Reason)', id '$($excludeApp.Id)'"
+        Write-Host "   - Removing app '$($excludeApp.Name)' with id '$($excludeApp.Id)' if installed, reason: '$($excludeApp.Reason)'"
         Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Published App] WHERE [App ID] = '$($excludeApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Installed App] WHERE [App ID] = '$($excludeApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
