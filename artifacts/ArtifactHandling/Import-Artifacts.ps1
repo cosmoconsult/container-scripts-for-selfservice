@@ -90,6 +90,7 @@ function Import-Artifacts {
                 # identify the modified base app by looking at the dependencies 
                 $applicationApp = Get-ChildItem -Path "C:\run\my\apps" -Recurse -Filter "4PS B.V._Application_*.app" | Select-Object -First 1
                 if ($applicationApp) {
+                    Write-Host "Found Application app: $($applicationApp.FullName) - trying to identify modified base app..."
                     $applicationAppInfo = Get-NAVAppInfo -Path $applicationApp.FullName
                     $modifiedBaseAppInfo = $applicationAppInfo.Dependencies | Where-Object { $_.Publisher -eq "4PS B.V." -and $_.Name.StartsWith("4PS Construct ") }
                     if ($modifiedBaseAppInfo -is [array]) {
@@ -97,6 +98,7 @@ function Import-Artifacts {
                         $modifiedBaseAppName = ""
                     }
                     else {
+                        Write-Host "Found modified base app: $($modifiedBaseAppInfo.Name)"
                         $modifiedBaseAppName = $modifiedBaseAppInfo.Name
                     }
                 }
