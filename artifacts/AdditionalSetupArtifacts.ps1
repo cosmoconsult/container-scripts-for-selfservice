@@ -278,7 +278,7 @@ if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManua
 # Download Artifacts (Async) - Wait & Finish
 try {
     Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
-    $downloadArtifacts.Runspaces | Wait-DownloadArtifactAsync
+    $downloadArtifacts.Runspaces | Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient
     
     Add-ArtifactsLog -message "Download Artifacts (Async) done."
 

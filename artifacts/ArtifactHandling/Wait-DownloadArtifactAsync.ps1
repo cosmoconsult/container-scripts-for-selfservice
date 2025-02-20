@@ -5,7 +5,9 @@ function Wait-DownloadArtifactAsync {
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [powershell]$Runspace,
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [System.IAsyncResult]$Result
+        [System.IAsyncResult]$Result,
+        [Parameter(Mandatory = $false)]
+        [System.Object]$TelemetryClient = $null
     )
 
     begin {
@@ -20,7 +22,7 @@ function Wait-DownloadArtifactAsync {
             -Result $Result |
         ForEach-Object {
             if ($_.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
-                Push-Telemetry -Operation "Download Artifact" -Telemetry $_ -TelemetryClient $telemetryClient
+                Push-Telemetry -Operation "Download Artifact" -Telemetry $_ -TelemetryClient $TelemetryClient
             }
             if ($_.GetType() -eq [ArtifactsLogEntry]) {
                 Push-ArtifactsLogEntry -Entry $_

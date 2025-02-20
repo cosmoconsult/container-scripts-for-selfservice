@@ -132,7 +132,18 @@ function Invoke-DownloadArtifactProcess {
 
                 foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
                     if ($file.Name -like "*.app") {
-                        Invoke-DownloadArtifact -name $file.Name -url $file.FullName -target $target -destination $destination -dependsOn $dependsOn -groupByDependency:$groupByDependency -apiFeatures $apiFeatures -serviceTierFolder $serviceTierFolder -folderIdx $folderIdx -isAsync $isAsync
+                        Invoke-DownloadArtifactProcess `
+                            -name $file.Name `
+                            -url $file.FullName `
+                            -target $target `
+                            -targetFolder $targetFolder `
+                            -destination $destination `
+                            -groupByDependency:$groupByDependency `
+                            -baseUrl $baseUrl `
+                            -accessToken $accessToken `
+                            -ApiFeatures $apiFeatures `
+                            -serviceTierFolder $serviceTierFolder `
+                            -folderIdx $folderIdx
                     }
                 }
                 $success = $true

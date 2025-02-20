@@ -78,7 +78,7 @@ function Invoke-DownloadArtifact {
                 -groupByDependency:$groupByDependency `
                 -baseUrl $baseUrl `
                 -accessToken $accessToken `
-                -ApiFeatures $apiFeatures `
+                -apiFeatures $apiFeatures `
                 -serviceTierFolder $serviceTierFolder |
             ForEach-Object {
                 if ($_.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
