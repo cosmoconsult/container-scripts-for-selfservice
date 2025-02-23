@@ -88,12 +88,8 @@ function Import-NAVModules {
 
 function Import-PPIModules {
 
-    $ppiau = Get-Module -Name PPIArtifactUtils
-    if (-not $ppiau) {
-        if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
-            Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-            Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
-        }
+    if (Test-Path "c:\run\my\PPIArtifactUtils.ps1") {
+        . "c:\run\my\PPIArtifactUtils.ps1"
     }
     
     if (Test-Path "c:\run\my\PPIOverrides.ps1") {
@@ -185,60 +181,49 @@ Get-NAVAppInfo -Tenant $tenantId -TenantSpecificProperties -ServerInstance $Serv
     Out-String -Width 1024
 Write-Host "##[endgroup]"
 
-# initialize runspace pool
-Write-Host "##[group]Intialize Runspace Pool"
-# Only load ppi modules with initialization of each runspace, because loading module "Microsoft.Dynamics.Nav.Management" results in an error
-$runspacePool = Open-RunspacePool -Modules @((Get-Module -Name 'PPI*').Path) 
-Write-Host "##[endgroup]"
-
-# # Download Artifacts
-# try {
-#     Write-Host "##[group]Download Artifacts"
-#     $started = Get-Date -Format "o"
-#     $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-#     $artifacts | 
-#         Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
-#         Group-Object -Property dependsOn | 
-#         ForEach-Object {
-#             # Download per dependency for separated indexes
-#             $_.Group | Invoke-DownloadArtifact -destination $targetDir -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-#         }
-#     $artifacts | 
-#         Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } |
-#         Invoke-DownloadArtifact -destination $targetDirManuallySorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
- 
-#     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
-#     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
-#     $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
-# }
-# catch {
-#     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
-# }
-# finally {
-#     Add-ArtifactsLog -message "Download Artifacts done."
-#     Write-Host "##[endgroup]"
-# }
-
-# Download Artifacts (Async) - Start
 try {
-    Write-Host "##[group]Download Artifacts (Async) - Start"
+    if ($global:runspacePool) {
+        Write-Host "##[group]Download Artifacts (Async) - Start"
+    } else {
+        Write-Host "##[group]Download Artifacts"
+    }
     $downloadArtifacts = @{}
     $downloadArtifacts.Started = Get-Date -Format "o";
     $downloadArtifacts.Artifacts = @( Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue );
-    $downloadArtifacts.Runspaces = @();
-    $downloadArtifacts.Runspaces += 
+    if ($global:runspacePool) {
+        # Download Artifacts (Async) - Start
+        $downloadArtifacts.Runspaces = @();
+        $downloadArtifacts.Runspaces += 
+            $downloadArtifacts.Artifacts | 
+                Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
+                Group-Object -Property dependsOn | 
+                ForEach-Object {
+                    # Download per dependency for separated indexes
+                    $_.Group | Invoke-DownloadArtifactAsync -RunspacePool $global:runspacePool -Destination $targetDir -GroupByDependency
+                }
+        $downloadArtifacts.Runspaces += 
+            $downloadArtifacts.Artifacts | 
+                Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | 
+                Invoke-DownloadArtifactAsync -RunspacePool $global:runspacePool -Destination $targetDirManuallySorted -GroupByDependency
+        Add-ArtifactsLog -message "Download Artifacts (Async) started."
+    } else {
+        # Download Artifacts
         $downloadArtifacts.Artifacts | 
             Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
             Group-Object -Property dependsOn | 
             ForEach-Object {
                 # Download per dependency for separated indexes
-                $_.Group | Invoke-DownloadArtifactAsync -RunspacePool $runspacePool -Destination $targetDir -GroupByDependency
+                $_.Group | Invoke-DownloadArtifact -destination $targetDir -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
             }
-    $downloadArtifacts.Runspaces += 
         $downloadArtifacts.Artifacts | 
-            Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | 
-            Invoke-DownloadArtifactAsync -RunspacePool $runspacePool -Destination $targetDirManuallySorted -GroupByDependency
-    Add-ArtifactsLog -message "Download Artifacts (Async) started."
+            Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } |
+            Invoke-DownloadArtifact -destination $targetDirManuallySorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+    
+        $properties["artifacts"] = ($downloadArtifacts.Artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
+        Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
+        $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
+        Add-ArtifactsLog -message "Download Artifacts done."
+    }
 }
 catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
@@ -275,22 +260,24 @@ if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManua
 }
 
 
-# Download Artifacts (Async) - Wait & Finish
-try {
-    Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
-    $downloadArtifacts.Runspaces | Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient
-    
-    Add-ArtifactsLog -message "Download Artifacts (Async) done."
+if ($global:runspacePool) {
+    # Download Artifacts (Async) - Wait & Finish
+    try {
+        Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
+        $downloadArtifacts.Runspaces | Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient
+        
+        Add-ArtifactsLog -message "Download Artifacts (Async) done."
 
-    $properties["artifacts"] = ($downloadArtifacts.Artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
-    Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $downloadArtifacts.Started -telemetryClient $telemetryClient -properties $properties
-    $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
-}
-catch {
-    Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
-}
-finally {
-    Write-Host "##[endgroup]"
+        $properties["artifacts"] = ($downloadArtifacts.Artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
+        Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $downloadArtifacts.Started -telemetryClient $telemetryClient -properties $properties
+        $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
+    }
+    catch {
+        Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
+    }
+    finally {
+        Write-Host "##[endgroup]"
+    }
 }
 
 # Import Artifacts
@@ -634,11 +621,6 @@ if (![string]::IsNullOrEmpty($env:saasbakfile)) {
 }
 
 Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
-
-# close runspace pool
-Write-Host "##[group]Close Runspace Pool"
-Close-RunspacePool -RunspacePool $runspacePool
-Write-Host "##[endgroup]"
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="

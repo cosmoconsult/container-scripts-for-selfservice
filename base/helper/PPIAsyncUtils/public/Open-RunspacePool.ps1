@@ -6,8 +6,10 @@ function Open-RunspacePool {
         [Parameter(Mandatory = $false)]
         [int]$MinRunspaces = 1,
         [Parameter(Mandatory = $false)]
-        [int]$MaxRunspaces = [Environment]::ProcessorCount
+        [int]$MaxRunspaces = 1
     )
+
+    $MaxRunspaces = [math]::Min($MaxRunspaces, [Environment]::ProcessorCount)
     
     $initialSessionState = [System.Management.Automation.Runspaces.InitialSessionState]::CreateDefault()
     if ($Modules) {
