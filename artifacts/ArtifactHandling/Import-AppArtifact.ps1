@@ -175,7 +175,13 @@ function Import-AppArtifact {
                         try {
                             $started3 = Get-Date -Format "o"
                             Add-ArtifactsLog -kind App -message "Unpublish old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) ..." -data $app
-                            Unpublish-NAVApp -ServerInstance $ServerInstance -Tenant $Tenant -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+
+                            $optionalParameters = @{ }
+                            if (("$oldApp.$Scope" -eq "Tenant") -and ((Get-Command Unpublish-NAVApp).Parameters.Tenant)) {
+                                $optionalParameters["Tenant"] = $Tenant
+                            }
+
+                            Unpublish-NAVApp -ServerInstance $ServerInstance -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version @optionalParameters -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                             $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                             $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                             $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
