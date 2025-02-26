@@ -381,41 +381,6 @@ $excludeAppsFromSaaSBak = @(
         Reason = "deprecated"
     },
     [pscustomobject]@{
-        Name   = "Intelligent Cloud Base";
-        Id     = '58623bfa-0559-4bc2-ae1c-0979c29fd9e0';
-        Reason = "works only on SaaS"
-    },
-    [pscustomobject]@{
-        Name   = "Continia Core";
-        Id     = '4b915d7e-c02a-435f-85ab-649086c1e002';
-        Reason = "Has dependency on Intelligent Cloud Base"
-    },
-    [pscustomobject]@{
-        Name   = "Continia OPplus";
-        Id     = '88cf5d4c-8afc-4a98-9cb7-212196c51d74';
-        Reason = "Has dependency on Continia Core"
-    },
-    [pscustomobject]@{
-        Name   = "Continia Software_OPplus Extension - Env-Check";
-        Id     = 'cb2cce89-3188-496d-bab1-db1bc27125fe';
-        Reason = "Has dependency on Continia OPPlus"
-    },
-    [pscustomobject]@{
-        Name   = "Continia OPplus Trial Balance and VAT DACH";
-        Id     = '9b9b49a2-5850-422f-8d32-281e6081fbcd';
-        Reason = "Has dependency on Continia Core"
-    },
-    [pscustomobject]@{
-        Name   = "Microsoft_ELSTER VAT Localization for Germany";
-        Id     = 'b0c41a2d-9ebe-4773-a22f-86bd69e75949';
-        Reason = "Unable to install for whatever reason"
-    },
-    [pscustomobject]@{
-        Name   = "Business Central Intelligent Cloud";
-        Id     = '334ef79e-547e-4631-8ba1-7a7f18e14de6';
-        Reason = "works only on SaaS"
-    },
-    [pscustomobject]@{
         Name   = "Dynamics GP Intelligent Cloud";
         Id     = 'feeb3504-556e-4790-b28d-a2b9ce302d81';
         Reason = "works only on SaaS"
