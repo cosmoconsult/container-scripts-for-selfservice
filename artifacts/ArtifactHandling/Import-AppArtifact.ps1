@@ -58,22 +58,6 @@ function Import-AppArtifact {
 
             Add-ArtifactsLog -kind App -message "$([System.Environment]::NewLine)Import App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
 
-            $optionalParameters = @{ }
-            # Special handling for NAV2018
-            # '-Force' is only added, when 'SandboxDatabaseName' (NAV2018) is NOT present, 
-            # because parameter '-Force' works only, when 'SandboxDatabaseName' is not empty
-            if (! ((Get-Command Publish-NAVApp).Parameters.SandboxDatabaseName)) {
-                $optionalParameters["Force"] = $true
-            }
-            # Add scope parameter when available for the command
-            if ((Get-Command Publish-NAVApp).Parameters.Scope) {
-                $optionalParameters["Scope"] = "$Scope"
-            }
-            # Add tenant specific parameter only for tenant scope
-            if (("$Scope" -eq "Tenant") -and ((Get-Command Publish-NAVApp).Parameters.Tenant)) {
-                $optionalParameters["Tenant"] = $Tenant
-            }   
-
             # Check if app is already published with another version
             $oldApp = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
             
@@ -118,6 +102,20 @@ function Import-AppArtifact {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..." -data $app
+
+                    $optionalParameters = @{ }
+                    # Special handling for NAV2018
+                    # '-Force' is only added, when 'SandboxDatabaseName' (NAV2018) is NOT present because parameter '-Force' works only when 'SandboxDatabaseName' is not empty
+                    if (! ((Get-Command Publish-NAVApp).Parameters.SandboxDatabaseName)) {
+                        $optionalParameters["Force"] = $true
+                    }
+                    if ((Get-Command Publish-NAVApp).Parameters.Scope) {
+                        $optionalParameters["Scope"] = "$Scope"
+                    }
+                    if (("$Scope" -eq "Tenant") -and ((Get-Command Publish-NAVApp).Parameters.Tenant)) {
+                        $optionalParameters["Tenant"] = $Tenant
+                    }
+
                     Publish-NavApp -ServerInstance $ServerInstance -Path $Path @optionalParameters -SkipVerification -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
@@ -177,7 +175,13 @@ function Import-AppArtifact {
                         try {
                             $started3 = Get-Date -Format "o"
                             Add-ArtifactsLog -kind App -message "Unpublish old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) ..." -data $app
-                            Unpublish-NAVApp -ServerInstance $ServerInstance -Tenant $Tenant -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+
+                            $optionalParameters = @{ }
+                            if (("$oldApp.$Scope" -eq "Tenant") -and ((Get-Command Unpublish-NAVApp).Parameters.Tenant)) {
+                                $optionalParameters["Tenant"] = $Tenant
+                            }
+
+                            Unpublish-NAVApp -ServerInstance $ServerInstance -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version @optionalParameters -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                             $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                             $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                             $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
