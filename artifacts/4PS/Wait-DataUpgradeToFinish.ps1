@@ -17,54 +17,41 @@ function Wait-DataUpgradeToFinish {
     (
         [parameter(Mandatory = $true)]
         [string]$ServerInstance,
-        [string]$Tenant,
-        [switch]$Retry = $false
+        [string]$Tenant
     )
     PROCESS {
         if (!$Tenant) { $Tenant = 'default' }
-
-        for ($i = 0; $i -lt 10; $i++) {        
-            try {      
-                Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Progress
-            }
-            catch { 
-                Write-Host "Couldn't get the progress of the NAVDataUpgrade, maybe none is running"
-            }
-
-            try {
-                $errors = Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $Tenant -ErrorOnly
-            }
-            catch { 
-                Write-Host "Couldn't get the errors of the NAVDataUpgrade, maybe none is running"
-            }
         
-            if (!$errors) {
-                Write-Host "no errors detected - process has been completed successfully"
-                return;
-            }
-
-            # Stop the suspended process
-            try {
-                Stop-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $Tenant -Force
-            }
-            catch { 
-                Write-Host "Couldn't stop the NAVDataUpgrade, maybe none is running"
-            }
-
-            $errorMessage = "Errors occurred during the NAVDataUpgrade process: " + [System.Environment]::NewLine
-            ($errors | Out-String).Trim().Replace("`r`n", "`n").Split("`n") | ForEach-Object { $errorMessage += $_ + [System.Environment]::NewLine }
-            Write-Host $errorMessage
-
-            if ($Retry) {
-                Write-Host "Restart BCST and try againg, current try is $i"
-                Set-NavServerInstance -ServerInstance BC -Restart
-                Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance $ServerInstance -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $tenant
-            }
-            else {
-                Write-Host "Exiting as retry is not enabled"
-                break;
-            }
+        try {      
+            Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $tenant -Progress
         }
+        catch { 
+            Write-Host "Couldn't get the progress of the NAVDataUpgrade, maybe none is running"
+        }
+
+        try {
+            $errors = Get-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $Tenant -ErrorOnly
+        }
+        catch { 
+            Write-Host "Couldn't get the errors of the NAVDataUpgrade, maybe none is running"
+        }
+    
+        if (!$errors) {
+            Write-Host "no errors detected - process has been completed successfully"
+            return;
+        }
+
+        # Stop the suspended process
+        try {
+            Stop-NAVDataUpgrade -ServerInstance $ServerInstance -Tenant $Tenant -Force
+        }
+        catch { 
+            Write-Host "Couldn't stop the NAVDataUpgrade, maybe none is running"
+        }
+
+        $errorMessage = "Errors occurred during the NAVDataUpgrade process: " + [System.Environment]::NewLine
+        ($errors | Out-String).Trim().Replace("`r`n", "`n").Split("`n") | ForEach-Object { $errorMessage += $_ + [System.Environment]::NewLine }
+        Write-Host $errorMessage
     }
 }
 
