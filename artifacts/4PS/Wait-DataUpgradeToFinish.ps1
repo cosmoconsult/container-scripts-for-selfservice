@@ -56,8 +56,8 @@ function Wait-DataUpgradeToFinish {
             Write-Host $errorMessage
 
             if ($Retry) {
-                Write-Host "Retrying in 10 seconds, current try is $i"
-                Start-Sleep -Seconds 10
+                Write-Host "Restart BCST and try againg, current try is $i"
+                Set-NavServerInstance -ServerInstance BC -Restart
                 Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance $ServerInstance -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $tenant
             }
             else {
