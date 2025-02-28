@@ -547,14 +547,16 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($env:cosmoBaseAppVersion)"
     }
 
-    Write-Host " - Deactivate all users to ensure license compliance"
+    Write-Host " - Deactivate all other users to ensure license compliance"
     Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() } | % {
         Write-Host " - Disable $($_.UserName)"
         Set-NAVServerUser -UserName $_.UserName -State Disabled -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue
     }
 
-    Write-Host " - Create user in new tenant (if not exists)"
-    if (!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() })) {
+    Write-Host " - Create user or set password if NavUserPassword authin new tenant"
+    $existingUser = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() }
+    if (!$existingUser) {
+        Write-Host " - - Create user $env:username"
         if ($($env:username).indexOf("@") -gt 0) {
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -AuthenticationEMail $env:username -ErrorAction Continue
         }
@@ -562,6 +564,9 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
         }
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
+    } elsif ($env:auth -eq "NavUserPassword") {
+        Write-Host " - - User $env:username already exists and we run with NavUserPassword auth, setting password"
+        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
     }
 }
 
