@@ -518,8 +518,8 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Force
 
     Write-Host " - Upgrading tenant"
-    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ContinueOnError -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
-    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
+    Start-NAVDataUpgrade -ServerInstance BC -Tenant $TenantId -ContinueOnError
+    Wait-DataUpgradeToFinish -ServerInstance BC -Tenant $TenantId
 
     Write-Host " - Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
