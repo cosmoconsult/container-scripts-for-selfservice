@@ -58,7 +58,7 @@ function Wait-DataUpgradeToFinish {
             if ($Retry) {
                 Write-Host "Retrying in 10 seconds, current try is $i"
                 Start-Sleep -Seconds 10
-                Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance $ServerInstance -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
+                Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance $ServerInstance -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $tenant
             }
             else {
                 Write-Host "Exiting as retry is not enabled"
