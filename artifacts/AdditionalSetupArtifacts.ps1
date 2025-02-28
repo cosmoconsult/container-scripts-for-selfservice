@@ -518,16 +518,11 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Force
 
     Write-Host " - Upgrading tenant"
-    for ($i = 0; $i -lt 10; $i++) {
-        Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
-        Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
-        $TenantState = (Get-NavTenant -ServerInstance BC -Tenant $TenantId).State
-        if (($TenantState -ne "OperationalDataUpgradePending")) {
-            break;
-        }
-
-        Write-Host " - - Tenant still needs data upgrade (try $i), retrying in 10s"
-        Start-Sleep -Seconds 10
+    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId -Retry
+    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
+    $TenantState = (Get-NavTenant -ServerInstance BC -Tenant $TenantId).State
+    if (($TenantState -ne "OperationalDataUpgradePending")) {
+        break;
     }
 
     Write-Host " - Check data upgrade is executed"
@@ -564,7 +559,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
         }
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
-    } elsif ($env:auth -eq "NavUserPassword") {
+    } elseif ($env:auth -eq "NavUserPassword") {
         Write-Host " - - User $env:username already exists and we run with NavUserPassword auth, setting password"
         Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
     }
