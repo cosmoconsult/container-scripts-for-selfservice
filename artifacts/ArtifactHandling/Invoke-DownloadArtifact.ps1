@@ -162,7 +162,9 @@ function Invoke-DownloadArtifact {
             elseif ($type -eq "nuget") {
                 Import-NugetTools
                 Add-ArtifactsLog -message "Download $name from nuget feed" 
-                Download-BcNuGetPackageToFolder -packageName $name -folder $tempFolder
+                $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+                
+                Download-BcNuGetPackageToFolder -packageName $name -folder $tempFolder -version $version -installedPlatform $sysAppInfoFS.Version
 
                 foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
                     if ($file.Name -like "*.app") {
