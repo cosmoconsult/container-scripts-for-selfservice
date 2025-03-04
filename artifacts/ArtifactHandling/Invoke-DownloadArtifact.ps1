@@ -162,9 +162,20 @@ function Invoke-DownloadArtifact {
             elseif ($type -eq "nuget") {
                 Import-NugetTools
                 Add-ArtifactsLog -message "Download $name from nuget feed" 
-                $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
                 
-                Download-BcNuGetPackageToFolder -packageName $name -folder $tempFolder -version $version -installedPlatform $sysAppInfoFS.Version
+                #Prevent BC ContainerHelper from downloading same  dependencies twice
+                $installedApps = @()
+                Get-ChildItem -Path $destination -Filter '*.app' -Recurse | ForEach-Object { $installedApps += Get-NavAppInfo -Path $_.FullName }
+                
+                $bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+                
+                Download-BcNuGetPackageToFolder -packageName $name `
+                                                -folder $tempFolder `
+                                                -version $version `
+                                                -installedPlatform $bcVersion `
+                                                -installedApps $installedApps `
+                                                -downloadDependencies 'allButApplication' `
+                                                -select 'EarliestMatching'
 
                 foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
                     if ($file.Name -like "*.app") {
