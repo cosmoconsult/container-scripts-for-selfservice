@@ -165,7 +165,16 @@ function Invoke-DownloadArtifact {
                 
                 #Prevent BC ContainerHelper from downloading same  dependencies twice
                 $installedApps = @()
-                Get-ChildItem -Path $destination -Filter '*.app' -Recurse | ForEach-Object { $installedApps += Get-NavAppInfo -Path $_.FullName }
+                $apps = Get-ChildItem -Path $destination -Filter '*.app' -Recurse 
+                foreach ($app in $apps) {
+                    $appDetails = Get-NavAppInfo -Path $app.FullName
+                    $installedApps += [PSCustomObject]@{
+                        Name      = $appDetails.Name
+                        Publisher = $appDetails.Publisher
+                        id        = $appDetails.AppId
+                        Version   = $appDetails.version
+                        }
+                }
                 
                 $bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
                 
