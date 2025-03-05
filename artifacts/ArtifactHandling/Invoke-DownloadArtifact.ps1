@@ -83,7 +83,7 @@ function Invoke-DownloadArtifact {
                     catch {}
                 }
             }
-            if ("" -eq "$accessToken") {
+            if ("" -eq "$accessToken" -and $type -ne "nuget") {
                 Add-ArtifactsLog -message "PAT not present" -severity Warn
             }
         }
