@@ -4,7 +4,8 @@ on:
   pull_request:
     types: [opened, reopened, edited]
     branches:
-      - main 
+      - main
+      - k8s 
 
 permissions:
     pull-requests: write
