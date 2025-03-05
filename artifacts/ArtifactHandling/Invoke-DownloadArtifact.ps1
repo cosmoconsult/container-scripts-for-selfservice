@@ -183,7 +183,7 @@ function Invoke-DownloadArtifact {
                                                 -version $version `
                                                 -installedPlatform $bcVersion `
                                                 -installedApps $installedApps `
-                                                -downloadDependencies 'allButApplication' `
+                                                -downloadDependencies 'allButMicrosoft' `
                                                 -select 'EarliestMatching'
 
                 foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
