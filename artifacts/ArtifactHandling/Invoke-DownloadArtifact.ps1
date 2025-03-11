@@ -37,7 +37,7 @@ function Invoke-DownloadArtifact {
             Add-ArtifactsLog -message "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'" -severity Warn
         }
 
-        if ($artifacts | Where-Object { ! $_.url }) {
+        if ($artifacts | Where-Object { ! $_.url } | Where-Object { $_.type -ne "nuget" }) {
             # Validate or get the PAT, because no Download URL is present
             if ("$accessToken" -eq "") {
                 # Try get the PAT from environment
@@ -59,7 +59,7 @@ function Invoke-DownloadArtifact {
                     catch {}
                 }
             }
-            if ("" -eq "$accessToken") {
+            if ("$accessToken" -eq "") {
                 Add-ArtifactsLog -message "PAT not present" -severity Warn
             }
         }

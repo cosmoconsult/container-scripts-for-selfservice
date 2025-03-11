@@ -41,8 +41,8 @@ function Get-PackageVersion {
                 catch {}
             }            
         }
-        if ("" -eq "$accessToken") {
-            New-ArtifactsLogEntry -Message "PAT not present"
+        if ("" -eq "$accessToken" -and $protocolType -ne "nuget") {
+            New-ArtifactsLogEntry -Message "PAT not present" -Severity Warn
         }
     }
     process {

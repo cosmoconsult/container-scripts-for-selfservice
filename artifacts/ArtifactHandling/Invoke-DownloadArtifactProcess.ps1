@@ -128,7 +128,29 @@ function Invoke-DownloadArtifactProcess {
             elseif ($type -eq "nuget") {
                 Import-NugetTools
                 New-ArtifactsLogEntry -Message "Download $name from nuget feed" 
-                Download-BcNuGetPackageToFolder -packageName $name -folder $tempFolder
+                
+                #Prevent BC ContainerHelper from downloading same  dependencies twice
+                $installedApps = @()
+                $apps = Get-ChildItem -Path $destination -Filter '*.app' -Recurse 
+                foreach ($app in $apps) {
+                    $appDetails = Get-NavAppInfo -Path $app.FullName
+                    $installedApps += [PSCustomObject]@{
+                        Name      = $appDetails.Name
+                        Publisher = $appDetails.Publisher
+                        id        = $appDetails.AppId
+                        Version   = $appDetails.version
+                        }
+                }
+                
+                $bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+                
+                Download-BcNuGetPackageToFolder -packageName $name `
+                                                -folder $tempFolder `
+                                                -version $version `
+                                                -installedPlatform $bcVersion `
+                                                -installedApps $installedApps `
+                                                -downloadDependencies 'allButMicrosoft' `
+                                                -select 'EarliestMatching'
 
                 foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
                     if ($file.Name -like "*.app") {
@@ -138,6 +160,7 @@ function Invoke-DownloadArtifactProcess {
                             -target $target `
                             -targetFolder $targetFolder `
                             -destination $destination `
+                            -dependsOn $dependsOn `
                             -groupByDependency:$groupByDependency `
                             -baseUrl $baseUrl `
                             -accessToken $accessToken `
@@ -291,7 +314,7 @@ function Invoke-DownloadArtifactProcess {
                     }
                     catch { }
                 }
-                
+
                 New-ArtifactsLogEntry -Message "Download Artifact $($name) failed: $($errorMessage)" -Severity Error -Success Fail
                 New-ExceptionTelemetry -Exception $_.Exception -Properties $properties
             }
