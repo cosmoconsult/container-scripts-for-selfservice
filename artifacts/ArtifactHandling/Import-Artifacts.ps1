@@ -27,7 +27,7 @@ function Import-Artifacts {
         [Parameter(Mandatory = $false)]
         [bool]$ExcludeApps = $true,
         [Parameter(Mandatory = $false)]
-        [string]$AppExcludeExpr = ".*Test_.*|.*Tests_.*",
+        [string]$AppExcludeExpr = $(if ($env:AppExcludeExpr) { $env:AppExcludeExpr }else { ".*Test_.*|.*Tests_.*" }),
         [Parameter(Mandatory = $false)]
         [bool]$throwErrors = $false
     )
@@ -77,12 +77,6 @@ function Import-Artifacts {
         $items = @()
         if (!$ExcludeApps) {
             $AppExcludeExpr = ""
-        }
-        else {
-            if ($null -ne $env:AppExcludeExpr) {
-                Write-Host ("Found App expression override {0}" -f $env:AppExcludeExpr)
-                $AppExcludeExpr = $env:AppExcludeExpr
-            }
         }
         $params = @{
             Depth       = $maxDepth
