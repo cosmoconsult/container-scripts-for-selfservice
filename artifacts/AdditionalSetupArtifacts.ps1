@@ -235,8 +235,10 @@ try {
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
+    $params = @{}
     if (($env:mode -eq "4ps") -and [string]::IsNullOrEmpty($env:AppExcludeExpr)) {
-        $env:AppExcludeExpr = "I_DONT_WANT_TO_EXCLUDE_ANYTHING"
+        Write-Host "Set ExcludeApps to false"
+        $params.Add("ExcludeApps", $false)
     }
 
     Import-Artifacts `
@@ -248,7 +250,8 @@ try {
         -Scope           "Global" `
         -telemetryClient $telemetryClient `
         -ErrorAction     SilentlyContinue `
-        -SkipFontImport  $true
+        -SkipFontImport  $true `
+        @params
 
     Import-Artifacts `
         -Path            (Join-Path $targetDir '/general') `
@@ -258,7 +261,8 @@ try {
         -SyncMode        $SyncMode `
         -Scope           $Scope `
         -telemetryClient $telemetryClient `
-        -ErrorAction     SilentlyContinue
+        -ErrorAction     SilentlyContinue `
+        @params
 }
 catch {
     Write-Host "Import Artifacts Error: $($_.Exception.Message)" -f Red
