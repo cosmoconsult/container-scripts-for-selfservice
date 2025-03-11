@@ -73,7 +73,7 @@ function Invoke-DownloadArtifact {
         catch {}
         
         $artifacts | 
-            Invoke-DownloadArtifactProcess `
+            Invoke-DownloadArtifactInternal `
                 -destination $destination `
                 -groupByDependency:$groupByDependency `
                 -baseUrl $baseUrl `

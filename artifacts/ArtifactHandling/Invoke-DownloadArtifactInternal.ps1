@@ -1,4 +1,4 @@
-function Invoke-DownloadArtifactProcess {
+function Invoke-DownloadArtifactInternal {
     [CmdletBinding()]
     param (
         # Artifact Parameter
@@ -67,6 +67,21 @@ function Invoke-DownloadArtifactProcess {
         New-Item -Path $tempFolder -ItemType "Directory" | Out-Null
 
         $getVersionFromAPI = $apiFeatures -contains "GetArtifactLatest"
+
+        $bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+        
+        $downloadedApps = @()
+        # Collect already downloaded apps
+        Get-ChildItem -Path $destination -Filter '*.app' -Recurse |
+            ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
+            ForEach-Object {
+                $downloadedApps += [PSCustomObject]@{
+                    Name      = $_.Name
+                    Publisher = $_.Publisher
+                    id        = $_.AppId
+                    Version   = $_.version
+                }
+            }
     }
     
     process {
@@ -129,34 +144,20 @@ function Invoke-DownloadArtifactProcess {
                 Import-NugetTools
                 New-ArtifactsLogEntry -Message "Download $name from nuget feed" 
                 
-                #Prevent BC ContainerHelper from downloading same  dependencies twice
-                $installedApps = @()
-                $apps = Get-ChildItem -Path $destination -Filter '*.app' -Recurse 
-                foreach ($app in $apps) {
-                    $appDetails = Get-NavAppInfo -Path $app.FullName
-                    $installedApps += [PSCustomObject]@{
-                        Name      = $appDetails.Name
-                        Publisher = $appDetails.Publisher
-                        id        = $appDetails.AppId
-                        Version   = $appDetails.version
-                        }
-                }
-                
-                $bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
-                
                 Download-BcNuGetPackageToFolder -packageName $name `
                                                 -folder $tempFolder `
                                                 -version $version `
                                                 -installedPlatform $bcVersion `
-                                                -installedApps $installedApps `
+                                                -installedApps $downloadedApps `
                                                 -downloadDependencies 'allButMicrosoft' `
                                                 -select 'EarliestMatching'
 
-                foreach ($file in Get-ChildItem -Path $tempFolder -Recurse) {
-                    if ($file.Name -like "*.app") {
-                        Invoke-DownloadArtifactProcess `
-                            -name $file.Name `
-                            -url $file.FullName `
+                Get-ChildItem -Path $tempFolder -Filter '*.app' -Recurse |
+                    ForEach-Object {
+                        Invoke-DownloadArtifactInternal `
+                            -name $_.Name `
+                            -type "url" `
+                            -url $_.FullName `
                             -target $target `
                             -targetFolder $targetFolder `
                             -destination $destination `
@@ -165,10 +166,18 @@ function Invoke-DownloadArtifactProcess {
                             -baseUrl $baseUrl `
                             -accessToken $accessToken `
                             -ApiFeatures $apiFeatures `
-                            -serviceTierFolder $serviceTierFolder `
-                            -folderIdx $folderIdx
+                            -serviceTierFolder $serviceTierFolder
+                        
+                        # Collect downloaded app
+                        $appInfo = Get-NavAppInfo -Path $_.FullName
+                        $downloadedApps += [PSCustomObject]@{
+                            Name      = $appInfo.Name
+                            Publisher = $appInfo.Publisher
+                            id        = $appInfo.AppId
+                            Version   = $appInfo.version
+                        }
                     }
-                }
+
                 $success = $true
                 New-RequestTelemetry -Name "Download Artifact" -Success $success -StartTime $startTime -properties $properties
                 return
@@ -292,6 +301,18 @@ function Invoke-DownloadArtifactProcess {
                         Format-Table -AutoSize -Wrap:$false | 
                         Out-String -Width 1024)"
 
+                    # Collect downloaded apps
+                    Get-ChildItem -Path $folder -Filter '*.app' -Recurse |
+                        ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
+                        ForEach-Object {
+                            $downloadedApps += [PSCustomObject]@{
+                                Name      = $_.Name
+                                Publisher = $_.Publisher
+                                id        = $_.AppId
+                                Version   = $_.version
+                            }
+                        }
+
                     $success = $true
                 }
                 else {
@@ -334,4 +355,4 @@ function Invoke-DownloadArtifactProcess {
         $artifactVersion = ""
     }
 }
-Export-ModuleMember -Function Invoke-DownloadArtifactProcess
+Export-ModuleMember -Function Invoke-DownloadArtifactInternal

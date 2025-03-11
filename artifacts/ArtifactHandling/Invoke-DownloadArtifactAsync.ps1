@@ -38,7 +38,7 @@ function Invoke-DownloadArtifactAsync {
             )
 
             $Artifact | 
-                Invoke-DownloadArtifactProcess `
+                Invoke-DownloadArtifactInternal `
                     -destination $Destination `
                     -groupByDependency:$GroupByDependency `
                     -baseUrl $BaseUrl `
@@ -85,7 +85,7 @@ function Invoke-DownloadArtifactAsync {
         catch {}
 
         # Get the PAT, if an artifact without Download URL is present
-        if ((! $parameters.AccessToken) -and ($artifacts | Where-Object { ! $_.url })) {
+        if ((! $parameters.AccessToken) -and ($artifacts | Where-Object { ! $_.url } | Where-Object { $_.type -ne "nuget" })) {
             if (! $parameters.AccessToken) {
                 # Try get the PAT from environment
                 $parameters.AccessToken = @($env:AZURE_DEVOPS_TOKEN, $env:AZURE_DEVOPS_EXT_PAT, $env:AZP_TOKEN) | 

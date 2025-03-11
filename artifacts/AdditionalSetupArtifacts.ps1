@@ -221,9 +221,10 @@ try {
     
         $properties["artifacts"] = ($downloadArtifacts.Artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
         Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
-        $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
         Add-ArtifactsLog -message "Download Artifacts done."
     }
+
+    $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
 }
 catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
@@ -270,7 +271,6 @@ if ($global:runspacePool) {
 
         $properties["artifacts"] = ($downloadArtifacts.Artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
         Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $downloadArtifacts.Started -telemetryClient $telemetryClient -properties $properties
-        $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
     }
     catch {
         Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
