@@ -59,7 +59,7 @@ function Get-AppFilesSortedByDependencies {
             $optionalParameters["Depth"] = $Depth
         }
         Write-Host ("Seraching for apps excluding: {0}" -f $ExcludeExpr)
-        $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Recurse @optionalParameters | Where { $_.Name -NotMatch $ExcludeExpr }
+        $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Recurse @optionalParameters | Where-Object { [string]::IsNullOrEmpty($ExcludeExpr) -or ($_.Name -NotMatch $ExcludeExpr) }
 
         $AllApps = [System.Collections.ArrayList]@()
         foreach ($AppFile in $AllAppFiles) {

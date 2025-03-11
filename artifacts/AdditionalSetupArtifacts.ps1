@@ -235,7 +235,7 @@ try {
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
-    if ($env:mode -eq "4ps") {
+    if (($env:mode -eq "4ps") -and [string]::IsNullOrEmpty($env:AppExcludeExpr)) {
         $env:AppExcludeExpr = "I_DONT_WANT_TO_EXCLUDE_ANYTHING"
     }
 
