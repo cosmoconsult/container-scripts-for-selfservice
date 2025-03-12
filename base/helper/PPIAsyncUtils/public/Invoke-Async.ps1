@@ -16,12 +16,12 @@ function Invoke-Async {
             [hashtable]$Parameters = @{}
         );
         try {
-            . ( [scriptblock]::Create($ScriptBlock) ) @Parameters *>&1
+            . $ScriptBlock @Parameters *>&1
         } catch {
             $_
         }
     }) | Out-Null;
-    $powershell.AddParameter("ScriptBlock", $ScriptBlock) | Out-Null;
+    $powershell.AddParameter("ScriptBlock", $ScriptBlock.GetNewClosure()) | Out-Null;
     $powershell.AddParameter("Parameters", $Parameters.Clone()) | Out-Null;
 
     $result = $powershell.BeginInvoke();

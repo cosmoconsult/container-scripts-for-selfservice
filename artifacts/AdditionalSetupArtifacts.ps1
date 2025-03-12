@@ -247,7 +247,7 @@ try {
     }
 
     Import-Artifacts `
-        -Path            (Join-Path $targetDirManuallySorted '/general') `
+        -Path            (Join-Path $global:cosmoArtifacts.Path.Sorted '/general') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
@@ -258,7 +258,7 @@ try {
         -SkipFontImport  $true
 
     Import-Artifacts `
-        -Path            (Join-Path $targetDir '/general') `
+        -Path            (Join-Path $global:cosmoArtifacts.Path.Unsorted '/general') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
