@@ -57,59 +57,38 @@ function Unpublish-AllNavAppsInServerInstance {
         $apps = $script:installedApps
         [Array]::Reverse($apps)
         
-        #Write-Host "Before foreach InstalledApps $(ConvertTo-Json $InstalledApps -Compress)"
         foreach ($InstalledApp in $apps) {
-            #Write-Host "Before Uninstall $(ConvertTo-Json $InstalledApp -Compress)"
             if ($InstalledApp.IsInstalled -ne $true) {
                 continue
             }
+            Write-Host "Uninstalling $($InstalledApp.name) version $($InstalledApp.Version)..."
             if ($KeepData) {
                 Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force
             }
             else {
                 Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force -DoNotSaveData
             }
-            #Write-Host "After Uninstall"
         }
-        #Write-Host "After foreach InstalledApps"
         $runNo = 1
         while (Get-NAVAppInfo -ServerInstance $ServerInstance) {
-            #Write-Host "Before foreach $(ConvertTo-Json $ExistingApps -Compress)"
-            <#$appsToUnpublishLater = @(
-                @{ Name = "System Application"; Prio = 8 },
-                @{ Name = "Business Foundation"; Prio = 7 },
-                @{ Name = "Business Foundation W1"; Prio = 7 },
-                @{ Name = "Base Application"; Prio = 6 },
-                @{ Name = "4PS Construct De"; Prio = 6 },
-                @{ Name = "Application"; Prio = 5 },
-                @{ Name = "Intrastat Core"; Prio = 4 },
-                @{ Name = "4PS System Application W1"; Prio = 4 },
-                @{ Name = "Library Assert"; Prio = 3 },
-                @{ Name = "4PS Base Application W1"; Prio = 3 },
-                @{ Name = "Business Foundation Test Libraries"; Prio = 2 }                
-            )
-            $appsToSkipThisRun = $appsToUnpublishLater | Where-Object { $_.Prio -gt $runNo }
-            [string[]]$names = $appsToSkipThisRun.Name
-            $ExistingApps2 = $ExistingApps  | Where-Object { $_.Name -notin $names }#>
-            
             foreach ($ExistingApp in $apps) {  
-                #Write-Host "in foreach $(ConvertTo-Json $ExistingApp -Compress)"
+                Write-Host "Unpublishing $($ExistingApp.name) version $($ExistingApp.Version)..."
                 try {
                     Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance
-                    #Write-Host "After unpublish"
                     if (!(Get-NAVAppInfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance)) {
                         "App {0} with version {1} unpublished..." -f $ExistingApp.name, $ExistingApp.Version
                     }
-                    #Write-Host "End of foreach"
                 }
                 catch {
                     Write-Host "Error: $(ConvertTo-Json $_ -Compress)"
                 }
             }
-            #Write-Host "After foreach"  
             $runNo = $runNo + 1
+            if ($runNo -gt 10) {
+                Write-Host "Error: Could not unpublish all apps, finishing after run $runNo"
+                break
+            }
         } 
-        #Write-Host "After while Get-NAVAppInfo"
     }
 }
 
