@@ -182,7 +182,7 @@ Get-NAVAppInfo -Tenant $tenantId -TenantSpecificProperties -ServerInstance $Serv
 Write-Host "##[endgroup]"
 
 try {
-    if ($global:alpacaRunspacePool) {
+    if ($global:cosmoRunspacePool) {
         Write-Host "##[group]Download Artifacts (Async) - Start"
     } else {
         Write-Host "##[group]Download Artifacts"
@@ -190,7 +190,7 @@ try {
     $downloadArtifacts = @{}
     $downloadArtifacts.Started = Get-Date -Format "o";
     $downloadArtifacts.Artifacts = @( Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue );
-    if ($global:alpacaRunspacePool) {
+    if ($global:cosmoRunspacePool) {
         # Download Artifacts (Async) - Start
         $downloadArtifacts.Runspaces = @();
         $downloadArtifacts.Runspaces += 
@@ -199,12 +199,12 @@ try {
                 Group-Object -Property dependsOn | 
                 ForEach-Object {
                     # Download per dependency for separated indexes
-                    $_.Group | Invoke-DownloadArtifactAsync -RunspacePool $global:alpacaRunspacePool -Destination $targetDir -GroupByDependency
+                    $_.Group | Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -Destination $targetDir -GroupByDependency
                 }
         $downloadArtifacts.Runspaces += 
             $downloadArtifacts.Artifacts | 
                 Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | 
-                Invoke-DownloadArtifactAsync -RunspacePool $global:alpacaRunspacePool -Destination $targetDirManuallySorted -GroupByDependency
+                Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -Destination $targetDirManuallySorted -GroupByDependency
         Add-ArtifactsLog -message "Download Artifacts (Async) started."
     } else {
         # Download Artifacts
@@ -270,7 +270,7 @@ if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManua
 }
 
 
-if ($global:alpacaRunspacePool) {
+if ($global:cosmoRunspacePool) {
     # Download Artifacts (Async) - Wait & Finish
     try {
         Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
