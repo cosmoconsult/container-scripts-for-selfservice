@@ -184,6 +184,10 @@ if ($global:cosmoRunspacePool) {
         Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
         $cosmoArtifactsDownloadEnd = $null
         $global:cosmoArtifacts.Runspaces.Values | 
+            ForEach-Object {
+                Write-Host "Runspace"
+                $_
+            } |
             Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient -End ([ref]$cosmoArtifactsDownloadEnd)
         $global:cosmoArtifacts.Download.End = $cosmoArtifactsDownloadEnd
 

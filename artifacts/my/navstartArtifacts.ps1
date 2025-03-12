@@ -8,7 +8,6 @@ try {
     $cosmoArtifacts = @{
         Download = @{
             Start = Get-Date -Format "o";
-            End = $null;
         };
         Path = @{
             Unsorted = "C:\run\my\apps";
