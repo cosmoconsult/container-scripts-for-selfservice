@@ -8,6 +8,8 @@ function Invoke-DownloadArtifactAsync {
         # Async Parameter
         [Parameter(Mandatory = $true)]
         [System.Management.Automation.Runspaces.RunspacePool]$RunspacePool,
+        [ValidateSet("automatic", "single", "multiple")]
+        [string]$RunspaceMode = "automatic",
 
         # Download Parameter
         [Parameter(Mandatory = $false)]
@@ -25,9 +27,16 @@ function Invoke-DownloadArtifactAsync {
             throw "PPI Async Utils not loaded"
         }
 
+        if ($RunspaceMode -eq "automatic") {
+            $RunspaceMode = "multiple"
+            if ($RunspacePool.GetMaxRunspaces() -eq 1) {
+                $RunspaceMode = "single"
+            }
+        }
+
         $scriptBlock = {
             param(
-                [object]$Artifact, 
+                [object[]]$Artifacts, 
                 [string]$Destination,
                 [bool]$GroupByDependency,
                 [string]$BaseUrl,
@@ -37,7 +46,7 @@ function Invoke-DownloadArtifactAsync {
                 [string]$ServiceTierFolder
             )
 
-            $Artifact | 
+            $Artifacts | 
                 Invoke-DownloadArtifactInternal `
                     -destination $Destination `
                     -groupByDependency:$GroupByDependency `
@@ -50,7 +59,7 @@ function Invoke-DownloadArtifactAsync {
         }
 
         $parameters = @{
-            Artifact = $null
+            Artifacts = $null
             Destination = $Destination
             GroupByDependency = $GroupByDependency
             BaseUrl = $BaseUrl
@@ -116,16 +125,26 @@ function Invoke-DownloadArtifactAsync {
             }
         }
 
-        # Start the download for each artifact
-        $artifacts | ForEach-Object {
-            $parameters.Artifact = $_
+        if ($RunspaceMode -eq "single") {
+            # Start the download for all artifacts in one runspace
+            $parameters.Artifacts = @( $artifacts )
 
             Invoke-Async `
                 -RunspacePool $RunspacePool `
                 -ScriptBlock $scriptBlock `
                 -Parameters $parameters
-            
-            $parameters.FolderIdx ++
+        } else {
+            # Start the download for each artifact in a separate runspace
+            $artifacts | ForEach-Object {
+                $parameters.Artifacts = @( $_ )
+
+                Invoke-Async `
+                    -RunspacePool $RunspacePool `
+                    -ScriptBlock $scriptBlock `
+                    -Parameters $parameters
+                
+                $parameters.FolderIdx ++
+            }
         }
     }
 }

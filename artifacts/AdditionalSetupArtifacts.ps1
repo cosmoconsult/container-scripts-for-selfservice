@@ -166,10 +166,7 @@ Import-PPIModules
 
 $env:nugetImported = $false
 
-$targetDir = "C:\run\my\apps"
-$targetDirManuallySorted = "C:\run\my\manuallysorted-apps"
 $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
-$properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
@@ -181,58 +178,28 @@ Get-NAVAppInfo -Tenant $tenantId -TenantSpecificProperties -ServerInstance $Serv
     Out-String -Width 1024
 Write-Host "##[endgroup]"
 
-try {
-    if ($global:cosmoRunspacePool) {
-        Write-Host "##[group]Download Artifacts (Async) - Start"
-    } else {
-        Write-Host "##[group]Download Artifacts"
-    }
-    $downloadArtifacts = @{}
-    $downloadArtifacts.Started = Get-Date -Format "o";
-    $downloadArtifacts.Artifacts = @( Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue );
-    if ($global:cosmoRunspacePool) {
-        # Download Artifacts (Async) - Start
-        $downloadArtifacts.Runspaces = @();
-        $downloadArtifacts.Runspaces += 
-            $downloadArtifacts.Artifacts | 
-                Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
-                Group-Object -Property dependsOn | 
-                ForEach-Object {
-                    # Download per dependency for separated indexes
-                    $_.Group | Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -Destination $targetDir -GroupByDependency
-                }
-        $downloadArtifacts.Runspaces += 
-            $downloadArtifacts.Artifacts | 
-                Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | 
-                Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -Destination $targetDirManuallySorted -GroupByDependency
-        Add-ArtifactsLog -message "Download Artifacts (Async) started."
-    } else {
-        # Download Artifacts
-        $downloadArtifacts.Artifacts | 
-            Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
-            Group-Object -Property dependsOn | 
-            ForEach-Object {
-                # Download per dependency for separated indexes
-                $_.Group | Invoke-DownloadArtifact -destination $targetDir -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-            }
-        $downloadArtifacts.Artifacts | 
-            Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } |
-            Invoke-DownloadArtifact -destination $targetDirManuallySorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    
-        $properties["artifacts"] = ($downloadArtifacts.Artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
-        Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
-        Add-ArtifactsLog -message "Download Artifacts done."
-    }
+if ($global:cosmoRunspacePool) {
+    # Download Artifacts (Async) - Wait & Finish
+    try {
+        Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
+        $global:cosmoArtifacts.Runspaces.Values | Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient
+        
+        Add-ArtifactsLog -message "Download Artifacts (Async) done."
 
-    $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
-    $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
+        $telemetryProperties = @{}
+        $telemetryProperties["artifacts"] = ( @( $global:cosmoArtifacts.Artifacts.Values ) | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
+        Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $downloadArtifacts.Started -telemetryClient $telemetryClient -properties $telemetryProperties
+    }
+    catch {
+        Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
+    }
+    finally {
+        Write-Host "##[endgroup]"
+    }
 }
-catch {
-    Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
-}
-finally {
-    Write-Host "##[endgroup]"
-}
+
+$installModifiedBaseAppManually = $null -ne ( @( $global:cosmoArtifacts.Artifacts.Values ) | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
+$installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
 
 # Initialize company
 if ($env:mode -eq "4ps") {
@@ -267,26 +234,6 @@ if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManua
     Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
     Write-Host "  Install the system application"
     Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
-}
-
-
-if ($global:cosmoRunspacePool) {
-    # Download Artifacts (Async) - Wait & Finish
-    try {
-        Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
-        $downloadArtifacts.Runspaces | Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient
-        
-        Add-ArtifactsLog -message "Download Artifacts (Async) done."
-
-        $properties["artifacts"] = ($downloadArtifacts.Artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
-        Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $downloadArtifacts.Started -telemetryClient $telemetryClient -properties $properties
-    }
-    catch {
-        Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
-    }
-    finally {
-        Write-Host "##[endgroup]"
-    }
 }
 
 # Import Artifacts
