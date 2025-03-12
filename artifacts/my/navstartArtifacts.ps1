@@ -14,7 +14,7 @@ try {
             Sorted   = "C:\run\my\manuallysorted-apps";
         };
         Artifacts = @{
-            All =    = @();
+            All      = @();
             Unsorted = @();
             Sorted   = @();
             Backup   = @();
