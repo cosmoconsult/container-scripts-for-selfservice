@@ -51,6 +51,8 @@ function Invoke-DownloadArtifactInternal {
     )
     
     begin {
+        . c:\run\Prompt.ps1 -silent
+
         if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
