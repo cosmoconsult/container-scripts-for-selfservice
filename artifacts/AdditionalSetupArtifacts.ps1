@@ -182,8 +182,10 @@ if ($global:cosmoRunspacePool) {
     # Download Artifacts (Async) - Wait & Finish
     try {
         Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
+        $cosmoArtifactsDownloadEnd = $null
         $global:cosmoArtifacts.Runspaces.Values | 
-            Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient -EndDateTime [ref]$global:cosmoArtifacts.Download.End
+            Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient -End ([ref]$cosmoArtifactsDownloadEnd)
+        $global:cosmoArtifacts.Download.End = $cosmoArtifactsDownloadEnd
 
         $telemetryProperties = @{}
         $telemetryProperties["artifacts"] = ( @( $global:cosmoArtifacts.Artifacts.Values ) | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )

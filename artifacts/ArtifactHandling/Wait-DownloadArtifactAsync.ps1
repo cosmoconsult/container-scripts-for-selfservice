@@ -9,7 +9,7 @@ function Wait-DownloadArtifactAsync {
         [Parameter(Mandatory = $false)]
         [System.Object]$TelemetryClient = $null,
         [Parameter(Mandatory = $false)]
-        [ref][datetime]$EndDateTime = $null
+        [ref]$End = $null
     )
 
     begin {
@@ -28,8 +28,8 @@ function Wait-DownloadArtifactAsync {
                     Push-ArtifactsLogEntry -Entry $_
                 }
                 if ($_.GetType() -eq [DateTime]) {
-                    if ($_ -gt $EndDateTime) {
-                        $EndDateTime = $_
+                    if ($End -and $_ -gt $End.Value) {
+                        $End.Value = $_
                     }
                 }
             } |
