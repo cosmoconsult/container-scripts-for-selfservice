@@ -16,7 +16,8 @@ function Unpublish-AllNavAppsInServerInstance {
     PARAM
     (
         [string]$ServerInstance,
-        [string]$Tenant
+        [string]$Tenant,
+        [bool]$KeepData
     )
     PROCESS {
         if (!$Tenant) {
@@ -31,7 +32,12 @@ function Unpublish-AllNavAppsInServerInstance {
         $InstalledApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant | where-object 'IsInstalled' -eq $true 
         
         foreach ($InstalledApp in $InstalledApps) {
-            uninstall-navapp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force -WarningAction SilentlyContinue
+            if($KeepData) {
+                Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force -WarningAction SilentlyContinue
+            }
+            else {
+                Uninstall-NAVApp -Name $InstalledApp.name -Version $InstalledApp.Version -ServerInstance $ServerInstance -Force -DoNotSaveData -WarningAction SilentlyContinue
+            }
         }
         
         while (Get-NAVAppInfo -ServerInstance $ServerInstance) {
@@ -39,8 +45,8 @@ function Unpublish-AllNavAppsInServerInstance {
             $ExistingApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant 
         
             foreach ($ExistingApp in $ExistingApps) {  
-                unpublish-navapp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance -ErrorAction SilentlyContinue
-                if (!(get-navappinfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance)) {
+                Unpublish-NAVApp -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance -ErrorAction SilentlyContinue
+                if (!(Get-NAVAppInfo -Name $ExistingApp.name -Version $ExistingApp.Version -ServerInstance $ServerInstance)) {
                     "App {0} with version {1} unpublished..." -f $ExistingApp.name, $ExistingApp.Version
                 }
             }

@@ -225,6 +225,7 @@ try {
     }
 
     $installModifiedBaseAppManually = $null -ne ($downloadArtifacts.Artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
+    $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
 }
 catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
@@ -235,6 +236,14 @@ finally {
 
 # Initialize company
 if ($env:mode -eq "4ps") {
+    if(![string]::IsNullOrEmpty($env:removeAllCompanies)){
+        $companies = Get-NAVCompany -ServerInstance BC -Tenant $TenantId | Where-Object { $_.CompanyName -like "CRONUS*" }
+        foreach ($company in $companies) {
+            Write-Host "Remove company $($company.CompanyName)"
+            Remove-NAVCompany -CompanyName $company.CompanyName -ServerInstance BC -Force -Tenant $TenantId
+            Write-Host "Company $($company.CompanyName) removed."
+        }
+    }
     $files = Get-DemoDataFiles
     foreach ($demoDataFile in $files) {
         $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
@@ -242,7 +251,7 @@ if ($env:mode -eq "4ps") {
         if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
             $companyName = $Matches[1]
             Write-Host "  Create company $companyName"
-            New-NAVCompany -CompanyName $companyName -ServerInstance BC
+            New-NAVCompany -CompanyName $companyName -ServerInstance BC -Tenant $TenantId
         }
     }
 }
@@ -250,7 +259,7 @@ if ($env:mode -eq "4ps") {
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
 if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManually) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
-    Unpublish-AllNavAppsInServerInstance
+    Unpublish-AllNavAppsInServerInstance -KeepData (![string]::IsNullOrEmpty($env:saasbakfile))
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
