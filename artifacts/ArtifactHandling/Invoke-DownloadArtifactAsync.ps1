@@ -41,7 +41,7 @@ function Invoke-DownloadArtifactAsync {
                 [bool]$GroupByDependency,
                 [string]$BaseUrl,
                 [string]$AccessToken,
-                [string]$ApiFeatures,
+                [string[]]$ApiFeatures,
                 [int]$FolderIdx,
                 [string]$ServiceTierFolder
             )
@@ -52,7 +52,7 @@ function Invoke-DownloadArtifactAsync {
                     -groupByDependency:$GroupByDependency `
                     -baseUrl $BaseUrl `
                     -accessToken $AccessToken `
-                    -ApiFeatures $ApiFeatures `
+                    -apiFeatures $ApiFeatures `
                     -serviceTierFolder $ServiceTierFolder `
                     -folderIdx $FolderIdx
 
@@ -64,7 +64,7 @@ function Invoke-DownloadArtifactAsync {
             GroupByDependency = $GroupByDependency
             BaseUrl = $BaseUrl
             AccessToken = $AccessToken
-            ApiFeatures = ""
+            ApiFeatures = @()
             ServiceTierFolder = ""
             FolderIdx = 0
         }

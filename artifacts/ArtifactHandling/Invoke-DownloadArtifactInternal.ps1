@@ -43,7 +43,7 @@ function Invoke-DownloadArtifactInternal {
         [Parameter(Mandatory = $false)]
         [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
         [Parameter(Mandatory = $false)]
-        [string]$apiFeatures,
+        [string[]]$apiFeatures = @(),
         [Parameter(Mandatory = $false)]
         [string]$serviceTierFolder,
         [Parameter(Mandatory = $false)]
@@ -165,7 +165,7 @@ function Invoke-DownloadArtifactInternal {
                             -groupByDependency:$groupByDependency `
                             -baseUrl $baseUrl `
                             -accessToken $accessToken `
-                            -ApiFeatures $apiFeatures `
+                            -apiFeatures $apiFeatures `
                             -serviceTierFolder $serviceTierFolder
                         
                         # Collect downloaded app

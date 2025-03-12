@@ -65,10 +65,11 @@ function Invoke-DownloadArtifact {
         }
 
         try {
-            $apiFeaturesResult = Invoke-WebRequest -Method Get -uri "$BaseUrl/api/automation/release/Features" -UseBasicParsing
+            $apiFeaturesResult = Invoke-WebRequest -Method Get -uri "$baseUrl/api/automation/release/Features" -UseBasicParsing
             if ($apiFeaturesResult.StatusCode -eq 200) {
                 $apiFeatures = ConvertFrom-Json $apiFeaturesResult.Content
             }
+            Add-ArtifactsLog -message "Api Features enabled: $($apiFeatures -join ', ')"
         }
         catch {}
         
