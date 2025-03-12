@@ -183,16 +183,13 @@ if ($global:cosmoRunspacePool) {
     try {
         Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
         $cosmoArtifactsDownloadEnd = $null
-        $global:cosmoArtifacts.Runspaces.Values | 
-            ForEach-Object {
-                Write-Host "Runspace"
-                $_
-            } |
+        $global:cosmoArtifacts.Download.Runspaces.Keys | 
+            ForEach-Object { $global:cosmoArtifacts.Download.Runspaces[$_] } |
             Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient -End ([ref]$cosmoArtifactsDownloadEnd)
         $global:cosmoArtifacts.Download.End = $cosmoArtifactsDownloadEnd
 
         $telemetryProperties = @{}
-        $telemetryProperties["artifacts"] = ( @( $global:cosmoArtifacts.Artifacts.Values ) | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
+        $telemetryProperties["artifacts"] = ( $global:cosmoArtifacts.Artifacts.All | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
         
         Invoke-LogOperation -name "AdditionalSetup - Download Artifacts (Async) - Wait & Finish" -started $global:cosmoArtifacts.Download.Start -ended $global:cosmoArtifacts.Download.End -telemetryClient $telemetryClient -properties $telemetryProperties
         Add-ArtifactsLog -message "Download Artifacts (Async) done. (Duration: $(New-TimeSpan -start $global:cosmoArtifacts.Download.Start -end $global:cosmoArtifacts.Download.End))"
@@ -205,7 +202,7 @@ if ($global:cosmoRunspacePool) {
     }
 }
 
-$installModifiedBaseAppManually = $null -ne ( @( $global:cosmoArtifacts.Artifacts.Values ) | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
+$installModifiedBaseAppManually = $null -ne ( $global:cosmoArtifacts.Artifacts.All | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" } )
 $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
 
 # Initialize company
