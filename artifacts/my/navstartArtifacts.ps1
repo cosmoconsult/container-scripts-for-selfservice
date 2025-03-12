@@ -8,6 +8,7 @@ try {
     $cosmoArtifacts = @{
         Download = @{
             Start = Get-Date -Format "o";
+            End = $null;
         };
         Path = @{
             Unsorted = "C:\run\my\apps";
@@ -92,9 +93,11 @@ try {
                 # Download per dependency for separated indexes
                 $_.Group | Invoke-DownloadArtifact -destination $cosmoArtifacts.Path.Unsorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
             }
+
+        $cosmoArtifacts.Download.End = Get-Date -Format "o"
         
-        Invoke-LogOperation -name "navstart - Download Artifacts" -started $cosmoArtifacts.Download.Start -telemetryClient $telemetryClient -properties $telemetryProperties
-        Add-ArtifactsLog -message "Download Artifacts done. (Duration: $(New-TimeSpan -start $cosmoArtifacts.Download.Start -end (Get-Date)))"
+        Invoke-LogOperation -name "navstart - Download Artifacts" -started $cosmoArtifacts.Download.Start -ended $cosmoArtifacts.Download.End -telemetryClient $telemetryClient -properties $telemetryProperties
+        Add-ArtifactsLog -message "Download Artifacts done. (Duration: $(New-TimeSpan -start $cosmoArtifacts.Download.Start -end $cosmoArtifacts.Download.End))"
     }
 }
 catch {

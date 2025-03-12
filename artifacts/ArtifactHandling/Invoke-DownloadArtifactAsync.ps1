@@ -46,16 +46,21 @@ function Invoke-DownloadArtifactAsync {
                 [string]$ServiceTierFolder
             )
 
-            $Artifacts | 
-                Invoke-DownloadArtifactInternal `
-                    -destination $Destination `
-                    -groupByDependency:$GroupByDependency `
-                    -baseUrl $BaseUrl `
-                    -accessToken $AccessToken `
-                    -apiFeatures $ApiFeatures `
-                    -serviceTierFolder $ServiceTierFolder `
-                    -folderIdx $FolderIdx
-
+            try {
+                $Artifacts | 
+                    Invoke-DownloadArtifactInternal `
+                        -destination $Destination `
+                        -groupByDependency:$GroupByDependency `
+                        -baseUrl $BaseUrl `
+                        -accessToken $AccessToken `
+                        -apiFeatures $ApiFeatures `
+                        -serviceTierFolder $ServiceTierFolder `
+                        -folderIdx $FolderIdx
+            } catch {
+                throw $_
+            } finally {
+                Get-Date
+            }
         }
 
         $parameters = @{

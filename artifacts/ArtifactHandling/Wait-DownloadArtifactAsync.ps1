@@ -7,7 +7,9 @@ function Wait-DownloadArtifactAsync {
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
         [System.IAsyncResult]$Result,
         [Parameter(Mandatory = $false)]
-        [System.Object]$TelemetryClient = $null
+        [System.Object]$TelemetryClient = $null,
+        [Parameter(Mandatory = $false)]
+        [ref][datetime]$EndDateTime = $null
     )
 
     begin {
@@ -17,18 +19,21 @@ function Wait-DownloadArtifactAsync {
     }
     
     process {
-        Wait-Async `
-            -Runspace $Runspace `
-            -Result $Result |
-        ForEach-Object {
-            if ($_.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
-                Push-Telemetry -Operation "Download Artifact" -Telemetry $_ -TelemetryClient $TelemetryClient
-            }
-            if ($_.GetType() -eq [ArtifactsLogEntry]) {
-                Push-ArtifactsLogEntry -Entry $_
-            }
-        } |
-        Out-Null
+        Wait-Async -Runspace $Runspace -Result $Result |
+            ForEach-Object {
+                if ($_.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
+                    Push-Telemetry -Operation "Download Artifact" -Telemetry $_ -TelemetryClient $TelemetryClient
+                }
+                if ($_.GetType() -eq [ArtifactsLogEntry]) {
+                    Push-ArtifactsLogEntry -Entry $_
+                }
+                if ($_.GetType() -eq [DateTime]) {
+                    if ($_ -gt $EndDateTime) {
+                        $EndDateTime = $_
+                    }
+                }
+            } |
+            Out-Null
     }
 }
 Export-ModuleMember -Function Wait-DownloadArtifactAsync
