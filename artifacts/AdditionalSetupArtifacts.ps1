@@ -188,7 +188,7 @@ if ($global:cosmoRunspacePool) {
 
         $telemetryProperties = @{}
         $telemetryProperties["artifacts"] = ( @( $global:cosmoArtifacts.Artifacts.Values ) | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
-        Invoke-LogOperation -name "AdditionalSetup - Download Artifacts" -started $downloadArtifacts.Started -telemetryClient $telemetryClient -properties $telemetryProperties
+        Invoke-LogOperation -name "AdditionalSetup - Download Artifacts (Async) - Wait & Finish" -started $global:cosmoArtifacts.Download.Start -telemetryClient $telemetryClient -properties $telemetryProperties
     }
     catch {
         Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error

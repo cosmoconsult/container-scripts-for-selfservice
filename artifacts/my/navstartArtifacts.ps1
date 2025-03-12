@@ -23,6 +23,8 @@ try {
         };
     }
 
+    $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
+
     Get-ArtifactsFromEnvironment -telemetryClient $telemetryClient -ErrorAction SilentlyContinue | 
         Sort-Object { $_.type -eq "nuget" } | # Sort NuGet packages last
         ForEach-Object {
@@ -33,6 +35,9 @@ try {
             elseif ( $_.name -and $_.name.StartsWith("sortorder") ) { $cosmoArtifacts.Artifacts.Sorted += $_ }
             else                                                    { $cosmoArtifacts.Artifacts.Unsorted += $_ }
         }
+
+    $telemetryProperties = @{}
+    $telemetryProperties["artifacts"] = ( @( $cosmoArtifacts.Artifacts.Values ) | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
     
     if ($global:cosmoRunspacePool) {
         $cosmoArtifacts.Runspaces = @{
@@ -69,10 +74,9 @@ try {
                     $_.Group | Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -Destination $cosmoArtifacts.Path.Unsorted -GroupByDependency
                 }
 
+        Invoke-LogOperation -name "navstart - Download Artifacts (Async) - Start" -started $cosmoArtifacts.Download.Start -telemetryClient $telemetryClient -properties $telemetryProperties
         Add-ArtifactsLog -message "Download Artifacts (Async) started."
     } else {
-        $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
-
         # Download Font, Add-In and Demodata Artifacts
         @( $cosmoArtifacts.Artifacts.Font, $cosmoArtifacts.Artifacts.AddIn, $cosmoArtifacts.Artifacts.Demodata ) | 
             Invoke-DownloadArtifact -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
@@ -88,11 +92,8 @@ try {
                 # Download per dependency for separated indexes
                 $_.Group | Invoke-DownloadArtifact -destination $cosmoArtifacts.Path.Unsorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
             }
-    
-        $telemetryProperties = @{}
-        $telemetryProperties["artifacts"] = ( @( $cosmoArtifacts.Artifacts.Values ) | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
+        
         Invoke-LogOperation -name "navstart - Download Artifacts" -started $cosmoArtifacts.Download.Start -telemetryClient $telemetryClient -properties $telemetryProperties
-
         Add-ArtifactsLog -message "Download Artifacts done."
     }
 }
