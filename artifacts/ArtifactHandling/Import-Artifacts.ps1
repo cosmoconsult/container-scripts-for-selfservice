@@ -23,8 +23,7 @@ function Import-Artifacts {
         [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null,
         [Parameter(Mandatory = $false)]
-        [bool]$SkipFontImport = $false,
-        [string]$AppExcludeExpr = $env:AppExcludeExpr
+        [bool]$SkipFontImport = $false
     )
     
     begin {
@@ -71,9 +70,9 @@ function Import-Artifacts {
             Depth  = $maxDepth
             Filter = "*.app"            
         }
-        if ($null -ne $AppExcludeExpr) {
-            Write-Host ("Found App expression override {0}" -f $AppExcludeExpr)
-            $params.Add("ExcludeExpr", $AppExcludeExpr)   
+        if ($null -ne $env:AppExcludeExpr) {
+            Write-Host ("Found App expression override {0}" -f $env:AppExcludeExpr)
+            $params.Add("ExcludeExpr", $env:AppExcludeExpr)   
         }
         if (Test-Path -LiteralPath "$Path") {
             $params.Add("Path", "$Path")
