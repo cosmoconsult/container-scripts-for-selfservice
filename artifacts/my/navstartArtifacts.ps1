@@ -75,7 +75,7 @@ try {
                 }
 
         Invoke-LogOperation -name "navstart - Download Artifacts (Async) - Start" -started $cosmoArtifacts.Download.Start -telemetryClient $telemetryClient -properties $telemetryProperties
-        Add-ArtifactsLog -message "Download Artifacts (Async) started."
+        Add-ArtifactsLog -message "Download Artifacts (Async) started. (Duration: $(New-TimeSpan -start $cosmoArtifacts.Download.Start -end (Get-Date)))"
     } else {
         # Download Font, Add-In and Demodata Artifacts
         @( $cosmoArtifacts.Artifacts.Font, $cosmoArtifacts.Artifacts.AddIn, $cosmoArtifacts.Artifacts.Demodata ) | 
@@ -94,7 +94,7 @@ try {
             }
         
         Invoke-LogOperation -name "navstart - Download Artifacts" -started $cosmoArtifacts.Download.Start -telemetryClient $telemetryClient -properties $telemetryProperties
-        Add-ArtifactsLog -message "Download Artifacts done."
+        Add-ArtifactsLog -message "Download Artifacts done. (Duration: $(New-TimeSpan -start $cosmoArtifacts.Download.Start -end (Get-Date)))"
     }
 }
 catch {
