@@ -6,6 +6,7 @@ function Invoke-Async {
         [hashtable]$Parameters = @{},
         [System.Management.Automation.Runspaces.RunspacePool]$RunspacePool
     )
+    Write-Host "Invoke-Async - Begin"
     $powershell = [powershell]::Create();
     $powershell.RunspacePool = $RunspacePool;
 
@@ -24,6 +25,7 @@ function Invoke-Async {
     $powershell.AddParameter("ScriptBlock", $ScriptBlock) | Out-Null;
     $powershell.AddParameter("Parameters", $Parameters.Clone()) | Out-Null;
 
+    Write-Host "Invoke-Async - BeginInvoke"
     $result = $powershell.BeginInvoke();
     
     $runspace = [pscustomobject]@{
@@ -34,5 +36,7 @@ function Invoke-Async {
     $runspace
 
     $script:runspaces += $runspace
+
+    Write-Host "Invoke-Async - End"
 }
 Export-ModuleMember -Function Invoke-Async
