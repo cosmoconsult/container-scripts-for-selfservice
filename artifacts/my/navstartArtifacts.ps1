@@ -93,8 +93,8 @@ try {
                 $_.Group | Invoke-DownloadArtifact -destination $cosmoArtifacts.Path.Unsorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
             }
 
-        $cosmoArtifacts.Download.End = Get-Date -Format "o"
-        
+        $cosmoArtifacts.Download.End = Get-Date
+                
         Invoke-LogOperation -name "navstart - Download Artifacts" -started $cosmoArtifacts.Download.Start -ended $cosmoArtifacts.Download.End -telemetryClient $telemetryClient -properties $telemetryProperties
         Add-ArtifactsLog -message "Download Artifacts done. (Duration: $(New-TimeSpan -start $cosmoArtifacts.Download.Start -end $cosmoArtifacts.Download.End))"
     }
