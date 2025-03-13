@@ -70,20 +70,7 @@ function Invoke-DownloadArtifactInternal {
 
         $getVersionFromAPI = $apiFeatures -contains "GetArtifactLatest"
 
-        $bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
-        
-        $downloadedApps = @()
-        # Collect already downloaded apps
-        Get-ChildItem -Path $destination -Filter '*.app' -Recurse |
-            ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
-            ForEach-Object {
-                $downloadedApps += [PSCustomObject]@{
-                    Name      = $_.Name
-                    Publisher = $_.Publisher
-                    id        = $_.AppId
-                    Version   = $_.version
-                }
-            }
+        $nugetParams = $null
     }
     
     process {
@@ -145,14 +132,31 @@ function Invoke-DownloadArtifactInternal {
             elseif ($type -eq "nuget") {
                 Import-NugetTools
                 New-ArtifactsLogEntry -Message "Download $name from nuget feed" 
+
+                if (! $nugetParams) {
+                    $nugetParams = @{
+                        installedPlatform = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+                        installedApps     = @()
+                    }
+                    # Collect already downloaded apps
+                    Get-ChildItem -Path $destination -Filter '*.app' -Recurse |
+                        ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
+                        ForEach-Object {
+                            $nugetParams.installedApps += [PSCustomObject]@{
+                                Name      = $_.Name
+                                Publisher = $_.Publisher
+                                id        = $_.AppId
+                                Version   = $_.version
+                            }
+                        }
+                }
                 
                 Download-BcNuGetPackageToFolder -packageName $name `
                                                 -folder $tempFolder `
                                                 -version $version `
-                                                -installedPlatform $bcVersion `
-                                                -installedApps $downloadedApps `
                                                 -downloadDependencies 'allButMicrosoft' `
-                                                -select 'EarliestMatching'
+                                                -select 'EarliestMatching' `
+                                                @nugetParams
 
                 Get-ChildItem -Path $tempFolder -Filter '*.app' -Recurse |
                     ForEach-Object {
@@ -171,13 +175,15 @@ function Invoke-DownloadArtifactInternal {
                             -serviceTierFolder $serviceTierFolder
                         
                         # Collect downloaded app
-                        $appInfo = Get-NavAppInfo -Path $_.FullName
-                        $downloadedApps += [PSCustomObject]@{
-                            Name      = $appInfo.Name
-                            Publisher = $appInfo.Publisher
-                            id        = $appInfo.AppId
-                            Version   = $appInfo.version
-                        }
+                        Get-NavAppInfo -Path $_.FullName |
+                            ForEach-Object {
+                                $nugetParams.installedApps += [PSCustomObject]@{
+                                    Name      = $_.Name
+                                    Publisher = $_.Publisher
+                                    id        = $_.AppId
+                                    Version   = $_.version
+                                }
+                            }
                     }
 
                 $success = $true
@@ -303,17 +309,19 @@ function Invoke-DownloadArtifactInternal {
                         Format-Table -AutoSize -Wrap:$false | 
                         Out-String -Width 1024)"
 
-                    # Collect downloaded apps
-                    Get-ChildItem -Path $folder -Filter '*.app' -Recurse |
-                        ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
-                        ForEach-Object {
-                            $downloadedApps += [PSCustomObject]@{
-                                Name      = $_.Name
-                                Publisher = $_.Publisher
-                                id        = $_.AppId
-                                Version   = $_.version
+                    if ($nugetParams) {
+                        # Collect downloaded apps
+                        Get-ChildItem -Path $folder -Filter '*.app' -Recurse |
+                            ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
+                            ForEach-Object {
+                                $nugetParams.installedApps += [PSCustomObject]@{
+                                    Name      = $_.Name
+                                    Publisher = $_.Publisher
+                                    id        = $_.AppId
+                                    Version   = $_.version
+                                }
                             }
-                        }
+                    }
 
                     $success = $true
                 }

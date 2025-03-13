@@ -1,8 +1,8 @@
 Write-Host "Start Setup Configuration"
 
 $scripts = @(
-                        (Join-Path $runPath "EnablePerformanceCounter.ps1")
-                        (Join-Path $runPath "4PS/Set-AlpacaContainerKeyVaultAadAppAndCertificate.ps1")
+    (Join-Path $runPath "EnablePerformanceCounter.ps1")
+    (Join-Path $runPath "4PS/Set-AlpacaContainerKeyVaultAadAppAndCertificate.ps1")
 )
 Push-Location
 # invoke default
