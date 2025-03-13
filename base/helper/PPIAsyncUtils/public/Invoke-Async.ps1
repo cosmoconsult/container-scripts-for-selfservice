@@ -24,15 +24,12 @@ function Invoke-Async {
     $powershell.AddParameter("ScriptBlock", $ScriptBlock) | Out-Null;
     $powershell.AddParameter("Parameters", $Parameters.Clone()) | Out-Null;
 
-    $result = $powershell.BeginInvoke();
-    
-    $runspace = [pscustomobject]@{
+    $script:runspaces += [pscustomobject]@{
         RunspacePool = $RunspacePool;
         Runspace = $powershell;
-        Result = $result
+        Result = $powershell.BeginInvoke()
     }
-    $runspace
 
-    $script:runspaces += $runspace
+    $powershell
 }
 Export-ModuleMember -Function Invoke-Async
