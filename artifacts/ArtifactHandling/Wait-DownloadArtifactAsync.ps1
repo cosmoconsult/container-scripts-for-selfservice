@@ -17,7 +17,7 @@ function Wait-DownloadArtifactAsync {
     }
     
     process {
-        Wait-Async -Runspace $Runspace -Result $Result |
+        Wait-Async -Runspace $Runspace |
             ForEach-Object {
                 if ($_.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
                     Push-Telemetry -Operation "Download Artifact" -Telemetry $_ -TelemetryClient $TelemetryClient
