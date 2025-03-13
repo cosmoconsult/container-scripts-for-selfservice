@@ -9,7 +9,7 @@ function Get-PwshCoreSessionConfiguration() {
         return $Script:PwshCoreSessionConfigurations[$SessionConfigurationName]
     }
 
-    $sessionConfiguration = Get-PSSessionConfiguration -Force | Where-Object { $_.Name -eq $SessionConfigurationName } | Select-Object -First 1
+    $sessionConfiguration = Get-PSSessionConfiguration -Name $SessionConfigurationName -ea SilentlyContinue
 
     if (! $sessionConfiguration) {
         Write-Warning "Remoting for powershell core not enabled... enabling"
