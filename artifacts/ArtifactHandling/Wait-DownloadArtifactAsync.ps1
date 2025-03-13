@@ -2,10 +2,8 @@ function Wait-DownloadArtifactAsync {
     [CmdletBinding()]
     param (
         # Async Parameter
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [powershell]$Runspace,
-        [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [System.IAsyncResult]$Result,
         [Parameter(Mandatory = $false)]
         [System.Object]$TelemetryClient = $null,
         [Parameter(Mandatory = $false)]
