@@ -51,8 +51,6 @@ function Invoke-DownloadArtifactInternal {
     )
     
     begin {
-        . c:\run\Prompt.ps1 -silent
-
         if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
@@ -137,6 +135,9 @@ function Invoke-DownloadArtifactInternal {
                     $nugetParams = @{
                         installedPlatform = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
                         installedApps     = @()
+                    }
+                    if (! ( Get-Command -Name 'Get-NavAppInfo' -ea SilentlyContinue )) {
+                        . c:\run\Prompt.ps1 -silent
                     }
                     # Collect already downloaded apps
                     Get-ChildItem -Path $destination -Filter '*.app' -Recurse |
