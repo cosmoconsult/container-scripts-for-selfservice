@@ -11,6 +11,8 @@
     The Tenant of the Server Instance where dataupgrade must be checked, eg. 'default'
 #>
 
+# Based on https://github.com/microsoft/navcontainerhelper/blob/b4af8bd12158938d8721c657542de71294952a5f/AppHandling/Get-NavContainerAppInfo.ps1
+
 function Unpublish-AllNavAppsInServerInstance {
     [cmdletbinding()]
     PARAM
@@ -27,10 +29,6 @@ function Unpublish-AllNavAppsInServerInstance {
             $ServerInstance = 'BC'
         }
         
-        #$InstalledApps = @{}
-
-        #$InstalledApps = Get-NAVAppInfo -ServerInstance $ServerInstance -TenantSpecificProperties -Tenant $Tenant | where-object 'IsInstalled' -eq $true 
-
         function AddAnApp { Param($anApp)
             $alreadyAdded = $script:installedApps | Where-Object { $_.AppId -eq $anApp.AppId -and $_.Version -eq $anApp.Version }
             if (-not ($alreadyAdded)) {
