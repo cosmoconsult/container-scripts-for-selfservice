@@ -81,14 +81,7 @@ function Invoke-DownloadArtifact {
                 -accessToken $accessToken `
                 -apiFeatures $apiFeatures `
                 -serviceTierFolder $serviceTierFolder |
-            ForEach-Object {
-                if ($_.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
-                    Push-Telemetry -Operation "Download Artifact" -Telemetry $_ -TelemetryClient $telemetryClient
-                }
-                if ($_.GetType() -eq [ArtifactsLogEntry]) {
-                    Push-ArtifactsLogEntry -Entry $_
-                }
-            } |
+            Resolve-DownloadArtifactInternal |
             Out-Null
     }
 }

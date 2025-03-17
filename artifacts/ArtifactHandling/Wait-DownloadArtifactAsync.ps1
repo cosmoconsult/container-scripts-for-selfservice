@@ -18,19 +18,7 @@ function Wait-DownloadArtifactAsync {
     
     process {
         Wait-Async -Runspace $Runspace |
-            ForEach-Object {
-                if ($_.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
-                    Push-Telemetry -Operation "Download Artifact" -Telemetry $_ -TelemetryClient $TelemetryClient
-                }
-                if ($_.GetType() -eq [ArtifactsLogEntry]) {
-                    Push-ArtifactsLogEntry -Entry $_
-                }
-                if ($_.GetType() -eq [DateTime]) {
-                    if ($End -and $_ -gt $End.Value) {
-                        $End.Value = $_
-                    }
-                }
-            } |
+            Resolve-DownloadArtifactInternal |
             Out-Null
     }
 }

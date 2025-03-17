@@ -15,6 +15,7 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifactAsync.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Wait-DownloadArtifactAsync.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifactInternal.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/Resolve-DownloadArtifactInternal.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-ArtifactsFromEnvironment.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-FOBArtifact.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-AppArtifact.ps1")
@@ -23,6 +24,14 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-Fonts.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-ArtifactJson.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-NugetTools.ps1")
+
+# Artifact Azure DevOps functions
+. (Join-Path $PSScriptRoot "ArtifactHandling/AzureDevOps/Get-AzureDevOpsAccessToken.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/AzureDevOps/Get-AzureDevOpsApiFeatures.ps1")
+
+# Artifact NAV functions
+
+. (Join-Path $PSScriptRoot "ArtifactHandling/NAV/Get-NAVServiceTierFolder.ps1")
 
 # Artifact Log Handling functions
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/Get-ArtifactsLog.ps1")

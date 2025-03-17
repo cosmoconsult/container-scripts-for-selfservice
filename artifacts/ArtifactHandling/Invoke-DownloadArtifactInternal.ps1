@@ -1,53 +1,31 @@
 function Invoke-DownloadArtifactInternal {
     [CmdletBinding()]
     param (
-        # Artifact Parameter
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$organization = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$project = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$feed = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$name = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$type = "upack",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$view = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$version = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$scope = "project",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$url = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$target = "",        
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$targetFolder = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$appImportScope = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$pat = "",
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string[]]$cosmoArtifactType = @(),
-        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName = $true)]
-        [string]$dependsOn = "",
+        # Artifact Parameters
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $organization      = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $project           = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $feed              = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $name              = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $type              = "upack",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $view              = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $version           = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $scope             = "project",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $url               = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $target            = "",        
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $targetFolder      = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $appImportScope    = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $pat               = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string[]]$cosmoArtifactType = @(),
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $dependsOn         = "",
 
-        # Download Parameter
-        [Parameter(Mandatory = $false)]
-        [string]$destination = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
-        [Parameter(Mandatory = $false)]
-        [switch]$groupByDependency = $false,
-        [Parameter(Mandatory = $false)]
-        [string]$baseUrl = "https://$($env:publicdnsname)",
-        [Parameter(Mandatory = $false)]
-        [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
-        [Parameter(Mandatory = $false)]
-        [string[]]$apiFeatures = @(),
-        [Parameter(Mandatory = $false)]
-        [string]$serviceTierFolder,
-        [Parameter(Mandatory = $false)]
-        [int]$folderIdx = 0
+        # Download Parameters
+        [Parameter(Mandatory)][string]  $destination,
+        [Parameter(Mandatory)][switch]  $groupByDependency,
+        [Parameter(Mandatory)][string]  $baseUrl,
+        [Parameter(Mandatory)][string]  $accessToken,
+        [Parameter(Mandatory)][string[]]$apiFeatures,
+        [Parameter(Mandatory)][string]  $serviceTierFolder,
+        [Parameter(Mandatory)][int]     $folderIdx
     )
     
     begin {
