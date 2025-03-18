@@ -2,21 +2,21 @@ function Invoke-DownloadArtifact {
     [CmdletBinding()]
     param (
         # Artifact Parameters
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Organization,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Project,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Feed,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Name,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Type,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $View,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Version,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Scope,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Url,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Target,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $TargetFolder,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $AppImportScope,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Pat,
-        [Parameter(ValueFromPipelineByPropertyName)][string[]]$CosmoArtifactType,
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $DependsOn,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Organization      = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Project           = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Feed              = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Name              = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Type              = "upack",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $View              = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Version           = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Scope             = "project",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Url               = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Target            = "",        
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $TargetFolder      = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $AppImportScope    = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Pat               = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string[]]$CosmoArtifactType = @(),
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $DependsOn         = "",
 
         # Download Parameters
         [string]  $Destination       = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
@@ -40,26 +40,27 @@ function Invoke-DownloadArtifact {
                 $TelemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
             }
         }
-
-        # Collect artifact parameters
-        $artifactParameters = 
-            $MyInvocation.MyCommand.Parameters.GetEnumerator() | 
-            Where-Object { 
-                $_.Value.Attributes | 
-                    Where-Object { $_.ValueFromPipelineByPropertyName }
-            } | 
-            Select-Object -ExpandProperty Key
     }
     
     process {
-        # Collect given artifacts from bound parameters
-        $artifact = @{}
-        $PSBoundParameters.GetEnumerator() |
-            Where-Object { $_.Key -in @( $artifactParameters ) } |
-            ForEach-Object {
-                $artifact[$_.Key] = $_.Value
-            }
-        $artifacts += New-Object pscustomobject -Property $artifact
+        # Collect given artifacts
+        $artifacts += [pscustomobject]@{
+            Organization = $Organization
+            Project = $Project
+            Feed = $Feed
+            Name = $Name
+            Type = $Type
+            View = $View
+            Version = $Version
+            Scope = $Scope
+            Url = $Url
+            Target = $Target
+            TargetFolder = $TargetFolder
+            AppImportScope = $AppImportScope
+            Pat = $Pat
+            CosmoArtifactType = $CosmoArtifactType
+            DependsOn = $DependsOn
+        }
     }
     
     end {
