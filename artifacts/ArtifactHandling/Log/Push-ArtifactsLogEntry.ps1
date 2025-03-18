@@ -1,16 +1,20 @@
 function Push-ArtifactsLogEntry {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $true)]
+        [Parameter(Mandatory = $true, ValueFromPipeline)]
         [ArtifactsLogEntry]$Entry
     )
+
+    begin {
+        $entries = @()
+    }
+
+    process {
+        $entries += $Entry
+    }
     
-    Add-ArtifactsLog `
-        -message $Entry.Message `
-        -time ( Get-Date $Entry.Time -format 'o' ) `
-        -kind $Entry.Kind `
-        -severity $Entry.Severity `
-        -success $Entry.Success `
-        -data $Entry.Data
+    end {
+        $entries | Add-ArtifactsLog
+    }
 }
 Export-ModuleMember -Function Push-ArtifactsLogEntry
