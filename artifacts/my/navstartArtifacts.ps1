@@ -99,7 +99,7 @@ try {
         # Download Artifacts (Sync)
 
         # Download Font, Add-In and Demodata Artifacts
-        @( $cosmoArtifacts.Artifacts.Font, $cosmoArtifacts.Artifacts.AddIn, $cosmoArtifacts.Artifacts.Demodata ) | 
+        $( $cosmoArtifacts.Artifacts.Font; $cosmoArtifacts.Artifacts.AddIn; $cosmoArtifacts.Artifacts.Demodata ) | 
             Invoke-DownloadArtifact -telemetryClient $telemetryClient -ErrorAction SilentlyContinue @downloadParameters
 
         # Download sorted Artifacts

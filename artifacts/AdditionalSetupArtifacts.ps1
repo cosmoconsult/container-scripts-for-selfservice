@@ -185,6 +185,7 @@ if ($global:cosmoRunspacePool) {
         $cosmoArtifactsDownloadEnd = $null
         $global:cosmoArtifacts.Download.Runspaces.Values | 
             ForEach-Object { $_ } |
+            Where-Object { $_ } |
             Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient -End ([ref]$cosmoArtifactsDownloadEnd)
         $global:cosmoArtifacts.Download.End = $cosmoArtifactsDownloadEnd
 

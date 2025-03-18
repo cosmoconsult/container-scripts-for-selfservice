@@ -4,9 +4,15 @@ function Resolve-DownloadArtifact {
         [Parameter(Mandatory, ValueFromPipeline)]
         $Object,
 
-        [System.Object]$TelemetryClient = $null,
-        [ref]$End = $null
+        [System.Object]$TelemetryClient,
+        [ref]$End
     )
+
+    begin {
+        if (! $TelemetryClient) {
+            $TelemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
+        }
+    }
     
     process {
         switch ($true) {
@@ -21,7 +27,7 @@ function Resolve-DownloadArtifact {
                     $End.Value = $Object
                 }
             }
-            else {
+            default {
                 $Object
             }
         }

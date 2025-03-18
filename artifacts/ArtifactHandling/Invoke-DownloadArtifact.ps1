@@ -37,7 +37,7 @@ function Invoke-DownloadArtifact {
 
         if (! $PassThru) {
             if (! $TelemetryClient) {
-                
+                $TelemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
             }
         }
 
@@ -59,7 +59,7 @@ function Invoke-DownloadArtifact {
             ForEach-Object {
                 $artifact[$_.Key] = $_.Value
             }
-        $artifacts += $Artifact
+        $artifacts += New-Object pscustomobject -Property $artifact
     }
     
     end {
