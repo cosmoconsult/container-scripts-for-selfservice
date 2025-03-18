@@ -1,4 +1,4 @@
-function Resolve-DownloadArtifactInternal {
+function Resolve-DownloadArtifact {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -27,4 +27,4 @@ function Resolve-DownloadArtifactInternal {
         }
     }
 }
-Export-ModuleMember -Function Resolve-DownloadArtifactInternal
+Export-ModuleMember -Function Resolve-DownloadArtifact

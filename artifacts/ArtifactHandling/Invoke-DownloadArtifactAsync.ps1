@@ -1,5 +1,5 @@
 function Invoke-DownloadArtifactAsync {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'Sync')]
     param (
         # Artifact Parameter
         [Parameter(ValueFromPipeline)]
@@ -22,6 +22,8 @@ function Invoke-DownloadArtifactAsync {
     )
     
     begin {
+        $artifacts = @()
+
         if (! (Get-Module 'PPIAsyncUtils')) {
             throw "PPI Async Utils not loaded"
         }
@@ -33,22 +35,18 @@ function Invoke-DownloadArtifactAsync {
             }
         }
 
+        $groupingScriptBlock = { "All" }
+        if ($Runspaces -eq "multiple") {
+            $groupingScriptBlock = { New-Guid }
+        }
+
         $scriptBlock = {
             param(
                 [object[]]$Artifacts, 
                 [hashtable]$Parameters
             )
-
-            try {
-                $Artifacts | Invoke-DownloadArtifactInternal @Parameters
-            } catch {
-                throw $_
-            } finally {
-                Get-Date
-            }
+            $Artifacts | Invoke-DownloadArtifact -PassThru @Parameters
         }
-
-        $artifacts = @()
     }
     
     process {
@@ -70,7 +68,7 @@ function Invoke-DownloadArtifactAsync {
         }
 
         $artifacts |
-            Group-Object { if ($Runspaces -eq "single") { "All" } else { New-Guid } } |
+            Group-Object $groupingScriptBlock |
             ForEach-Object {
                 $scriptBlockParameters = @{
                     Artifacts = @( $_.Group )

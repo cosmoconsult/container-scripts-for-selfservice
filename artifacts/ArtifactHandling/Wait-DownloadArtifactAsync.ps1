@@ -18,7 +18,7 @@ function Wait-DownloadArtifactAsync {
     
     process {
         Wait-Async -Runspace $Runspace |
-            Resolve-DownloadArtifactInternal |
+            Resolve-DownloadArtifact -End $End |
             Out-Null
     }
 }

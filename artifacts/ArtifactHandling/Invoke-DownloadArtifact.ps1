@@ -1,88 +1,105 @@
 function Invoke-DownloadArtifact {
     [CmdletBinding()]
     param (
-        # Artifact Parameter
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [object]$Artifact,
+        # Artifact Parameters
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Organization,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Project,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Feed,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Name,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Type,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $View,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Version,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Scope,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Url,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Target,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $TargetFolder,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $AppImportScope,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Pat,
+        [Parameter(ValueFromPipelineByPropertyName)][string[]]$CosmoArtifactType,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $DependsOn,
 
-        # Download Parameter
-        [Parameter(Mandatory = $false)]
-        [string]$destination = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
-        [Parameter(Mandatory = $false)]
-        [switch]$groupByDependency = $false,
-        [Parameter(Mandatory = $false)]
-        [string]$baseUrl = "https://$($env:publicdnsname)",
-        [Parameter(Mandatory = $false)]
-        [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
-        [Parameter(Mandatory = $false)]
-        [System.Object]$telemetryClient = $null
+        # Download Parameters
+        [string]  $Destination       = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
+        [switch]  $GroupByDependency = $false,
+        [string]  $BaseUrl           = "https://$($env:publicdnsname)",
+        [string]  $AccessToken,
+        [string[]]$ApiFeatures,
+        [string]  $ServiceTierFolder,
+        [int]     $FolderIdx         = 0,
+
+        # Control Parameters
+        [switch]$PassThru,
+        [System.Object]$TelemetryClient = $null
     )
     
     begin {
         $artifacts = @()
+
+        if (! $PassThru) {
+            if (! $TelemetryClient) {
+                
+            }
+        }
+
+        # Collect artifact parameters
+        $artifactParameters = 
+            $MyInvocation.MyCommand.Parameters.GetEnumerator() | 
+            Where-Object { 
+                $_.Value.Attributes | 
+                    Where-Object { $_.ValueFromPipelineByPropertyName }
+            } | 
+            Select-Object -ExpandProperty Key
     }
     
     process {
-        # Collect given artifacts
+        # Collect given artifacts from bound parameters
+        $artifact = @{}
+        $PSBoundParameters.GetEnumerator() |
+            Where-Object { $_.Key -in @( $artifactParameters ) } |
+            ForEach-Object {
+                $artifact[$_.Key] = $_.Value
+            }
         $artifacts += $Artifact
     }
     
     end {
-        if (! $telemetryClient) {
-            $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
+        if (! $PSBoundParameters.ContainsKey("ServiceTierFolder")) {
+            $ServiceTierFolder = Get-NAVServiceTierFolder
         }
 
-        $serviceTierFolder = (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service" -ErrorAction SilentlyContinue).FullName
-        if (! $serviceTierFolder) {
-            Add-ArtifactsLog -message "Service Tier Folder not found at 'C:\Program Files\Microsoft Dynamics NAV\*\Service'" -severity Warn
+        if (! $PSBoundParameters.ContainsKey("ApiFeatures")) {
+            $ApiFeatures = Get-AzureDevOpsApiFeatures -BaseUrl $BaseUrl
         }
 
-        if ($artifacts | Where-Object { ! $_.url } | Where-Object { $_.type -ne "nuget" }) {
-            # Validate or get the PAT, because no Download URL is present
-            if ("$accessToken" -eq "") {
-                # Try get the PAT from environment
-                $accessToken = (@("$($env:AZURE_DEVOPS_TOKEN)", "$($env:AZURE_DEVOPS_EXT_PAT)", "$($env:AZP_TOKEN)") | ? { "$_" -ne "" } | select -First 1)            
-            }
-            if ("$accessToken" -eq "") {
-                # Try to convert PAT from Base64, because it is stored in environment
-                $accessToken64 = (@("$($env:AZURE_DEVOPS_TOKEN64)", "$($env:AZURE_DEVOPS_EXT_PAT64)", "$($env:AZP_TOKEN64)", "$($env:AZURE_DEVOPS_PAT64)") | ? { "$_" -ne "" } | select -First 1)
-                if ("" -ne "$accessToken64" -and "" -eq "$accessToken") {
-                    try {
-                        $accessToken = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String("$accessToken64"))
-                    }
-                    catch {}                    
-                }
-                if ("" -ne "$accessToken64" -and "" -eq "$accessToken") {
-                    try {
-                        $accessToken = [System.Text.Encoding]::Unicode.GetString([System.Convert]::FromBase64String("$accessToken64"))
-                    }
-                    catch {}
-                }
-            }
-            if ("$accessToken" -eq "") {
-                Add-ArtifactsLog -message "PAT not present" -severity Warn
-            }
+        if (! $PSBoundParameters.ContainsKey("AccessToken")) {
+            $AccessToken = Get-AzureDevOpsAccessToken -Artifacts $artifacts
         }
 
-        try {
-            $apiFeaturesResult = Invoke-WebRequest -Method Get -uri "$baseUrl/api/automation/release/Features" -UseBasicParsing
-            if ($apiFeaturesResult.StatusCode -eq 200) {
-                $apiFeatures = ConvertFrom-Json $apiFeaturesResult.Content
-            }
-            Add-ArtifactsLog -message "Api Features enabled: $($apiFeatures -join ', ')"
+        $parameters = @{
+            Destination = $Destination
+            GroupByDependency = $GroupByDependency
+            BaseUrl = $BaseUrl
+            AccessToken = $AccessToken
+            ApiFeatures = $ApiFeatures
+            ServiceTierFolder = $ServiceTierFolder
+            FolderIdx = $FolderIdx
         }
-        catch {}
-        
-        $artifacts | 
-            Invoke-DownloadArtifactInternal `
-                -destination $destination `
-                -groupByDependency:$groupByDependency `
-                -baseUrl $baseUrl `
-                -accessToken $accessToken `
-                -apiFeatures $apiFeatures `
-                -serviceTierFolder $serviceTierFolder |
-            Resolve-DownloadArtifactInternal |
-            Out-Null
+
+        $outputs = @(
+            try {
+                $artifacts | Invoke-DownloadArtifactInternal @parameters
+            } catch {
+                throw $_
+            } finally {
+                Get-Date
+            }
+        )
+
+        if (! $PassThru) {
+            $outputs | Resolve-DownloadArtifact -TelemetryClient $TelemetryClient | Out-Null
+        } else {
+            $outputs
+        }
     }
 }
 Export-ModuleMember -Function Invoke-DownloadArtifact

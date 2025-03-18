@@ -5,6 +5,7 @@ try {
         Write-Host "##[group]Download Artifacts"
     }
 
+    # Initialize Cosmo Artifacts object
     $cosmoArtifacts = @{
         Download = @{
             Start = Get-Date -Format "o";
@@ -24,13 +25,16 @@ try {
         };
     }
 
+    # Get Telemetry Client
     $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
 
+    # Get Artifacts from Environment
     Get-ArtifactsFromEnvironment -telemetryClient $telemetryClient -ErrorAction SilentlyContinue | 
         Sort-Object { $_.type -eq "nuget" } | # Sort NuGet packages last
         ForEach-Object {
             $cosmoArtifacts.Artifacts.All += $_
 
+            # Sort Artifacts
             if     ( $_.target -in @( "bak", "saasbak" ) )          { $cosmoArtifacts.Artifacts.Backup   += $_ }
             elseif ( $_.target -in @( "fonts", "font" ) )           { $cosmoArtifacts.Artifacts.Font     += $_ }
             elseif ( $_.target -in @( "add-ins", "dll" ) )          { $cosmoArtifacts.Artifacts.AddIn    += $_ }
@@ -39,9 +43,11 @@ try {
             else                                                    { $cosmoArtifacts.Artifacts.Unsorted += $_ }
         }
 
+    # Set Telemetry Properties
     $telemetryProperties = @{}
     $telemetryProperties["artifacts"] = ( $cosmoArtifacts.Artifacts.All | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
 
+    # Get Download Parameters
     $downloadParameters = @{
         ServiceTierFolder = Get-NAVServiceTierFolder
         ApiFeatures       = Get-AzureDevOpsApiFeatures
@@ -49,6 +55,9 @@ try {
     }
     
     if ($global:cosmoRunspacePool) {
+        # Download Artifacts (Async)
+
+        # Add Runspaces to Cosmo Artifacts object
         $cosmoArtifacts.Download.Runspaces = @{
             Unsorted = @();
             Sorted   = @();
@@ -83,9 +92,12 @@ try {
                     $_.Group | Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -Destination $cosmoArtifacts.Path.Unsorted -GroupByDependency @downloadParameters
                 }
 
+        # Log
         Invoke-LogOperation -name "navstart - Download Artifacts (Async) - Start" -started $cosmoArtifacts.Download.Start -telemetryClient $telemetryClient -properties $telemetryProperties
         Add-ArtifactsLog -message "Download Artifacts (Async) started. (Duration: $(New-TimeSpan -start $cosmoArtifacts.Download.Start -end (Get-Date)))"
     } else {
+        # Download Artifacts (Sync)
+
         # Download Font, Add-In and Demodata Artifacts
         @( $cosmoArtifacts.Artifacts.Font, $cosmoArtifacts.Artifacts.AddIn, $cosmoArtifacts.Artifacts.Demodata ) | 
             Invoke-DownloadArtifact -telemetryClient $telemetryClient -ErrorAction SilentlyContinue @downloadParameters
@@ -104,6 +116,7 @@ try {
 
         $cosmoArtifacts.Download.End = Get-Date
 
+        # Log
         Invoke-LogOperation -name "navstart - Download Artifacts" -started $cosmoArtifacts.Download.Start -ended $cosmoArtifacts.Download.End -telemetryClient $telemetryClient -properties $telemetryProperties
         Add-ArtifactsLog -message "Download Artifacts done. (Duration: $(New-TimeSpan -start $cosmoArtifacts.Download.Start -end $cosmoArtifacts.Download.End))"
     }
@@ -112,7 +125,7 @@ catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
 }
 finally {
-    # Promoting variable to global scope
+    # Promoting Cosmo Artifacts object to global scope
     $global:cosmoArtifacts = $cosmoArtifacts
 
     Write-Host "##[endgroup]"
