@@ -19,13 +19,13 @@ function Invoke-DownloadArtifactInternal {
         [Parameter(ValueFromPipelineByPropertyName)][string]  $dependsOn         = "",
 
         # Download Parameters
-        [Parameter(Mandatory)][string]  $destination,
-        [Parameter(Mandatory)][switch]  $groupByDependency,
-        [Parameter(Mandatory)][string]  $baseUrl,
-        [Parameter(Mandatory)][string]  $accessToken,
-        [Parameter(Mandatory)][string[]]$apiFeatures,
-        [Parameter(Mandatory)][string]  $serviceTierFolder,
-        [Parameter(Mandatory)][int]     $folderIdx
+        [string]  $destination,
+        [switch]  $groupByDependency,
+        [string]  $baseUrl,
+        [string]  $accessToken,
+        [string[]]$apiFeatures,
+        [string]  $serviceTierFolder,
+        [int]     $folderIdx
     )
     
     begin {
