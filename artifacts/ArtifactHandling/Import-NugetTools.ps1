@@ -15,6 +15,31 @@
 
         $JsonPaths = @("C:\Run\my\trusted-nuget-feeds\trustedFeeds.json", 
             "C:\Run\my\trusted-nuget-feeds\customTrustedFeeds.json")
+        if ($global:extendedEnv.CustomNugetFeeds) {
+            Write-Host "Check Custom nuget feeds..."
+            $customFeeds = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($global:extendedEnv.CustomNugetFeeds)) | ConvertFrom-Json
+            
+            Write-Host "Add feeds from custom feeds"
+            $customFeeds | ForEach-Object {
+                $feedUrl= $_.feedUrl
+                Write-Host "Processing feed: $feedUrl"
+
+                # Check if the feed URL already exists in the TrustedNuGetFeeds array
+                $existingFeed = $bcContainerHelperConfig.TrustedNuGetFeeds | Where-Object { $_.Url -eq $feedUrl }
+
+                if ($existingFeed) {
+                    Write-Host "Feed already exists: $feedUrl - Skipping"
+                } else {
+                    Write-Host "Adding feed: $feedUrl"
+                    $bcContainerHelperConfig.TrustedNuGetFeeds += @([PSCustomObject]@{ 
+                        "Url" = $feedUrl
+                        "Token" = $_.pat
+                        "Patterns" = @('*')
+                        "Fingerprints" = @()
+                    })
+                }
+            }
+        }
         foreach ($jsonPath in $JsonPaths) {
             if (Test-Path $jsonPath) {
                 Write-Host "Add feeds from $jsonPath"
@@ -22,7 +47,23 @@
                 if ($fileContent -ne "") {
                     $trustedFeeds = $fileContent | ConvertFrom-Json
                     $trustedFeeds.Feeds | ForEach-Object {
-                        $bcContainerHelperConfig.TrustedNuGetFeeds += @([PSCustomObject]@{ "Url" = $_.url; "Token" = $_.pat; "Patterns" = @('*'); "Fingerprints" = @() })
+
+                        $feedUrl= $_.url
+                        Write-Host "Processing feed: $feedUrl"
+                        # Check if the feed URL already exists in the TrustedNuGetFeeds array
+                        $existingFeed = $bcContainerHelperConfig.TrustedNuGetFeeds | Where-Object { $_.Url -eq $feedUrl }
+
+                        if ($existingFeed) {
+                            Write-Host "Feed already exists: $feedUrl - Skipping"
+                        } else {
+                            Write-Host "Adding feed: $feedUrl"
+                            $bcContainerHelperConfig.TrustedNuGetFeeds += @([PSCustomObject]@{ 
+                                "Url" = $feedUrl
+                                "Token" = $_.pat
+                                "Patterns" = @('*')
+                                "Fingerprints" = @()
+                            })
+                        }
                     }
                 }
             }

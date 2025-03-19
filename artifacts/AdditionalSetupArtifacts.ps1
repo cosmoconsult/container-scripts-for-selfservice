@@ -192,7 +192,8 @@ try {
  
     $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
     Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
-    $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
+    $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct ??_*" })
+    $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)    
 }
 catch {
     Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
@@ -204,6 +205,14 @@ finally {
 
 # Initialize company
 if ($env:mode -eq "4ps") {
+    if(![string]::IsNullOrEmpty($env:removeAllCompanies)){
+        $companies = Get-NAVCompany -ServerInstance BC -Tenant $TenantId | Where-Object { $_.CompanyName -like "CRONUS*" }
+        foreach ($company in $companies) {
+            Write-Host "Remove company $($company.CompanyName)"
+            Remove-NAVCompany -CompanyName $company.CompanyName -ServerInstance BC -Force -Tenant $TenantId
+            Write-Host "Company $($company.CompanyName) removed."
+        }
+    }
     $files = Get-DemoDataFiles
     foreach ($demoDataFile in $files) {
         $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
@@ -211,7 +220,7 @@ if ($env:mode -eq "4ps") {
         if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
             $companyName = $Matches[1]
             Write-Host "  Create company $companyName"
-            New-NAVCompany -CompanyName $companyName -ServerInstance BC
+            New-NAVCompany -CompanyName $companyName -ServerInstance BC -Tenant $TenantId
         }
     }
 }
@@ -219,12 +228,12 @@ if ($env:mode -eq "4ps") {
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
 if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManually) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
-    Unpublish-AllNavAppsInServerInstance
+    Unpublish-AllNavAppsInServerInstance -KeepData (![string]::IsNullOrEmpty($env:saasbakfile))
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-    Write-Host "  Sync the system application"
-    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Write-Host "  Sync the system application with ForceSync"
+    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Mode ForceSync
     Write-Host "  Install the system application"
     Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
 }
@@ -234,6 +243,7 @@ try {
     $SyncMode = $env:IMPORT_SYNC_MODE
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
+    if (![string]::IsNullOrEmpty($env:saasbakfile)) { $SyncMode = "ForceSync" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
     $ExcludeApps = [string]::IsNullOrEmpty($env:AppExcludeExprEnabled) -or ($env:AppExcludeExprEnabled -eq "true")
 
@@ -371,16 +381,6 @@ $excludeAppsFromSaaSBak = @(
         Reason = "deprecated"
     },
     [pscustomobject]@{
-        Name   = "Intelligent Cloud Base";
-        Id     = '58623bfa-0559-4bc2-ae1c-0979c29fd9e0';
-        Reason = "works only on SaaS"
-    },
-    [pscustomobject]@{
-        Name   = "Business Central Intelligent Cloud";
-        Id     = '334ef79e-547e-4631-8ba1-7a7f18e14de6';
-        Reason = "works only on SaaS"
-    },
-    [pscustomobject]@{
         Name   = "Dynamics GP Intelligent Cloud";
         Id     = 'feeb3504-556e-4790-b28d-a2b9ce302d81';
         Reason = "works only on SaaS"
@@ -485,6 +485,9 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -EnvironmentType Sandbox `
         -OverwriteTenantIdInDatabase `
         -Force
+
+    Write-Host "    - Showing status"
+    Get-NavTenant -ServerInstance $ServerInstance 
         
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
@@ -501,7 +504,10 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     Write-Host " - Upgrading all apps"
     do {
         $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq $true }
-        $upgradeableApps | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue
+        foreach($upgradeableApp in $upgradeableApps) {
+            Write-Host "Upgrade $($upgradeableApp.Publisher)_$($upgradeableApp.Name)_$($upgradeableApp.Version) .."
+            Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue -AppId $($upgradeableApp.AppId)
+        }
     } while ($upgradeableApps.Count -gt 0)
 
     Write-Host " - Syncing new tenant"
@@ -511,8 +517,8 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Force
 
     Write-Host " - Upgrading tenant"
-    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
-    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
+    Start-NAVDataUpgrade -ServerInstance BC -Tenant $TenantId -ContinueOnError
+    Wait-DataUpgradeToFinish -ServerInstance BC -Tenant $TenantId
 
     Write-Host " - Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
@@ -531,14 +537,16 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($env:cosmoBaseAppVersion)"
     }
 
-    Write-Host " - Deactivate all users to ensure license compliance"
+    Write-Host " - Deactivate all other users to ensure license compliance"
     Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() } | % {
         Write-Host " - Disable $($_.UserName)"
         Set-NAVServerUser -UserName $_.UserName -State Disabled -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue
     }
 
-    Write-Host " - Create user in new tenant (if not exists)"
-    if (!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() })) {
+    Write-Host " - Create user or set password if NavUserPassword authin new tenant"
+    $existingUser = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() }
+    if (!$existingUser) {
+        Write-Host " - - Create user $env:username"
         if ($($env:username).indexOf("@") -gt 0) {
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -AuthenticationEMail $env:username -ErrorAction Continue
         }
@@ -546,6 +554,9 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
         }
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
+    } elseif ($env:auth -eq "NavUserPassword") {
+        Write-Host " - - User $env:username already exists and we run with NavUserPassword auth, setting password"
+        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
     }
 }
 
