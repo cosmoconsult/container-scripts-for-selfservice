@@ -23,19 +23,19 @@ function Import-NAVModules {
             if (Test-Path "$ServiceTierFolder") {
                 if (Test-Path "$ServiceTierFolder\Microsoft.Dynamics.Nav.Management.psm1") {
                     Write-Host "Import Management Utils from $ServiceTierFolder\Microsoft.Dynamics.Nav.Management.psm1"
-                    Import-Module "$ServiceTierFolder\Microsoft.Dynamics.Nav.Management.psm1" -Force:$Force -ErrorAction SilentlyContinue -DisableNameChecking
+                    Import-Module "$ServiceTierFolder\Microsoft.Dynamics.Nav.Management.psm1" -Global -Force:$Force -ErrorAction SilentlyContinue -DisableNameChecking
                 }
                 else {
                     Write-Host "Import Management Utils from $ServiceTierFolder\Microsoft.Dynamics.Nav.Management.dll"
-                    Import-Module "$ServiceTierFolder\Microsoft.Dynamics.Nav.Management.dll" -Force:$Force -ErrorAction SilentlyContinue -DisableNameChecking
+                    Import-Module "$ServiceTierFolder\Microsoft.Dynamics.Nav.Management.dll" -Global -Force:$Force -ErrorAction SilentlyContinue -DisableNameChecking
                 }
                 if (Test-Path "$ServiceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
                     Write-Host "Import App Management Utils from $ServiceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
-                    Import-Module "$ServiceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force:$Force -DisableNameChecking
+                    Import-Module "$ServiceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Global -Force:$Force -DisableNameChecking
                 }
                 elseif (Test-Path "SserviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
                     Write-Host "Import App Management Utils from $ServiceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1"
-                    Import-Module "$ServiceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force:$Force -DisableNameChecking
+                    Import-Module "$ServiceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Global -Force:$Force -DisableNameChecking
                 }
             }
         }
@@ -43,7 +43,7 @@ function Import-NAVModules {
         if ((! $ExcludeRoleTailoredClient) -and $RoleTailoredClientFolder) {
             if (Test-Path "$RoleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1") {
                 Write-Host "Import Nav IDE from $RoleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1"
-                Import-Module "$RoleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -Force:$Force -ErrorAction SilentlyContinue -DisableNameChecking
+                Import-Module "$RoleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -Global -Force:$Force -ErrorAction SilentlyContinue -DisableNameChecking
             }
         }
     }
