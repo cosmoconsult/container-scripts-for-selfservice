@@ -7,7 +7,7 @@ $scripts = @(
     (Join-Path $runPath $MyInvocation.MyCommand.Name) # default
 )
 
-$env:AppExcludeExprEnabled = "false"
+$env:AppExcludeExprEnabled = "true"
 $env:AppExcludeExpr = ".*"
 
 Write-Host "Start"
