@@ -29,6 +29,10 @@ function Invoke-DownloadArtifactInternal {
     )
     
     begin {
+        if (! ( Get-Command -Name 'Get-NavAppInfo' -ea SilentlyContinue )) {
+            . c:\run\Prompt.ps1 -silent
+        }
+
         if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
