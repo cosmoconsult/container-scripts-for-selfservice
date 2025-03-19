@@ -30,7 +30,7 @@ function Invoke-DownloadArtifactInternal {
     
     begin {
         if (! ( Get-Command -Name 'Get-NavAppInfo' -ea SilentlyContinue )) {
-            . c:\run\Prompt.ps1 -silent
+            . c:\run\Prompt.ps1
         }
 
         if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
