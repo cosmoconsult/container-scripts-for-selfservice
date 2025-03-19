@@ -235,7 +235,7 @@ try {
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
-    $ExcludeApps = [string]::IsNullOrEmpty($env:AppExcludeExprExists) -or ($env:AppExcludeExprExists -eq "true")
+    $ExcludeApps = [string]::IsNullOrEmpty($env:AppExcludeExprEnabled) -or ($env:AppExcludeExprEnabled -eq "true")
 
     Import-Artifacts `
         -Path            (Join-Path $targetDirManuallySorted '/general') `
