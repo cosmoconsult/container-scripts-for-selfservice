@@ -28,10 +28,7 @@ function Invoke-DownloadArtifactInternal {
         [int]     $folderIdx
     )
     
-    begin {
-        Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
-        Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
-        
+    begin {        
         if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
