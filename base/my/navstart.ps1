@@ -7,6 +7,9 @@ $scripts = @(
     (Join-Path $runPath $MyInvocation.MyCommand.Name) # default
 )
 
+$env:AppExcludeExprEnabled = "false"
+$env:AppExcludeExpr = ".*"
+
 Write-Host "Start"
 Write-Host "Running on Powershell Version:" $PSVersionTable.PSVersion
 
