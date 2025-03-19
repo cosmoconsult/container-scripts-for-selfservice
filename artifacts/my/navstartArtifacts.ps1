@@ -67,16 +67,16 @@ try {
             Demodata = @();
         }
 
-        # Download Font, Add-In and Demodata Artifacts (Async) - Start
-        $cosmoArtifacts.Download.Runspaces.Font += 
-            $cosmoArtifacts.Artifacts.Font | 
-                Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool @downloadParameters
+        # Download Add-In, Font and Demodata Artifacts (Async) - Start
         $cosmoArtifacts.Download.Runspaces.AddIn += 
             $cosmoArtifacts.Artifacts.AddIn |
                 Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool @downloadParameters
+        $cosmoArtifacts.Download.Runspaces.Font += 
+            $cosmoArtifacts.Artifacts.Font | 
+                Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -OneRunspace @downloadParameters
         $cosmoArtifacts.Download.Runspaces.Demodata += 
             $cosmoArtifacts.Artifacts.Demodata |
-                Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool @downloadParameters
+                Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -OneRunspace @downloadParameters
 
         # Download sorted Artifacts (Async) - Start
         $cosmoArtifacts.Download.Runspaces.Sorted += 
@@ -98,8 +98,8 @@ try {
     } else {
         # Download Artifacts (Sync)
 
-        # Download Font, Add-In and Demodata Artifacts
-        $( $cosmoArtifacts.Artifacts.Font; $cosmoArtifacts.Artifacts.AddIn; $cosmoArtifacts.Artifacts.Demodata ) | 
+        # Download Add-In, Font and Demodata Artifacts
+        $( $cosmoArtifacts.Artifacts.AddIn; $cosmoArtifacts.Artifacts.Font; $cosmoArtifacts.Artifacts.Demodata ) | 
             Invoke-DownloadArtifact -telemetryClient $telemetryClient -ErrorAction SilentlyContinue @downloadParameters
 
         # Download sorted Artifacts

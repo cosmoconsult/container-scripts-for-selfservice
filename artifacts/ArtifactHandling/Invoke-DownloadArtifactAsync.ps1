@@ -17,8 +17,7 @@ function Invoke-DownloadArtifactAsync {
         # Async Parameters
         [Parameter(Mandatory)]
         [System.Management.Automation.Runspaces.RunspacePool]$RunspacePool,
-        [ValidateSet("automatic", "single", "multiple")]
-        [string]$Runspaces = "automatic"
+        [switch]$OneRunspace
     )
     
     begin {
@@ -28,16 +27,15 @@ function Invoke-DownloadArtifactAsync {
             throw "PPI Async Utils not loaded"
         }
 
-        if ($Runspaces -eq "automatic") {
-            $Runspaces = "multiple"
+        if (! $PSBoundParameters.ContainsKey("OneRunspace")) {
             if ($RunspacePool.GetMaxRunspaces() -eq 1) {
-                $Runspaces = "single"
+                $OneRunspace = $true
             }
         }
 
-        $groupingScriptBlock = { "All" }
-        if ($Runspaces -eq "multiple") {
-            $groupingScriptBlock = { New-Guid }
+        $groupingScriptBlock = { New-Guid }
+        if ($OneRunspace) {
+            $groupingScriptBlock = { "All" }
         }
 
         $scriptBlock = {
