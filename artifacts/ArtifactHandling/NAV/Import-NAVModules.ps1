@@ -36,7 +36,7 @@ function Import-NAVModules {
                         Write-Host "Import App Management Utils from $ServiceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
                         Import-Module "$ServiceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Global -Force:$Force -DisableNameChecking
                     }
-                    elseif (Test-Path "SserviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
+                    elseif (Test-Path "$ServiceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
                         Write-Host "Import App Management Utils from $ServiceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1"
                         Import-Module "$ServiceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Global -Force:$Force -DisableNameChecking
                     }
