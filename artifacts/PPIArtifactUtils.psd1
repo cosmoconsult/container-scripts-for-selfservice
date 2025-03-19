@@ -74,7 +74,7 @@
     'Get-PackageVersion', 'Invoke-DownloadArtifact', 'Resolve-DownloadArtifact', 'Invoke-DownloadArtifactAsync', 'Wait-DownloadArtifactAsync', 'Get-AppFilesSortedByDependencies', 'Get-ArtifactsFromEnvironment',
     'Import-FOBArtifact', 'Import-AppArtifact', 'Import-RIMArtifact', 'Import-Artifacts', 'Import-Fonts', 'Get-ArtifactJson',
     'Get-AzureDevOpsAccessToken', 'Get-AzureDevOpsApiFeatures',
-    'Get-NAVServiceTierFolder',
+    'Get-NAVServiceTierFolder', 'Get-NAVRoleTailoredClientFolder', 'Import-NAVModules',
     'Get-ArtifactsLog', 'Add-ArtifactsLog', 'New-ArtifactsLogEntry', 'Push-ArtifactsLogEntry',
     'Invoke-4PSArtifactHandling', 'Test-DataUpgradeExecuted', 'Wait-DataUpgradeToFinish', 'Get-AppDatabaseName', 'Unpublish-AllNavAppsInServerInstance', 'Get-DemoDataFiles',
     'Import-NugetTools'

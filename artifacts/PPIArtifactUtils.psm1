@@ -32,6 +32,8 @@
 # Artifact NAV functions
 
 . (Join-Path $PSScriptRoot "ArtifactHandling/NAV/Get-NAVServiceTierFolder.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/NAV/Get-NAVRoleTailoredClientFolder.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/NAV/Import-NAVModules.ps1")
 
 # Artifact Log Handling functions
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/Get-ArtifactsLog.ps1")

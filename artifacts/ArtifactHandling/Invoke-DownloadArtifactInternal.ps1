@@ -30,7 +30,7 @@ function Invoke-DownloadArtifactInternal {
     
     begin {
         if (! ( Get-Command -Name 'Get-NavAppInfo' -ea SilentlyContinue )) {
-            . c:\run\Prompt.ps1
+            Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
         }
 
         if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
@@ -119,7 +119,7 @@ function Invoke-DownloadArtifactInternal {
                         installedApps     = @()
                     }
                     if (! ( Get-Command -Name 'Get-NavAppInfo' -ea SilentlyContinue )) {
-                        . c:\run\Prompt.ps1 -silent
+                        Import-NAVModules -ExcludeRoleTailoredClient
                     }
                     # Collect already downloaded apps
                     Get-ChildItem -Path $destination -Filter '*.app' -Recurse |
