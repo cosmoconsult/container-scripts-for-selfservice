@@ -29,10 +29,9 @@ function Invoke-DownloadArtifactInternal {
     )
     
     begin {
-        if (! ( Get-Command -Name 'Get-NavAppInfo' -ea SilentlyContinue )) {
-            Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
-        }
-
+        Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
+        Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
+        
         if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
@@ -54,6 +53,7 @@ function Invoke-DownloadArtifactInternal {
     }
     
     process {
+        
         # check restart
         if (($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
             New-ArtifactsLogEntry -Message "Skipping $target download because this seems to be a service restart" -Success Skip
@@ -118,9 +118,9 @@ function Invoke-DownloadArtifactInternal {
                         installedPlatform = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
                         installedApps     = @()
                     }
-                    if (! ( Get-Command -Name 'Get-NavAppInfo' -ea SilentlyContinue )) {
-                        Import-NAVModules -ExcludeRoleTailoredClient
-                    }
+                    
+                    Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
+
                     # Collect already downloaded apps
                     Get-ChildItem -Path $destination -Filter '*.app' -Recurse |
                         ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
