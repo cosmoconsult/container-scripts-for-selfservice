@@ -55,8 +55,9 @@ try {
 
     # Get NuGet Feeds
     if ($cosmoArtifacts.Download.NuGet) {
-        Install-NuGetTools
         $cosmoArtifacts.Download.NuGetFeeds = Get-NuGetFeeds
+
+        Install-NuGetTools
     }
 
     # Get Download Parameters
