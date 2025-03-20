@@ -2,7 +2,7 @@ function Wait-Async {
     [cmdletbinding()]
     param (
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [powershell]$Runspace,
+        [RunspaceInfo]$RunspaceInfo,
         
         [scriptblock]$ErrorScriptBlock       = { if ($_.Exception.WasThrownFromThrowStatement) { throw $_ } else { Write-Error $_ } },
         [scriptblock]$WarningScriptBlock     = { Write-Warning $_ },
@@ -13,27 +13,34 @@ function Wait-Async {
     )
 
     process {
-        $script:runspaces | 
-            Where-Object { $_.Runspace -eq $Runspace } | 
-            ForEach-Object {
-                $outputs = $_.Runspace.EndInvoke($_.Result);
-                $_.Runspace.Dispose();
+        if ($RunspaceInfo.Handled) {
+            return
+        }
 
-                $scriptBlock = $null;
-                foreach ($output in $outputs) {
-                    switch($output.GetType()) {
-                        ( [System.Management.Automation.ErrorRecord] )       { $scriptBlock = $ErrorScriptBlock }
-                        ( [System.Management.Automation.WarningRecord] )     { $scriptBlock = $WarningScriptBlock }
-                        ( [System.Management.Automation.VerboseRecord] )     { $scriptBlock = $VerboseScriptBlock }
-                        ( [System.Management.Automation.DebugRecord] )       { $scriptBlock = $DebugScriptBlock }
-                        ( [System.Management.Automation.InformationRecord] ) { $scriptBlock = $InformationScriptBlock }
-                        default                                              { $scriptBlock = $OutputScriptBlock }
-                    }
-                    $output | ForEach-Object $scriptBlock
-                }
+        if (! $RunspaceInfo.Runspace) {
+            return
+        }
+
+        if (! $RunspaceInfo.Handle) {
+            return
+        }
+
+        $outputs = $RunspaceInfo.Runspace.EndInvoke($RunspaceInfo.Handle);
+        $RunspaceInfo.Runspace.Dispose();
+        $RunspaceInfo.Handled = $true;
+
+        $scriptBlock = $null;
+        foreach ($output in $outputs) {
+            switch($output.GetType()) {
+                ( [System.Management.Automation.ErrorRecord] )       { $scriptBlock = $ErrorScriptBlock }
+                ( [System.Management.Automation.WarningRecord] )     { $scriptBlock = $WarningScriptBlock }
+                ( [System.Management.Automation.VerboseRecord] )     { $scriptBlock = $VerboseScriptBlock }
+                ( [System.Management.Automation.DebugRecord] )       { $scriptBlock = $DebugScriptBlock }
+                ( [System.Management.Automation.InformationRecord] ) { $scriptBlock = $InformationScriptBlock }
+                default                                              { $scriptBlock = $OutputScriptBlock }
             }
-
-        $script:runspaces = @( $script:runspaces | Where-Object { $_.Runspace -ne $Runspace } )
+            $output | ForEach-Object $scriptBlock
+        }
     }
 }
 Export-ModuleMember -Function Wait-Async

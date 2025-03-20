@@ -8,7 +8,6 @@ function Close-RunspacePool {
     # wait for all running runspaces of runspace pool
     $script:runspaces | 
         Where-Object { $_.RunspacePool -eq $RunspacePool } |
-        ForEach-Object { $_.Runspace } |
         Wait-Async | Out-Null
     
     $RunspacePool.Close();
