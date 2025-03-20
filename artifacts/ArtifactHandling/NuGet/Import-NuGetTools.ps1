@@ -12,6 +12,8 @@
     }
 
     process {
+        Install-NuGetTools
+        
         if ($Force -or (! (Get-Module "bccontainerhelper"))) {
             Write-Host "Import BCContainerHelper"
             Import-Module -Name "bccontainerhelper" -DisableNameChecking -Scope Global -Force:$Force
