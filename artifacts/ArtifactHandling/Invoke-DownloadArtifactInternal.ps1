@@ -107,7 +107,6 @@ function Invoke-DownloadArtifactInternal {
                 }
             }
             elseif ($type -eq "nuget") {
-                Import-NugetTools
                 New-ArtifactsLogEntry -Message "Download $name from nuget feed" 
 
                 if (! $nugetParams) {
@@ -117,6 +116,7 @@ function Invoke-DownloadArtifactInternal {
                     }
                     
                     Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
+                    Import-NugetTools
 
                     # Collect already downloaded apps
                     Get-ChildItem -Path $destination -Filter '*.app' -Recurse |

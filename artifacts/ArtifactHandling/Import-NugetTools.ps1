@@ -1,5 +1,7 @@
-﻿function Import-NugetTools {
-    if ($env:nugetImported -eq $false) {
+﻿$script:nugetImported = $false
+
+function Import-NugetTools {
+    if (! $script:nugetImported) {
         Write-Host "Import BCContainerHelper"
         Write-Host "Install Nuget Provider"
         Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
@@ -69,7 +71,8 @@
             }
         }
     }
-    $env:nugetImported = $true
+    
+    $script:nugetImported = $true
 }
 
 Export-ModuleMember -Function Import-NugetTools
