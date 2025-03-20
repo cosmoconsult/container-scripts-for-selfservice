@@ -12,6 +12,7 @@ function Invoke-DownloadArtifactAsync {
         [string]  $AccessToken,
         [string[]]$ApiFeatures,
         [string]  $ServiceTierFolder,
+        [object[]]$NuGetFeeds,
         [int]     $FolderIdx         = 0,
 
         # Async Parameters
@@ -65,6 +66,10 @@ function Invoke-DownloadArtifactAsync {
             $AccessToken = Get-AzureDevOpsAccessToken -Artifacts $artifacts
         }
 
+        if (! $PSBoundParameters.ContainsKey("NuGetFeeds")) {
+            $NuGetFeeds = Get-NuGetFeeds
+        }
+
         $artifacts |
             Group-Object $groupingScriptBlock |
             ForEach-Object {
@@ -77,6 +82,7 @@ function Invoke-DownloadArtifactAsync {
                         AccessToken = $AccessToken
                         ApiFeatures = $ApiFeatures
                         ServiceTierFolder = $ServiceTierFolder
+                        NuGetFeeds = $NuGetFeeds
                         FolderIdx = $FolderIdx
                     }
                 }

@@ -25,6 +25,7 @@ function Invoke-DownloadArtifactInternal {
         [string]  $accessToken,
         [string[]]$apiFeatures,
         [string]  $serviceTierFolder,
+        [object[]]$nuGetFeeds,
         [int]     $folderIdx
     )
     
@@ -107,7 +108,7 @@ function Invoke-DownloadArtifactInternal {
                 }
             }
             elseif ($type -eq "nuget") {
-                New-ArtifactsLogEntry -Message "Download $name from nuget feed" 
+                New-ArtifactsLogEntry -Message "Download $name from nuget feed"
 
                 if (! $nugetParams) {
                     $nugetParams = @{
@@ -118,7 +119,7 @@ function Invoke-DownloadArtifactInternal {
                     }
                     
                     Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
-                    Import-NugetTools
+                    Import-NugetTools -Feeds $nuGetFeeds
 
                     # Collect already downloaded apps
                     Get-ChildItem -Path $destination -Filter '*.app' -Recurse |
@@ -133,13 +134,17 @@ function Invoke-DownloadArtifactInternal {
                         }
                 }
 
+                Remove-Item -Path ( Join-Path $nugetParams.folder '*' ) -Recurse
+
                 $nugetPackageParams = @{
                     packageName = $name
                     select      = 'EarliestMatching'
                 }
                 
                 if ($version) {
-                    $nugetPackageParams.version = $version
+                    $nugetPackageParams += @{
+                        version = $version
+                    }
                 }
                 
                 Download-BcNuGetPackageToFolder @nugetPackageParams @nugetParams

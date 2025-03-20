@@ -8,7 +8,9 @@ try {
     # Initialize Cosmo Artifacts object
     $cosmoArtifacts = @{
         Download = @{
-            Start = Get-Date -Format "o";
+            Start      = Get-Date -Format "o";
+            NuGet      = $false
+            NuGetFeeds = @();
         };
         Path = @{
             Unsorted = "C:\run\my\apps";
@@ -41,21 +43,36 @@ try {
             elseif ( $_.target -in @( "demodata" ) )                { $cosmoArtifacts.Artifacts.Demodata += $_ }
             elseif ( $_.name -and $_.name.StartsWith("sortorder") ) { $cosmoArtifacts.Artifacts.Sorted   += $_ }
             else                                                    { $cosmoArtifacts.Artifacts.Unsorted += $_ }
+
+            if ($_.type -eq "nuget") {
+                $cosmoArtifacts.Download.NuGet = $true
+            }
         }
 
     # Set Telemetry Properties
     $telemetryProperties = @{}
     $telemetryProperties["artifacts"] = ( $cosmoArtifacts.Artifacts.All | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
 
+    # Get NuGet Feeds
+    if ($cosmoArtifacts.Download.NuGet) {
+        Install-NuGetTools
+        $cosmoArtifacts.Download.NuGetFeeds = Get-NuGetFeeds
+    }
+
     # Get Download Parameters
     $downloadParameters = @{
         ServiceTierFolder = Get-NAVServiceTierFolder
         ApiFeatures       = Get-AzureDevOpsApiFeatures
         AccessToken       = Get-AzureDevOpsAccessToken -Artifacts $cosmoArtifacts.Artifacts.All
+        NuGetFeeds        = $cosmoArtifacts.Download.NuGetFeeds
     }
     
     if ($global:cosmoRunspacePool) {
         # Download Artifacts (Async)
+
+        $downloadParameters += @{
+            RunspacePool = $global:cosmoRunspacePool
+        }
 
         # Add Runspaces to Cosmo Artifacts object
         $cosmoArtifacts.Download.Runspaces = @{
@@ -70,18 +87,18 @@ try {
         # Download Add-In, Font and Demodata Artifacts (Async) - Start
         $cosmoArtifacts.Download.Runspaces.AddIn += 
             $cosmoArtifacts.Artifacts.AddIn |
-                Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool @downloadParameters
+                Invoke-DownloadArtifactAsync @downloadParameters
         $cosmoArtifacts.Download.Runspaces.Font += 
             $cosmoArtifacts.Artifacts.Font | 
-                Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -OneRunspace @downloadParameters
+                Invoke-DownloadArtifactAsync -OneRunspace @downloadParameters
         $cosmoArtifacts.Download.Runspaces.Demodata += 
             $cosmoArtifacts.Artifacts.Demodata |
-                Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -OneRunspace @downloadParameters
+                Invoke-DownloadArtifactAsync -OneRunspace @downloadParameters
 
         # Download sorted Artifacts (Async) - Start
         $cosmoArtifacts.Download.Runspaces.Sorted += 
             $cosmoArtifacts.Artifacts.Sorted | 
-                Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -Destination $cosmoArtifacts.Path.Sorted -GroupByDependency @downloadParameters
+                Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Sorted -GroupByDependency @downloadParameters
 
         # Download unsorted Artifacts (Async) - Start
         $cosmoArtifacts.Download.Runspaces.Unsorted += 
@@ -89,7 +106,7 @@ try {
                 Group-Object -Property dependsOn | 
                 ForEach-Object {
                     # Download per dependency for separated indexes
-                    $_.Group | Invoke-DownloadArtifactAsync -RunspacePool $global:cosmoRunspacePool -Destination $cosmoArtifacts.Path.Unsorted -GroupByDependency @downloadParameters
+                    $_.Group | Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Unsorted -GroupByDependency @downloadParameters
                 }
 
         # Log
@@ -98,20 +115,25 @@ try {
     } else {
         # Download Artifacts (Sync)
 
+        $downloadParameters += @{
+            TelemetryClient = $telemetryClient
+            ErrorAction     = "SilentlyContinue"
+        }
+
         # Download Add-In, Font and Demodata Artifacts
         $( $cosmoArtifacts.Artifacts.AddIn; $cosmoArtifacts.Artifacts.Font; $cosmoArtifacts.Artifacts.Demodata ) | 
-            Invoke-DownloadArtifact -telemetryClient $telemetryClient -ErrorAction SilentlyContinue @downloadParameters
+            Invoke-DownloadArtifact @downloadParameters
 
         # Download sorted Artifacts
         $cosmoArtifacts.Artifacts.Sorted | 
-            Invoke-DownloadArtifact -destination $cosmoArtifacts.Path.Sorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue @downloadParameters
+            Invoke-DownloadArtifact -destination $cosmoArtifacts.Path.Sorted -groupByDependency @downloadParameters
 
         # Download unsorted Artifacts
         $cosmoArtifacts.Artifacts.Unsorted | 
             Group-Object -Property dependsOn | 
             ForEach-Object {
                 # Download per dependency for separated indexes
-                $_.Group | Invoke-DownloadArtifact -destination $cosmoArtifacts.Path.Unsorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue @downloadParameters
+                $_.Group | Invoke-DownloadArtifact -destination $cosmoArtifacts.Path.Unsorted -groupByDependency @downloadParameters
             }
 
         $cosmoArtifacts.Download.End = Get-Date

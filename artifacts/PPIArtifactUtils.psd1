@@ -77,7 +77,7 @@
     'Get-NAVServiceTierFolder', 'Get-NAVRoleTailoredClientFolder', 'Import-NAVModules',
     'Get-ArtifactsLog', 'Add-ArtifactsLog', 'New-ArtifactsLogEntry', 'Push-ArtifactsLogEntry',
     'Invoke-4PSArtifactHandling', 'Test-DataUpgradeExecuted', 'Wait-DataUpgradeToFinish', 'Get-AppDatabaseName', 'Unpublish-AllNavAppsInServerInstance', 'Get-DemoDataFiles',
-    'Import-NugetTools'
+    'Get-NuGetFeeds', 'Install-NuGetTools', 'Import-NuGetTools'
 
     # Aus diesem Modul zu exportierende Cmdlets. Um optimale Leistung zu erzielen, verwenden Sie keine Platzhalter und lueschen den Eintrag nicht. Verwenden Sie ein leeres Array, wenn keine zu exportierenden Cmdlets vorhanden sind.
     CmdletsToExport   = @()
