@@ -15,7 +15,7 @@
         }
 
         if ($Force -or (! (Get-InstalledModule "bccontainerhelper" -ea Ignore))) {
-            Write-Host "Import BCContainerHelper"
+            Write-Host "Install BCContainerHelper"
             Install-Module -Name "bccontainerhelper" -Scope CurrentUser -Force
         }
     }
