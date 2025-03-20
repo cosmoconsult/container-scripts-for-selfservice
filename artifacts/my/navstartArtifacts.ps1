@@ -53,11 +53,12 @@ try {
     $telemetryProperties = @{}
     $telemetryProperties["artifacts"] = ( $cosmoArtifacts.Artifacts.All | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
 
-    # Get NuGet Feeds
     if ($cosmoArtifacts.Download.NuGet) {
-        $cosmoArtifacts.Download.NuGetFeeds = Get-NuGetFeeds
-
+        # Install NuGet Tools
         Install-NuGetTools
+        
+        # Get NuGet Feeds
+        $cosmoArtifacts.Download.NuGetFeeds = Get-NuGetFeeds
     }
 
     # Get Download Parameters
