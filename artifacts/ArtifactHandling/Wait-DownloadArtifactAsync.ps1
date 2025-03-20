@@ -3,7 +3,7 @@ function Wait-DownloadArtifactAsync {
     param (
         # Async Parameter
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [powershell]$Runspace,
+        [object]$RunspaceInfo,
         [Parameter(Mandatory = $false)]
         [System.Object]$TelemetryClient = $null,
         [Parameter(Mandatory = $false)]
@@ -17,7 +17,7 @@ function Wait-DownloadArtifactAsync {
     }
     
     process {
-        Wait-Async -Runspace $Runspace |
+        Wait-Async -RunspaceInfo $RunspaceInfo |
             Resolve-DownloadArtifact -TelemetryClient $TelementryClient -End $End |
             Out-Null
     }
