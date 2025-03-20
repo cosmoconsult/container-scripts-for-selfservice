@@ -111,8 +111,10 @@ function Invoke-DownloadArtifactInternal {
 
                 if (! $nugetParams) {
                     $nugetParams = @{
-                        installedPlatform = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
-                        installedApps     = @()
+                        folder               = $tempFolder
+                        installedPlatform    = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+                        installedApps        = @()
+                        downloadDependencies = 'allButMicrosoft'
                     }
                     
                     Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
@@ -130,13 +132,17 @@ function Invoke-DownloadArtifactInternal {
                             }
                         }
                 }
+
+                $nugetPackageParams = @{
+                    packageName = $name
+                    select      = 'EarliestMatching'
+                }
                 
-                Download-BcNuGetPackageToFolder -packageName $name `
-                                                -folder $tempFolder `
-                                                -version $version `
-                                                -downloadDependencies 'allButMicrosoft' `
-                                                -select 'EarliestMatching' `
-                                                @nugetParams
+                if ($version) {
+                    $nugetPackageParams.version = $version
+                }
+                
+                Download-BcNuGetPackageToFolder @nugetPackageParams @nugetParams
 
                 Get-ChildItem -Path $tempFolder -Filter '*.app' -Recurse |
                     ForEach-Object {

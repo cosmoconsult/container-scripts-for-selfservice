@@ -7,7 +7,7 @@ function Import-NugetTools {
         Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
         Write-Host "Import bccontainerhelper"
         Install-Module -Name "bccontainerhelper" -Scope CurrentUser -Force
-        Import-Module -Name "bccontainerhelper" -Scope Global
+        Import-Module -Name "bccontainerhelper" -DisableNameChecking -Scope Global
 
         Write-Host "Add Microsoft feeds as trusted feeds"
         $bcContainerHelperConfig.TrustedNuGetFeeds += @([PSCustomObject]@{ "Url" = "https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/index.json"; "Token" = ""; "Patterns" = @('*'); "Fingerprints" = @() })
@@ -71,7 +71,7 @@ function Import-NugetTools {
             }
         }
     }
-    
+
     $script:nugetImported = $true
 }
 
