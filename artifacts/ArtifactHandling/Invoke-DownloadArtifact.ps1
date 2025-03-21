@@ -65,6 +65,10 @@ function Invoke-DownloadArtifact {
     }
     
     end {
+        if (! $artifacts) {
+            return
+        }
+        
         if (! $PSBoundParameters.ContainsKey("ServiceTierFolder")) {
             $ServiceTierFolder = Get-NAVServiceTierFolder
         }
