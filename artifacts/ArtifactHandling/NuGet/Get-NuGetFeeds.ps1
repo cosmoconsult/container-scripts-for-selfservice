@@ -1,4 +1,7 @@
 ﻿function Get-NuGetFeeds {
+    [cmdletbinding()]
+    Param()
+    
     begin {
         $feeds = @()
     }

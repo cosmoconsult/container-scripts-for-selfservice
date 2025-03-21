@@ -7,19 +7,12 @@ function Import-NAVModules {
         [switch]$ExcludeRoleTailoredClient,
         [switch]$Force
     )
-
-    begin {
-        if ((! $ExcludeServiceTier) -and (! $ServiceTierFolder)) {
+    
+    if (! $ExcludeServiceTier) {
+        if (! $ServiceTierFolder) {
             $ServiceTierFolder = Get-NAVServiceTierFolder
         }
-
-        if ((! $ExcludeRoleTailoredClient) -and (! $RoleTailoredClientFolder)) {
-            $RoleTailoredClientFolder = Get-NAVRoleTailoredClientFolder
-        }
-    }
-    
-    process {
-        if ((! $ExcludeServiceTier) -and $ServiceTierFolder) {
+        if ($ServiceTierFolder) {
             if (Test-Path "$ServiceTierFolder") {
                 if ($Force -or (! (Get-Module "Microsoft.Dynamics.Nav.Management" ))) {
                     if (Test-Path "$ServiceTierFolder\Microsoft.Dynamics.Nav.Management.psm1") {
@@ -43,8 +36,13 @@ function Import-NAVModules {
                 }
             }
         }
+    }
 
-        if ((! $ExcludeRoleTailoredClient) -and $RoleTailoredClientFolder) {
+    if (! $ExcludeRoleTailoredClient) { 
+        if (! $RoleTailoredClientFolder) {
+            $RoleTailoredClientFolder = Get-NAVRoleTailoredClientFolder
+        }
+        if ($RoleTailoredClientFolder) {
             if ($Force -or (! (Get-Module "Microsoft.Dynamics.Nav.Ide" ))) {
                 if (Test-Path "$RoleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1") {
                     Write-Host "Import Nav IDE from $RoleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1"
