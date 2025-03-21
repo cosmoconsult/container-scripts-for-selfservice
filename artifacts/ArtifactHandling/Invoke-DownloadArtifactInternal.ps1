@@ -113,6 +113,7 @@ function Invoke-DownloadArtifactInternal {
                     $nugetParams = @{
                         installedPlatform    = $platformVersion
                         installedApps        = @()
+                        select               = 'Latest'
                         downloadDependencies = 'allButMicrosoft'
                     }
 
@@ -131,7 +132,6 @@ function Invoke-DownloadArtifactInternal {
 
                 $nugetPackageParams = @{
                     packageName = $name
-                    select      = 'EarliestMatching'
                 }
                 
                 if ($version) {
@@ -227,6 +227,7 @@ function Invoke-DownloadArtifactInternal {
                     }
 
                     if ($isNuGet) {
+                        New-Item -ItemType Directory -Path $folder -ErrorAction SilentlyContinue -Force | Out-Null
                         Download-BcNuGetPackageToFolder -folder $folder @nugetParams @nugetPackageParams *>&1 | 
                             Where-Object { $_ -ne $null } |
                             ForEach-Object {
