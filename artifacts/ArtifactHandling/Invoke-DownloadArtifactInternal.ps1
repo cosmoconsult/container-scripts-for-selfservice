@@ -40,12 +40,10 @@ function Invoke-DownloadArtifactInternal {
 
         $rootFolder = $destination
         $tempArchive = "$([System.IO.Path]::GetTempFileName()).zip"
-        
-        $tempFolder = [System.IO.Path]::GetTempFileName()
-        if (Test-Path $tempFolder) { Remove-Item $tempFolder }
-        New-Item -Path $tempFolder -ItemType "Directory" | Out-Null
 
         $getVersionFromAPI = $apiFeatures -contains "GetArtifactLatest"
+
+        $platformVersion = [Version](Get-Item (Join-Path $serviceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
 
         $nugetParams = $null
     }
@@ -108,18 +106,15 @@ function Invoke-DownloadArtifactInternal {
                 }
             }
             elseif ($type -eq "nuget") {
-                New-ArtifactsLogEntry -Message "Download $name from nuget feed"
-
                 if (! $nugetParams) {
+                    Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
+                    Import-NugetTools -Feeds $nuGetFeeds
+
                     $nugetParams = @{
-                        folder               = $tempFolder
-                        installedPlatform    = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
+                        installedPlatform    = $platformVersion
                         installedApps        = @()
                         downloadDependencies = 'allButMicrosoft'
                     }
-                    
-                    Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
-                    Import-NugetTools -Feeds $nuGetFeeds
 
                     # Collect already downloaded apps
                     Get-ChildItem -Path $destination -Filter '*.app' -Recurse |
@@ -134,8 +129,6 @@ function Invoke-DownloadArtifactInternal {
                         }
                 }
 
-                Remove-Item -Path ( Join-Path $nugetParams.folder '*' ) -Recurse
-
                 $nugetPackageParams = @{
                     packageName = $name
                     select      = 'EarliestMatching'
@@ -146,47 +139,19 @@ function Invoke-DownloadArtifactInternal {
                         version = $version
                     }
                 }
-                
-                Download-BcNuGetPackageToFolder @nugetPackageParams @nugetParams
 
-                Get-ChildItem -Path $tempFolder -Filter '*.app' -Recurse |
-                    ForEach-Object {
-                        Invoke-DownloadArtifactInternal `
-                            -name $_.Name `
-                            -type "url" `
-                            -url $_.FullName `
-                            -target $target `
-                            -targetFolder $targetFolder `
-                            -destination $destination `
-                            -dependsOn $dependsOn `
-                            -groupByDependency:$groupByDependency `
-                            -baseUrl $baseUrl `
-                            -accessToken $accessToken `
-                            -apiFeatures $apiFeatures `
-                            -serviceTierFolder $serviceTierFolder
-                        
-                        # Collect downloaded app
-                        Get-NavAppInfo -Path $_.FullName |
-                            ForEach-Object {
-                                $nugetParams.installedApps += [PSCustomObject]@{
-                                    Name      = $_.Name
-                                    Publisher = $_.Publisher
-                                    id        = $_.AppId
-                                    Version   = $_.version
-                                }
-                            }
-                    }
-
-                $success = $true
-                New-RequestTelemetry -Name "Download Artifact" -Success $success -StartTime $startTime -properties $properties
-                return
+                $sourceUri = "nuget://$name"
             }
         }
 
+        $isNuGet = $type -eq "nuget"
         $isDownload = "$sourceUri".StartsWith("http")
         $isArchive = $isDownload -or "$sourceUri".EndsWith(".zip")
-        if ("$sourceUri" -ne "") {
-            if ($isDownload) {
+        if ($sourceUri) {
+            if ($isNuget) {
+                New-ArtifactsLogEntry -Message "Download Artifact from NuGet feeds: $name"
+            }
+            elseif ($isDownload) {
                 $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
                 if ($url_output.Length -gt 1) {
                     New-ArtifactsLogEntry -Message "Download Artifact from $($url_output[0])&pat=***"
@@ -201,35 +166,37 @@ function Invoke-DownloadArtifactInternal {
 
             try {
                 $startTime = Get-Date
-                if ($isDownload) { 
-                    if ("$sourceUri".StartsWith("$baseUrl")) {
-                        Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
+                if (! $isNuget) {
+                    if ($isDownload) { 
+                        if ("$sourceUri".StartsWith("$baseUrl")) {
+                            Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
+                        }
+                        else {
+                            New-ArtifactsLogEntry -Message "External artifact URL detected, ignoring Authorization header" -Severity Debug
+                            Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive"
+                        }
                     }
                     else {
-                        New-ArtifactsLogEntry -Message "External artifact URL detected, ignoring Authorization header" -Severity Debug
-                        Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive"
+                        if (Test-Path $sourceUri) {
+                            New-ArtifactsLogEntry -Message "Found Artifact at $sourceUri"
+                        }
+                        else {
+                            New-ArtifactsLogEntry -Message "No Artifact found at $sourceUri"
+                        }                    
                     }
-                }
-                else {
-                    if (Test-Path $sourceUri) {
-                        New-ArtifactsLogEntry -Message "Found Artifact at $sourceUri"
+
+                    if ($isDownload) {
+                        $archive = $tempArchive
+                    }
+                    elseif ($isArchive) {
+                        $archive = $sourceUri
                     }
                     else {
-                        New-ArtifactsLogEntry -Message "No Artifact found at $sourceUri"
-                    }                    
+                        $archive = ""
+                    }
                 }
 
-                if ($isDownload) {
-                    $archive = $tempArchive
-                }
-                elseif ($isArchive) {
-                    $archive = $sourceUri
-                }
-                else {
-                    $archive = ""
-                }
-
-                if (($archive -and (Test-Path $archive)) -or ($sourceUri -and (Test-Path $sourceUri))) {
+                if (($isNuget) -or ($archive -and (Test-Path $archive)) -or ($sourceUri -and (Test-Path $sourceUri))) {
                     # Setup correct folder
                     $folderIdx = $folderIdx + 1
                     if ("$targetFolder" -eq "") {
@@ -261,7 +228,20 @@ function Invoke-DownloadArtifactInternal {
                         }
                     }
 
-                    if ($isArchive) {
+                    if ($isNuGet) {
+                        Download-BcNuGetPackageToFolder -folder $folder @nugetParams @nugetPackageParams *>&1 | 
+                            ForEach-Object {
+                                $output = $_
+                                switch($ouput.GetType()) {
+                                    ( [System.Management.Automation.ErrorRecord] )       { throw $output }
+                                    ( [System.Management.Automation.WarningRecord] )     { New-ArtifactsLogEntry -Message $output.ToString() -Severity Warn }
+                                    ( [System.Management.Automation.VerboseRecord] )     { Write-Verbose $output }
+                                    ( [System.Management.Automation.DebugRecord] )       { New-ArtifactsLogEntry -Message $output.ToString() -Severity Debug }
+                                    ( [System.Management.Automation.InformationRecord] ) { New-ArtifactsLogEntry -Message $output.ToString() -Severity Info }
+                                    default                                              { $output }
+                                }
+                            }
+                    } elseif ($isArchive) {
                         New-ArtifactsLogEntry -Message "Extract Artifact $name v $artifactVersion to $($folder)..."
                         Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force 
                         if ($cosmoArtifactType.Count -gt 0) {
@@ -280,6 +260,7 @@ function Invoke-DownloadArtifactInternal {
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force | Out-Null
                         Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
                     }
+
                     if ($appImportScope) {
                         # Store the Artifact Specific Import Scope Information
                         $artifactJson = Get-ChildItem -LiteralPath "$folder" -Filter "artifact.json" -Recurse -ErrorAction SilentlyContinue | 
@@ -294,6 +275,7 @@ function Invoke-DownloadArtifactInternal {
                             ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue | 
                             Set-Content -LiteralPath "$folder/artifact.json" -ErrorAction SilentlyContinue
                     }
+                    
                     New-ArtifactsLogEntry -Message "  Downloaded Files ($folder):"
                     New-ArtifactsLogEntry -Message "$((Get-ChildItem $folder -Recurse) | 
                         Select-Object FullName, Length | 
