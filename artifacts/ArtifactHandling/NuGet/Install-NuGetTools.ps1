@@ -14,7 +14,7 @@
             Install-PackageProvider -Name "NuGet" -MinimumVersion $nugetMinimumVersion -Force
         }
 
-        if ($Force -or (! (Get-InstalledModule "bccontainerhelper" -ea Ignore))) {
+        if ($Force -or (! (Get-InstalledModule -Name "bccontainerhelper" -ea Ignore))) {
             Write-Host "Install BCContainerHelper"
             Install-Module -Name "bccontainerhelper" -Scope CurrentUser -Force
         }

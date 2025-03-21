@@ -2,25 +2,28 @@
     [cmdletbinding()]
     Param(
         [object[]]$Feeds = @(),
-        [switch]$Force
+        [switch]$Force,
+        [switch]$Install
     )
 
-    begin {
+    process {
+        if ($Install) {
+            Install-NuGetTools
+        }
+
         if (! $PSBoundParameters.ContainsKey("Feeds")) {
             $Feeds = Get-NuGetFeeds
         }
-    }
-
-    process {
-        Install-NuGetTools
         
-        if ($Force -or (! (Get-Module "bccontainerhelper"))) {
+        if ($Force -or (! (Get-Module -Name "bccontainerhelper"))) {
             Write-Host "Import BCContainerHelper"
             Import-Module -Name "bccontainerhelper" -DisableNameChecking -Scope Global -Force:$Force
-
-            Write-Host "Set trusted NuGet feeds of BCContainerHelperConfig"
-            $bcContainerHelperConfig.TrustedNuGetFeeds += $Feeds
         }
+
+        Write-Host "Set trusted NuGet feeds of BCContainerHelperConfig"
+        $bcContainerHelperConfig.TrustedNuGetFeeds = @(
+            Compare-Object -ReferenceObject $Feeds -DifferenceObject $bcContainerHelperConfig.TrustedNuGetFeeds -IncludeEqual -PassThru
+        )
     }
 }
 
