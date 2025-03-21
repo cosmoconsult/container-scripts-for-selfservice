@@ -7,7 +7,7 @@ function Wait-DownloadArtifactAsync {
         [Parameter(Mandatory = $false)]
         [System.Object]$TelemetryClient = $null,
         [Parameter(Mandatory = $false)]
-        [ref]$End
+        [ref]$End = [ref]$null
     )
 
     begin {
