@@ -198,17 +198,15 @@ function Invoke-DownloadArtifactInternal {
 
                 if (($isNuget) -or ($archive -and (Test-Path $archive)) -or ($sourceUri -and (Test-Path $sourceUri))) {
                     # Setup correct folder
-                    $folderIdx = $folderIdx + 1
-                    if ("$targetFolder" -eq "") {
+                    $folderSuffix = $targetFolder
+                    if (! $folderSuffix) {
                         if ($name.StartsWith("sortorder")) {
                             $folderSuffix = $name.Split(" ")[0]
                         }
-                        else {
-                            $folderSuffix = "$($folderIdx.ToString().PadLeft(3, '0'))"                        
-                        }
                     }
-                    else {
-                        $folderSuffix = "$targetFolder"
+                    if (! $folderSuffix) {
+                        $folderIdx ++
+                        $folderSuffix = "$($folderIdx.ToString().PadLeft(3, '0'))"
                     }
 
                     switch ("$target".ToLower()) {
@@ -218,7 +216,7 @@ function Invoke-DownloadArtifactInternal {
                         "fonts"    { $folder = "c:/fonts" }
                         "demodata" { $folder = "c:/demodata" }
                         default    {
-                            if (!$groupByDependency) {
+                            if (! $groupByDependency) {
                                 $folder = Join-Path $rootFolder "/$folderSuffix"
                             } elseif ($dependsOn) {
                                 $folder = Join-Path $rootFolder "/dependent-on-$($dependsOn.ToLower())/$folderSuffix"
@@ -233,7 +231,7 @@ function Invoke-DownloadArtifactInternal {
                             Where-Object { $_ -ne $null } |
                             ForEach-Object {
                                 $output = $_
-                                switch($ouput.GetType()) {
+                                switch($output.GetType()) {
                                     ( [System.Management.Automation.ErrorRecord] )       { throw $output }
                                     ( [System.Management.Automation.WarningRecord] )     { New-ArtifactsLogEntry -Message $output.ToString() -Severity Warn }
                                     ( [System.Management.Automation.VerboseRecord] )     { Write-Verbose $output }
