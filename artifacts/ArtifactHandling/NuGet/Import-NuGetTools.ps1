@@ -18,7 +18,7 @@
             Write-Host "Import BCContainerHelper"
             Import-Module -Name "bccontainerhelper" -DisableNameChecking -Scope Global -Force:$Force
 
-            Write-Host "Add trusted NuGet feeds to BCContainerHelperConfig"
+            Write-Host "Set trusted NuGet feeds of BCContainerHelperConfig"
             $bcContainerHelperConfig.TrustedNuGetFeeds += $Feeds
         }
     }

@@ -25,7 +25,7 @@ function Wait-Async {
             return
         }
 
-        $outputs = $RunspaceInfo.Runspace.EndInvoke($RunspaceInfo.Handle);
+        $outputs = $RunspaceInfo.Runspace.EndInvoke($RunspaceInfo.Handle) | Where-Object { $_ -ne $null };
         $RunspaceInfo.Runspace.Dispose();
         $RunspaceInfo.Handled = $true;
 

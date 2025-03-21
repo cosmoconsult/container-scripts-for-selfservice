@@ -230,6 +230,7 @@ function Invoke-DownloadArtifactInternal {
 
                     if ($isNuGet) {
                         Download-BcNuGetPackageToFolder -folder $folder @nugetParams @nugetPackageParams *>&1 | 
+                            Where-Object { $_ -ne $null } |
                             ForEach-Object {
                                 $output = $_
                                 switch($ouput.GetType()) {
@@ -275,7 +276,7 @@ function Invoke-DownloadArtifactInternal {
                             ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue | 
                             Set-Content -LiteralPath "$folder/artifact.json" -ErrorAction SilentlyContinue
                     }
-                    
+
                     New-ArtifactsLogEntry -Message "  Downloaded Files ($folder):"
                     New-ArtifactsLogEntry -Message "$((Get-ChildItem $folder -Recurse) | 
                         Select-Object FullName, Length | 

@@ -17,6 +17,10 @@ function Resolve-DownloadArtifact {
     }
     
     process {
+        if (! $Object) {
+            return
+        }
+
         switch ($true) {
             ($Object.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
                 Push-Telemetry -Operation "Download Artifact" -Telemetry $Object -TelemetryClient $TelemetryClient
