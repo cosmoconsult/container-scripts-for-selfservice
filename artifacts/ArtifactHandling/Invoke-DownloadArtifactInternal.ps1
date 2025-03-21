@@ -236,7 +236,15 @@ function Invoke-DownloadArtifactInternal {
                                     ( [System.Management.Automation.WarningRecord] )     { New-ArtifactsLogEntry -Message $output.ToString() -Severity Warn }
                                     ( [System.Management.Automation.VerboseRecord] )     { Write-Verbose $output }
                                     ( [System.Management.Automation.DebugRecord] )       { New-ArtifactsLogEntry -Message $output.ToString() -Severity Debug }
-                                    ( [System.Management.Automation.InformationRecord] ) { New-ArtifactsLogEntry -Message $output.ToString() -Severity Info }
+                                    ( [System.Management.Automation.InformationRecord] ) { 
+                                        $output | 
+                                            Where-Object { $_.ToString() -notmatch "^Search NuGetFeed " } |
+                                            Where-Object { $_.ToString() -notmatch "^Search package using " } |
+                                            Where-Object { $_.ToString() -notmatch "^0 matching packages found" } |
+                                            ForEach-Object { 
+                                                New-ArtifactsLogEntry -Message $_.ToString() -Severity Info
+                                            }
+                                    }
                                     default                                              { $output }
                                 }
                             }
