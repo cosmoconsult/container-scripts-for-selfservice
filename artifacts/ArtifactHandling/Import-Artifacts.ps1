@@ -23,7 +23,13 @@ function Import-Artifacts {
         [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null,
         [Parameter(Mandatory = $false)]
-        [bool]$SkipFontImport = $false
+        [bool]$SkipFontImport = $false,
+        [Parameter(Mandatory = $false)]
+        [bool]$ExcludeApps = $true,
+        [Parameter(Mandatory = $false)]
+        [string]$AppExcludeExpr = $(if ($env:AppExcludeExpr) { $env:AppExcludeExpr }else { ".*Test_.*|.*Tests_.*" }),
+        [Parameter(Mandatory = $false)]
+        [bool]$throwErrors = $false
     )
     
     begin {
@@ -55,6 +61,9 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import FOBs Error: $($_.Exception.Message)" -f Red  | Out-String
+                if ($throwErrors) {
+                    throw $_
+                }
             }
             finally {
                 Write-Host "Import FOBs done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
@@ -66,13 +75,13 @@ function Import-Artifacts {
 
         # Publish apps
         $items = @()
-        $params = @{
-            Depth  = $maxDepth
-            Filter = "*.app"            
+        if (!$ExcludeApps) {
+            $AppExcludeExpr = ""
         }
-        if ($null -ne $env:AppExcludeExpr) {
-            Write-Host ("Found App expression override {0}" -f $env:AppExcludeExpr)
-            $params.Add("ExcludeExpr", $env:AppExcludeExpr)   
+        $params = @{
+            Depth       = $maxDepth
+            Filter      = "*.app"
+            ExcludeExpr = $AppExcludeExpr
         }
         if (Test-Path -LiteralPath "$Path") {
             $params.Add("Path", "$Path")
@@ -124,6 +133,9 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import Apps Error: $($_.Exception.Message)" -f Red
+                if ($throwErrors) {
+                    throw $_
+                }
             }
             finally {
                 Write-Host "Import Apps done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
@@ -151,6 +163,9 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import RapidStart packages Error: $($_.Exception.Message)" -f Red
+                if ($throwErrors) {
+                    throw $_
+                }
             }
             finally {
                 Write-Host "Import RapidStart packages done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
@@ -177,6 +192,9 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import Fonts Error: $($_.Exception.Message)" -f Red  | Out-String
+                if ($throwErrors) {
+                    throw $_
+                }
             }
             finally {
                 Write-Host "Import Fonts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"

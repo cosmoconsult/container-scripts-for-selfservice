@@ -245,9 +245,9 @@ try {
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (![string]::IsNullOrEmpty($env:saasbakfile)) { $SyncMode = "ForceSync" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
-    if ($env:mode -eq "4ps") {
-        $env:AppExcludeExpr = "I_DONT_WANT_TO_EXCLUDE_ANYTHING"
-    }
+
+    # Exclude apps if environment variable is missing or set to "true"
+    $ExcludeApps = [string]::IsNullOrEmpty($env:AppExcludeExprEnabled) -or ($env:AppExcludeExprEnabled -eq "true")
 
     Import-Artifacts `
         -Path            (Join-Path $targetDirManuallySorted '/general') `
@@ -258,7 +258,8 @@ try {
         -Scope           "Global" `
         -telemetryClient $telemetryClient `
         -ErrorAction     SilentlyContinue `
-        -SkipFontImport  $true
+        -SkipFontImport  $true `
+        -ExcludeApps     $ExcludeApps
 
     Import-Artifacts `
         -Path            (Join-Path $targetDir '/general') `
@@ -268,7 +269,8 @@ try {
         -SyncMode        $SyncMode `
         -Scope           $Scope `
         -telemetryClient $telemetryClient `
-        -ErrorAction     SilentlyContinue
+        -ErrorAction     SilentlyContinue  `
+        -ExcludeApps     $ExcludeApps
 }
 catch {
     Write-Host "Import Artifacts Error: $($_.Exception.Message)" -f Red
