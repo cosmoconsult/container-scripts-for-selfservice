@@ -34,6 +34,9 @@ function Set-BcContainerHelperConfig {
 
     end {
         Write-Host "Writing BcContainerHelper config to $Path"
+        if (! (Test-Path $Path)) {
+            New-Item -ItemType File -Path $Path -Force
+        }
         $config | ConvertTo-Json | Set-Content $Path
     }
 }
