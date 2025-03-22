@@ -21,7 +21,7 @@
 
     Write-Host "Set trusted NuGet feeds of BCContainerHelperConfig"
     $bcContainerHelperConfig.TrustedNuGetFeeds = @(
-        Compare-Object -ReferenceObject $TrustedFeeds -DifferenceObject $bcContainerHelperConfig.TrustedNuGetFeeds -IncludeEqual | 
+        Compare-Object -ReferenceObject $Feeds -DifferenceObject $bcContainerHelperConfig.TrustedNuGetFeeds -IncludeEqual | 
             Select-Object -ExpandProperty InputObject
     )
 }
