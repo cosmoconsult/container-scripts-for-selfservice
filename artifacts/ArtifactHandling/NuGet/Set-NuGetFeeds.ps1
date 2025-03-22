@@ -1,4 +1,4 @@
-﻿function Get-NuGetFeeds {
+﻿function Set-NuGetFeeds {
     [cmdletbinding()]
     Param(
         [switch]$PassThru
