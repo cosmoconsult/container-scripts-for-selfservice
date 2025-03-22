@@ -18,6 +18,7 @@ function Set-BcContainerHelperConfig {
             Write-Host "Reading BcContainerHelper config from $Path"
             $config = Get-Content $Path | ConvertFrom-Json
         } else {
+            Write-Host "Initializing BcContainerHelper config"
             $config = [pscustomobject]@{}
         }
     }
@@ -33,7 +34,7 @@ function Set-BcContainerHelperConfig {
 
     end {
         Write-Host "Writing BcContainerHelper config to $Path"
-        $Path | ConvertTo-Json | Set-Content $configFile
+        $config | ConvertTo-Json | Set-Content $Path
     }
 }
 Export-ModuleMember -Function Set-BcContainerHelperConfig
