@@ -1,7 +1,7 @@
 ﻿function Get-NuGetFeeds {
     [cmdletbinding()]
     Param()
-    
+
     begin {
         $feeds = @()
     }
@@ -24,8 +24,9 @@
 
         if ($global:extendedEnv.CustomNugetFeeds) {            
             Write-Host "Add custom nuget feeds"
-            $customFeeds = @( [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($global:extendedEnv.CustomNugetFeeds)) | ConvertFrom-Json )
-            $customFeeds |
+            [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($global:extendedEnv.CustomNugetFeeds)) | 
+                ConvertFrom-Json |
+                Where-Object { $_ } |
                 ForEach-Object {
                     $url = $_.feedUrl
                     if ($url -in @( $feeds.Url )) {
@@ -51,6 +52,7 @@
                 Write-Host "Add NuGet feeds from $_"
                 Get-Content $_ | ConvertFrom-Json | Select-Object -ExpandProperty Feeds
             } |
+            Where-Object { $_ } |
             ForEach-Object {
                 $url = $_.url
                 if ($url -in @( $feeds.Url )) {
