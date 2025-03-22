@@ -37,7 +37,7 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/BcContainerHelper/Set-BCContainerHelperConfig.ps1")
 
 # Artifact Nuget functions
-. (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Get-NuGetFeeds.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Set-NuGetFeeds.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Install-NuGetTools.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Import-NuGetTools.ps1")
 
