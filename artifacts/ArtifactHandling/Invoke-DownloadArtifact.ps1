@@ -25,7 +25,6 @@ function Invoke-DownloadArtifact {
         [string]  $AccessToken,
         [string[]]$ApiFeatures,
         [string]  $ServiceTierFolder,
-        [object[]]$NuGetFeeds,
         [int]     $FolderIdx         = 0,
 
         # Control Parameters
@@ -81,10 +80,6 @@ function Invoke-DownloadArtifact {
             $AccessToken = Get-AzureDevOpsAccessToken -Artifacts $artifacts
         }
 
-        if (! $PSBoundParameters.ContainsKey("NuGetFeeds")) {
-            $NuGetFeeds = Get-NuGetFeeds
-        }
-
         $parameters = @{
             Destination = $Destination
             GroupByDependency = $GroupByDependency
@@ -92,7 +87,6 @@ function Invoke-DownloadArtifact {
             AccessToken = $AccessToken
             ApiFeatures = $ApiFeatures
             ServiceTierFolder = $ServiceTierFolder
-            NuGetFeeds = $NuGetFeeds
             FolderIdx = $FolderIdx
         }
 

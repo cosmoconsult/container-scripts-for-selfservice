@@ -10,7 +10,6 @@ try {
         Download = @{
             Start      = Get-Date -Format "o";
             NuGet      = $false
-            NuGetFeeds = @();
         };
         Path = @{
             Unsorted = "C:\run\my\apps";
@@ -57,8 +56,8 @@ try {
         # Install NuGet Tools
         Install-NuGetTools
         
-        # Get NuGet Feeds
-        $cosmoArtifacts.Download.NuGetFeeds = Get-NuGetFeeds
+        # Set NuGet Feeds
+        Set-NuGetFeeds
     }
 
     # Get Download Parameters
@@ -66,7 +65,6 @@ try {
         ServiceTierFolder = Get-NAVServiceTierFolder
         ApiFeatures       = Get-AzureDevOpsApiFeatures
         AccessToken       = Get-AzureDevOpsAccessToken -Artifacts $cosmoArtifacts.Artifacts.All
-        NuGetFeeds        = $cosmoArtifacts.Download.NuGetFeeds
     }
     
     if ($global:cosmoRunspacePool) {

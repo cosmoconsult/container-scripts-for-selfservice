@@ -25,7 +25,6 @@ function Invoke-DownloadArtifactInternal {
         [string]  $accessToken,
         [string[]]$apiFeatures,
         [string]  $serviceTierFolder,
-        [object[]]$nuGetFeeds,
         [int]     $folderIdx
     )
     
@@ -108,7 +107,7 @@ function Invoke-DownloadArtifactInternal {
             elseif ($type -eq "nuget") {
                 if (! $nugetParams) {
                     Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
-                    Import-NugetTools -Feeds $nuGetFeeds
+                    Import-NugetTools
 
                     $nugetParams = @{
                         installedPlatform    = $platformVersion
