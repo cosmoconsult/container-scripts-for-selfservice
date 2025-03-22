@@ -4,7 +4,7 @@ function Wait-Async {
         [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
         [RunspaceInfo]$RunspaceInfo,
         
-        [scriptblock]$ErrorScriptBlock       = { if ($_.Exception.WasThrownFromThrowStatement) { throw $_ } else { Write-Error $_ } },
+        [scriptblock]$ErrorScriptBlock       = { throw $_ },
         [scriptblock]$WarningScriptBlock     = { Write-Warning $_ },
         [scriptblock]$VerboseScriptBlock     = { Write-Verbose $_ },
         [scriptblock]$DebugScriptBlock       = { Write-Debug $_ },
