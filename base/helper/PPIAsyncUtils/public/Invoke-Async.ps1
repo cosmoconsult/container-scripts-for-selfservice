@@ -24,17 +24,17 @@ function Invoke-Async {
     $powershell.AddParameter("ScriptBlock", $ScriptBlock) | Out-Null;
     $powershell.AddParameter("Parameters", $Parameters.Clone()) | Out-Null;
 
-    $input = New-Object System.Management.Automation.PSDataCollection[System.Object]
-    $input.Complete();
-    $input.Dispose();
+    $inputData = New-Object System.Management.Automation.PSDataCollection[System.Object]
+    $inputData.Complete();
+    $inputData.Dispose();
 
-    $output = New-Object System.Management.Automation.PSDataCollection[System.Object]
+    $outputData = New-Object System.Management.Automation.PSDataCollection[System.Object]
 
     $runspaceInfo = [RunspaceInfo]@{
         RunspacePool = $RunspacePool;
         Runspace     = $powershell;
-        Output       = $output;
-        Handle       = $powershell.BeginInvoke($input, $output)
+        Output       = $outputData;
+        Handle       = $powershell.BeginInvoke($inputData, $outputData)
     }
 
     $script:runspaces += $runspaceInfo
