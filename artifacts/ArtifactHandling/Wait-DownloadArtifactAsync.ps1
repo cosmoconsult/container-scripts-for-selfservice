@@ -17,14 +17,9 @@ function Wait-DownloadArtifactAsync {
     }
     
     process {
-        Wait-Async `
-            -RunspaceInfo $RunspaceInfo `
-            -TimeoutSeconds 60 `
-            -OutputScriptBlock { 
-                $Input |
-                    Resolve-DownloadArtifact -TelemetryClient $TelementryClient -End $End | 
-                    Out-Null 
-            }
+        Wait-Async -RunspaceInfo $RunspaceInfo -TimeoutSeconds 60 |
+            Resolve-DownloadArtifact -TelemetryClient $TelementryClient -End $End | 
+            Out-Null
     }
 }
 Export-ModuleMember -Function Wait-DownloadArtifactAsync

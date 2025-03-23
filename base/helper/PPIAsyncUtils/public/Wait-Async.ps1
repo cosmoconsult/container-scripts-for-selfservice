@@ -6,12 +6,12 @@ function Wait-Async {
 
         [int]$TimeoutSeconds = 0,
         
-        [scriptblock]$ErrorScriptBlock       = { process { throw $PSItem } },
-        [scriptblock]$WarningScriptBlock     = { process { Write-Warning $PSItem } },
-        [scriptblock]$VerboseScriptBlock     = { process { Write-Verbose $PSItem } },
-        [scriptblock]$DebugScriptBlock       = { process { Write-Debug $PSItem } },
-        [scriptblock]$InformationScriptBlock = { process { Write-Host $PSItem } },
-        [scriptblock]$OutputScriptBlock      = { process { $PSItem } }
+        [scriptblock]$ErrorScriptBlock       = { throw $_ },
+        [scriptblock]$WarningScriptBlock     = { Write-Warning $_ },
+        [scriptblock]$VerboseScriptBlock     = { Write-Verbose $_ },
+        [scriptblock]$DebugScriptBlock       = { Write-Debug $_ },
+        [scriptblock]$InformationScriptBlock = { Write-Host $_ },
+        [scriptblock]$OutputScriptBlock      = { $_ }
     )
 
     begin {
@@ -35,21 +35,21 @@ function Wait-Async {
         
         Write-Host "Waiting for Runspace"
 
-        while (! $RunspaceInfo.Handled) {
-            Start-Sleep -Milliseconds 500
-        
+        while (! $RunspaceInfo.Handled) {        
             while ($RunspaceInfo.Output.Count -gt 0) {
                 $outputs = $RunspaceInfo.Output.ReadAll()
                 foreach($output in $outputs) {
                     try {
+                        $scriptBlock = $null
                         switch($output.GetType()) {
-                            ( [System.Management.Automation.ErrorRecord] )       { $output | . $ErrorScriptBlock }
-                            ( [System.Management.Automation.WarningRecord] )     { $output | . $WarningScriptBlock }
-                            ( [System.Management.Automation.VerboseRecord] )     { $output | . $VerboseScriptBlock }
-                            ( [System.Management.Automation.DebugRecord] )       { $output | . $DebugScriptBlock }
-                            ( [System.Management.Automation.InformationRecord] ) { $output | . $InformationScriptBlock }
-                            default                                              { $output | . $OutputScriptBlock }
+                            ( [System.Management.Automation.ErrorRecord] )       { $scriptBlock = $ErrorScriptBlock }
+                            ( [System.Management.Automation.WarningRecord] )     { $scriptBlock = $WarningScriptBlock }
+                            ( [System.Management.Automation.VerboseRecord] )     { $scriptBlock = $VerboseScriptBlock }
+                            ( [System.Management.Automation.DebugRecord] )       { $scriptBlock = $DebugScriptBlock }
+                            ( [System.Management.Automation.InformationRecord] ) { $scriptBlock = $InformationScriptBlock }
+                            default                                              { $scriptBlock = $OutputScriptBlock }
                         }
+                        $output | ForEach-Object $scriptBlock
                     } catch {
                         # Catch thrown errors to prevent the function from stopping
                         $message = $_ | Out-String
@@ -69,6 +69,8 @@ function Wait-Async {
                     Write-Warning "Stopping Runspace - Timeout of ${TimeoutSeconds} seconds reached after ${runtimeSeconds} seconds"
                     $RunspaceInfo.Runspace.Stop()
                 }
+            } else {
+                Start-Sleep -Milliseconds 250
             }
         }
 
