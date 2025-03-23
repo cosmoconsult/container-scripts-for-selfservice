@@ -12,8 +12,6 @@ function Resolve-DownloadArtifact {
         if (! $TelemetryClient) {
             $TelemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
-
-        $logEntries = @()
     }
     
     process {
@@ -26,7 +24,7 @@ function Resolve-DownloadArtifact {
                 Push-Telemetry -Operation "Download Artifact" -Telemetry $Object -TelemetryClient $TelemetryClient
             }
             ($Object.GetType() -eq [ArtifactsLogEntry]) {
-                $logEntries += $Object
+                $Object | Push-ArtifactsLogEntry
             }
             ($Object.GetType() -eq [DateTime]) {
                 if ($End -and $Object -gt $End.Value) {
@@ -37,10 +35,6 @@ function Resolve-DownloadArtifact {
                 $Object
             }
         }
-    }
-
-    end {
-        $logEntries | Push-ArtifactsLogEntry
     }
 }
 Export-ModuleMember -Function Resolve-DownloadArtifact
