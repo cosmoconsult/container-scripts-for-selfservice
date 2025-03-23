@@ -19,8 +19,9 @@ function Wait-DownloadArtifactAsync {
     process {
         Wait-Async `
             -RunspaceInfo $RunspaceInfo `
+            -TimeoutSeconds 60 `
             -OutputScriptBlock { 
-                $_ | 
+                $Input |
                     Resolve-DownloadArtifact -TelemetryClient $TelementryClient -End $End | 
                     Out-Null 
             }
