@@ -90,20 +90,10 @@ function Invoke-DownloadArtifact {
             FolderIdx = $FolderIdx
         }
 
-        $outputs = @(
-            try {
-                $artifacts | Invoke-DownloadArtifactInternal @parameters
-            } catch {
-                throw $_
-            } finally {
-                Get-Date
-            }
-        )
-
         if (! $PassThru) {
-            $outputs | Resolve-DownloadArtifact -TelemetryClient $TelemetryClient | Out-Null
+            $artifacts | Invoke-DownloadArtifactInternal @parameters | Resolve-DownloadArtifact -TelemetryClient $TelemetryClient | Out-Null
         } else {
-            $outputs
+            $artifacts | Invoke-DownloadArtifactInternal @parameters
         }
     }
 }

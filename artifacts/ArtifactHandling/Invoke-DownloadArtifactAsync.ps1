@@ -43,7 +43,13 @@ function Invoke-DownloadArtifactAsync {
                 [object[]]$Artifacts, 
                 [hashtable]$Parameters
             )
-            $Artifacts | Invoke-DownloadArtifact -PassThru @Parameters
+            try {
+                $Artifacts | Invoke-DownloadArtifact -PassThru @Parameters
+            } catch {
+                throw $_
+            } finally {
+                Get-Date
+            }
         }
     }
     
