@@ -1,4 +1,4 @@
-$script:nuGetPackageDownloadLockFile = Join-Path [system.IO.Path]::GetTempPath() "nugetPackageDownload.lock"
+$script:nuGetPackageDownloadLockFile = Join-Path ([system.IO.Path]::GetTempPath()) "nugetPackageDownload.lock"
 
 function Invoke-NuGetPackageDownload() {
     [CmdletBinding()]
