@@ -1,3 +1,5 @@
+$script:nuGetPackageDownloadLockFile = Join-Path [system.IO.Path]::GetTempPath() "nugetPackageDownload.lock"
+
 function Invoke-NuGetPackageDownload() {
     [CmdletBinding()]
     param(
@@ -12,6 +14,12 @@ function Invoke-NuGetPackageDownload() {
     )
 
     try {
+        Write-Host "Waiting for other NuGet Package downloads..."
+        while (! $nuGetPackageDownloadLockFileStream) {
+            try { $nuGetPackageDownloadLockFileStream = [System.IO.File]::Open($script:nuGetPackageDownloadLockFile, 'OpenOrCreate', 'ReadWrite', 'None') }
+            catch { Start-Sleep -Milliseconds 250 }
+        }
+
         if (! $PSBoundParameters.ContainsKey("ServiceTierFolder")) {
             $ServiceTierFolder = Get-NAVServiceTierFolder
         }
@@ -52,7 +60,9 @@ function Invoke-NuGetPackageDownload() {
         New-Item -ItemType Directory -Path $Destination -ErrorAction SilentlyContinue -Force | Out-Null
         Download-BcNuGetPackageToFolder @downloadParameters
     } finally {
-
+        if ($nuGetPackageDownloadLockFileStream) {
+            $nuGetPackageDownloadLockFileStream.Close()
+        }
     }
 }
 Export-ModuleMember -Function Invoke-NuGetPackageDownload
