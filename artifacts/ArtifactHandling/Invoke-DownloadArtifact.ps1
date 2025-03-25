@@ -91,9 +91,9 @@ function Invoke-DownloadArtifact {
         }
 
         if (! $PassThru) {
-            $artifacts | Invoke-DownloadArtifactInternal @parameters | Resolve-DownloadArtifact -TelemetryClient $TelemetryClient | Out-Null
+            $artifacts | Invoke-DownloadArtifactCore @parameters | Resolve-DownloadArtifact -TelemetryClient $TelemetryClient | Out-Null
         } else {
-            $artifacts | Invoke-DownloadArtifactInternal @parameters
+            $artifacts | Invoke-DownloadArtifactCore @parameters
         }
     }
 }

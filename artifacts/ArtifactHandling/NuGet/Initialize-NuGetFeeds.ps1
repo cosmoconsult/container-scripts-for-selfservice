@@ -1,4 +1,4 @@
-﻿function Set-NuGetFeeds {
+﻿function Initialize-NuGetFeeds {
     [cmdletbinding()]
     Param(
         [switch]$PassThru
@@ -80,4 +80,4 @@
         }
     }
 }
-Export-ModuleMember -Function Set-NuGetFeeds
+Export-ModuleMember -Function Initialize-NuGetFeeds

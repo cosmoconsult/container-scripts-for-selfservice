@@ -12,7 +12,7 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-AppFilesSortedByDependencies.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-PackageVersion.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifact.ps1")
-. (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifactInternal.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifactCore.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Resolve-DownloadArtifact.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifactAsync.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Wait-DownloadArtifactAsync.ps1")
@@ -37,7 +37,7 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/BcContainerHelper/Set-BCContainerHelperConfig.ps1")
 
 # Artifact Nuget functions
-. (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Set-NuGetFeeds.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Initialize-NuGetFeeds.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Install-NuGetTools.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Import-NuGetTools.ps1")
 

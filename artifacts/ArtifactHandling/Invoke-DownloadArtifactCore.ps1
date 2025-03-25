@@ -1,4 +1,4 @@
-function Invoke-DownloadArtifactInternal {
+function Invoke-DownloadArtifactCore {
     [CmdletBinding()]
     param (
         # Artifact Parameters
@@ -43,8 +43,6 @@ function Invoke-DownloadArtifactInternal {
         $getVersionFromAPI = $apiFeatures -contains "GetArtifactLatest"
 
         $platformVersion = [Version](Get-Item (Join-Path $serviceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
-
-        $nugetParams = $null
     }
     
     process {
@@ -104,49 +102,12 @@ function Invoke-DownloadArtifactInternal {
                     $sourceUri = "$baseUrl/api/automation/release/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?PATValidationProject=$($env:CcOrgName)&scope=$($scope)&view=$($view)&pat=$($pat)"
                 }
             }
-            elseif ($type -eq "nuget") {
-                if (! $nugetParams) {
-                    Import-NAVModules -ServiceTierFolder $serviceTierFolder -ExcludeRoleTailoredClient
-                    Import-NugetTools
-
-                    $nugetParams = @{
-                        installedPlatform    = $platformVersion
-                        installedApps        = @()
-                        select               = 'Latest'
-                        downloadDependencies = 'allButMicrosoft'
-                    }
-
-                    # Collect already downloaded apps
-                    Get-ChildItem -Path $destination -Filter '*.app' -Recurse |
-                        ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
-                        ForEach-Object {
-                            $nugetParams.installedApps += [PSCustomObject]@{
-                                Name      = $_.Name
-                                Publisher = $_.Publisher
-                                id        = $_.AppId
-                                Version   = $_.version
-                            }
-                        }
-                }
-
-                $nugetPackageParams = @{
-                    packageName = $name
-                }
-                
-                if ($version) {
-                    $nugetPackageParams += @{
-                        version = $version
-                    }
-                }
-
-                $sourceUri = "nuget://$name"
-            }
         }
 
         $isNuGet = $type -eq "nuget"
         $isDownload = "$sourceUri".StartsWith("http")
         $isArchive = $isDownload -or "$sourceUri".EndsWith(".zip")
-        if ($sourceUri) {
+        if ($sourceUri -or $isNuGet) {
             if ($isNuget) {
                 New-ArtifactsLogEntry -Message "Download Artifact from NuGet feeds: $name"
             }
@@ -226,8 +187,15 @@ function Invoke-DownloadArtifactInternal {
                     }
 
                     if ($isNuGet) {
-                        New-Item -ItemType Directory -Path $folder -ErrorAction SilentlyContinue -Force | Out-Null
-                        Download-BcNuGetPackageToFolder -folder $folder @nugetParams @nugetPackageParams *>&1 | 
+                        $nuGetParameters = @{
+                            Destination       = $folder
+                            Package           = $name
+                            Version           = $version
+                            InstalledAppsPath = $( $folder -replace "\/$folderSuffix`$" ) # Isolate general and dependent-on folders
+                            ServiceTierFolder = $serviceTierFolder
+                            PlatformVersion   = $platformVersion
+                        }
+                        Invoke-NuGetPackageDownload @nuGetParameters *>&1 | 
                             Where-Object { $_ -ne $null } |
                             ForEach-Object {
                                 $output = $_
@@ -245,7 +213,6 @@ function Invoke-DownloadArtifactInternal {
                                                 New-ArtifactsLogEntry -Message $_.ToString() -Severity Info
                                             }
                                     }
-                                    default                                              { $output }
                                 }
                             }
                     } elseif ($isArchive) {
@@ -289,20 +256,6 @@ function Invoke-DownloadArtifactInternal {
                         Format-Table -AutoSize -Wrap:$false | 
                         Out-String -Width 1024)"
 
-                    if ($nugetParams) {
-                        # Collect downloaded apps
-                        Get-ChildItem -Path $folder -Filter '*.app' -Recurse |
-                            ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
-                            ForEach-Object {
-                                $nugetParams.installedApps += [PSCustomObject]@{
-                                    Name      = $_.Name
-                                    Publisher = $_.Publisher
-                                    id        = $_.AppId
-                                    Version   = $_.version
-                                }
-                            }
-                    }
-
                     $success = $true
                 }
                 else {
@@ -345,4 +298,3 @@ function Invoke-DownloadArtifactInternal {
         $artifactVersion = ""
     }
 }
-Export-ModuleMember -Function Invoke-DownloadArtifactInternal

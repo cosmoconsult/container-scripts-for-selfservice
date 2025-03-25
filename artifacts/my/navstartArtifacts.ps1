@@ -57,7 +57,7 @@ try {
         Install-NuGetTools
         
         # Set NuGet Feeds
-        Set-NuGetFeeds
+        Initialize-NuGetFeeds
     }
 
     # Get Download Parameters
