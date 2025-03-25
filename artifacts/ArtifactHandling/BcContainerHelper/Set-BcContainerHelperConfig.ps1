@@ -24,7 +24,7 @@ function Set-BcContainerHelperConfig {
     }
 
     process {
-        Write-Host "Setting $Key to $( $Value | ConvertTo-Json -Compress )"
+        Write-Host "Setting $Key"
         if ($config.PSObject.Properties.Name -contains $Key) {
             $config[$Key] = $Value
         } else {
