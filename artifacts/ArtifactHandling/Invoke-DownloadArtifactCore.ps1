@@ -109,7 +109,7 @@ function Invoke-DownloadArtifactCore {
         $isArchive = $isDownload -or "$sourceUri".EndsWith(".zip")
         if ($sourceUri -or $isNuGet) {
             if ($isNuget) {
-                New-ArtifactsLogEntry -Message "Download Artifact from NuGet feeds: $name"
+                New-ArtifactsLogEntry -Message "Download Artifact from NuGet package $name"
             }
             elseif ($isDownload) {
                 $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
