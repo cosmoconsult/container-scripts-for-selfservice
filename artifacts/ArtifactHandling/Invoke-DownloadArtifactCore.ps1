@@ -191,7 +191,7 @@ function Invoke-DownloadArtifactCore {
                             Destination       = $folder
                             Package           = $name
                             Version           = $version
-                            InstalledAppsPath = $( $folder -replace "\/$folderSuffix`$" ) # Isolate general and dependent-on folders
+                            InstalledAppsPath = ( $folder -replace "\/$folderSuffix`$" ) # Isolate general and dependent-on folders
                             ServiceTierFolder = $serviceTierFolder
                             PlatformVersion   = $platformVersion
                         }
