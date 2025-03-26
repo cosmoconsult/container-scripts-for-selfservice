@@ -41,13 +41,17 @@ function Invoke-NuGetPackageDownload() {
         }
         
         if ($Version) {
-            $versionPattern = '\s*((\d+\.?){1,4})(?<!\.)([-+][^\s]+?)?\s*' # major[.minor[.patch[.revision]]][-prerelease][+metadata]
-            $versionRangePattern = '\s*[\[(]?{0}(,{0})?[\])]?\s*' -f $versionPattern
+            $stableVersionPattern = '\d+(?:\.\d+){0,3}'     # <major>[.<minor>[.<patch>[.<revision>]]]
+            $prereleasePattern    = '(?:-[0-9A-Za-z.-]+)?'  # [-<prerelease>]
+            $metadataPattern      = '(?:\+[0-9A-Za-z.-]+)?' # [+<metadata>]
+
+            $versionPattern       = '^\s*(?<version>{0})(?<prerelease>{1})(?<metadata>{2})\s*$' -f $stableVersionPattern, $prereleasePattern, $metadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata>]
+            $versionRangePattern  = '^\s*[\[\(]\s*?({0}{1})(,{0}{1})?\s*[\]\)]?\s*$' -f $stableVersionPattern, $prereleasePattern # [[(] <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] [, <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] [)]]
 
             if ($Version -match $versionPattern) {
                 # Convert NuGet version to a range (from version, to excl. version + 1)
-                $fromVersion = '{0}{1}' -f $matches[1], $matches[3]
-                $toVersion = $fromVersion -replace '(?<=^[\d\.]*)\d+(?=-.*$)', ([int]$matches[2] + 1)
+                $fromVersion  = '{0}{1}' -f $matches.version, $matches.prerelease
+                $toVersion    = '{0}{1}' -f ( $matches.version -replace '\d+$', ( [int]$matches.version.Split('.')[-1] + 1 ) ), $matches.prerelease
                 $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
                 Write-Host "Converted version '$Version' to NuGet version range '$versionRange'"
             } else {
@@ -61,7 +65,7 @@ function Invoke-NuGetPackageDownload() {
                 throw "Invalid NuGet version range '$versionRange'"
             }
 
-            $downloadParameters.version = $versionRange
+            $downloadParameters.version = $versionRange -replace '\s+'
         }
 
         Write-Host "Installed Apps Path: $InstalledAppsPath"
