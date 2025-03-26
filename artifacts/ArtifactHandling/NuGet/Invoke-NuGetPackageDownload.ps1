@@ -64,6 +64,7 @@ function Invoke-NuGetPackageDownload() {
             $downloadParameters.version = $versionRange
         }
 
+        Write-Host "Installed Apps Path: $InstalledAppsPath"
         if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
             Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
                 ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
