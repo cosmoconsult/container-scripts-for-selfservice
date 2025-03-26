@@ -41,8 +41,10 @@ function Invoke-NuGetPackageDownload() {
         }
         
         if ($Version) {
-            # NuGet version: <major>[.<minor>][.<patch>][.<revision>][-<release>]
-            if ($Version -match '^\s*((\d\.?)+)(?<!\.)(-.+)?\s*$') {
+            $versionPattern = '\s*((\d+\.?){1,4})(?<!\.)([-+][^\s]+?)?\s*' # major[.minor[.patch[.revision]]][-prerelease][+metadata]
+            $versionRangePattern = '\s*[\[(]?{0}(,{0})?[\])]?\s*' -f $versionPattern
+
+            if ($Version -match $versionPattern) {
                 # Convert NuGet version to a range (from version, to excl. version + 1)
                 $fromVersion = '{0}{1}' -f $matches[1], $matches[3]
                 $toVersion = $fromVersion -replace '(?<=^[\d\.]*)\d+(?=-.*$)', ([int]$matches[2] + 1)
@@ -54,7 +56,10 @@ function Invoke-NuGetPackageDownload() {
 
             # Validate NuGet version range (error if parsing fails)
             Write-Host "Validating NuGet version range '$versionRange'"
-            $versionRange = ( [NuGet.Versioning.VersionRange]$versionRange ).OriginalString
+            # $versionRange = ( [NuGet.Versioning.VersionRange]$versionRange ).OriginalString
+            if ($versionRange -notmatch $versionRangePattern) {
+                throw "Invalid NuGet version range '$versionRange'"
+            }
 
             $downloadParameters.version = $versionRange
         }
