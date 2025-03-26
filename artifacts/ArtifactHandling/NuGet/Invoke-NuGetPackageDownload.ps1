@@ -49,7 +49,7 @@ function Invoke-NuGetPackageDownload() {
                 $fromVersion = '{0}{1}' -f $matches[1], $matches[3]
                 $toVersion = $fromVersion -replace '(?<=^[\d\.]*)\d+(?=-.*$)', ([int]$matches[2] + 1)
                 $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
-                Write-Host "Converted NuGet version '$Version' to range '$versionRange'"
+                Write-Host "Converted version '$Version' to NuGet version range '$versionRange'"
             } else {
                 $versionRange = $Version
             }
