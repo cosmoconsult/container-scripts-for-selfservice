@@ -36,12 +36,27 @@ function Invoke-NuGetPackageDownload() {
             folder               = $Destination
             installedPlatform    = $PlatformVersion
             installedApps        = @()
-            select               = 'Latest'
+            select               = 'LatestMatching'
             downloadDependencies = 'allButMicrosoft'
         }
         
         if ($Version) {
-            $downloadParameters.version = $Version
+            # NuGet version: <major>[.<minor>][.<patch>][.<revision>][-<release>]
+            if ($Version -match '^\s*((\d\.?)+)(?<!\.)(-.+)?\s*$') {
+                # Convert NuGet version to a range (from version, to excl. version + 1)
+                $fromVersion = '{0}{1}' -f $matches[1], $matches[3]
+                $toVersion = $fromVersion -replace '(?<=^[\d\.]*)\d+(?=-.*$)', ([int]$matches[2] + 1)
+                $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
+                Write-Host "Converted NuGet version '$Version' to range '$versionRange'"
+            } else {
+                $versionRange = $Version
+            }
+
+            # Validate NuGet version range (error if parsing fails)
+            Write-Host "Validating NuGet version range '$versionRange'"
+            $versionRange = ( [NuGet.Versioning.VersionRange]$versionRange ).OriginalString
+
+            $downloadParameters.version = $versionRange
         }
 
         if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
