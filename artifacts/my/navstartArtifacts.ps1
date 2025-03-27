@@ -85,27 +85,27 @@ try {
         }
 
         # Download Add-In, Font and Demodata Artifacts (Async) - Start
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.AddIn.Count) Add-In Artifacts"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.AddIn.Count) Add-In Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.AddIn += 
             $cosmoArtifacts.Artifacts.AddIn |
                 Invoke-DownloadArtifactAsync @downloadParameters
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Font.Count) Font Artifacts"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Font.Count) Font Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.Font += 
             $cosmoArtifacts.Artifacts.Font | 
                 Invoke-DownloadArtifactAsync -OneRunspace @downloadParameters
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Demodata.Count) Demodata Artifacts"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Demodata.Count) Demodata Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.Demodata += 
             $cosmoArtifacts.Artifacts.Demodata |
                 Invoke-DownloadArtifactAsync -OneRunspace @downloadParameters
 
         # Download sorted Artifacts (Async) - Start
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Sorted.Count) manually sorted Artifacts"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Sorted.Count) manually sorted Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.Sorted += 
             $cosmoArtifacts.Artifacts.Sorted | 
                 Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Sorted -GroupByDependency -OneRunspace:$cosmoArtifacts.Download.NuGet @downloadParameters
 
         # Download unsorted Artifacts (Async) - Start
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Unsorted.Count) Artifacts"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Unsorted.Count) Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.Unsorted += 
             $cosmoArtifacts.Artifacts.Unsorted | 
                 Group-Object -Property dependsOn | 
