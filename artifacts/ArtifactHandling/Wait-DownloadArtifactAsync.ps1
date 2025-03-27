@@ -18,8 +18,14 @@ function Wait-DownloadArtifactAsync {
     
     process {
         Wait-Async -RunspaceInfo $RunspaceInfo -TimeoutSeconds 3600 |
-            Resolve-DownloadArtifact -TelemetryClient $TelementryClient -End $End | 
-            Out-Null
+            Resolve-DownloadArtifact -TelemetryClient $TelementryClient |
+            ForEach-Object {    
+                if ($_ -is [DateTime]) {
+                    if ($End -and $_ -gt $End.Value) {
+                        $End.Value = $_
+                    }
+                }
+            } 
     }
 }
 Export-ModuleMember -Function Wait-DownloadArtifactAsync

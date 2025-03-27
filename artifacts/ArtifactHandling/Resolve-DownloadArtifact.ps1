@@ -4,8 +4,7 @@ function Resolve-DownloadArtifact {
         [Parameter(Mandatory, ValueFromPipeline)]
         $Object,
 
-        [System.Object]$TelemetryClient,
-        [ref]$End
+        [System.Object]$TelemetryClient
     )
 
     begin {
@@ -25,11 +24,6 @@ function Resolve-DownloadArtifact {
             }
             ($Object.GetType() -eq [ArtifactsLogEntry]) {
                 $Object | Push-ArtifactsLogEntry
-            }
-            ($Object.GetType() -eq [DateTime]) {
-                if ($End -and $Object -gt $End.Value) {
-                    $End.Value = $Object
-                }
             }
             default {
                 $Object
