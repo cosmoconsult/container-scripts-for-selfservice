@@ -31,7 +31,7 @@ try {
 
     # Get Artifacts from Environment
     Get-ArtifactsFromEnvironment -telemetryClient $telemetryClient -ErrorAction SilentlyContinue | 
-        Group-Object { $_.type -eq "nuget" } | ForEach-Object { $_.Group } | # Sort NuGet packages last but keep other original order
+        Group-Object { [int]($_.type -eq "nuget") } | Sort-Object { [int]$_.Name } | ForEach-Object { $_.Group } | # Sort NuGet packages last but keep other original order
         ForEach-Object {
             $cosmoArtifacts.Artifacts.All += $_
 
