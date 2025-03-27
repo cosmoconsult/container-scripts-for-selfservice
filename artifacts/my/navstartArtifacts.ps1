@@ -31,7 +31,7 @@ try {
 
     # Get Artifacts from Environment
     Get-ArtifactsFromEnvironment -telemetryClient $telemetryClient -ErrorAction SilentlyContinue | 
-        Sort-Object { $_.type -eq "nuget" } | # Sort NuGet packages last
+        Group-Object { $_.type -eq "nuget" } | ForEach-Object { $_.Group } | # Sort NuGet packages last but keep other original order
         ForEach-Object {
             $cosmoArtifacts.Artifacts.All += $_
 
@@ -98,7 +98,7 @@ try {
         # Download sorted Artifacts (Async) - Start
         $cosmoArtifacts.Download.Runspaces.Sorted += 
             $cosmoArtifacts.Artifacts.Sorted | 
-                Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Sorted -GroupByDependency @downloadParameters
+                Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Sorted -GroupByDependency -OneRunspace:$cosmoArtifacts.Download.NuGet @downloadParameters
 
         # Download unsorted Artifacts (Async) - Start
         $cosmoArtifacts.Download.Runspaces.Unsorted += 
@@ -106,7 +106,7 @@ try {
                 Group-Object -Property dependsOn | 
                 ForEach-Object {
                     # Download per dependency for separated indexes
-                    $_.Group | Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Unsorted -GroupByDependency @downloadParameters
+                    $_.Group | Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Unsorted -GroupByDependency -OneRunspace:$cosmoArtifacts.Download.NuGet @downloadParameters
                 }
 
         # Log
