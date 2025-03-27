@@ -85,27 +85,27 @@ try {
         }
 
         # Download Add-In, Font and Demodata Artifacts (Async) - Start
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.AddIn.Count) Add-In Artifacts (Async)"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.AddIn.Count) Add-In Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.AddIn += 
             $cosmoArtifacts.Artifacts.AddIn |
                 Invoke-DownloadArtifactAsync @downloadParameters
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Font.Count) Font Artifacts (Async)"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Font.Count) Font Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.Font += 
             $cosmoArtifacts.Artifacts.Font | 
                 Invoke-DownloadArtifactAsync -OneRunspace @downloadParameters
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Demodata.Count) Demodata Artifacts (Async)"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Demodata.Count) Demodata Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.Demodata += 
             $cosmoArtifacts.Artifacts.Demodata |
                 Invoke-DownloadArtifactAsync -OneRunspace @downloadParameters
 
         # Download sorted Artifacts (Async) - Start
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Sorted.Count) manually sorted Artifacts (Async)"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Sorted.Count) manually sorted Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.Sorted += 
             $cosmoArtifacts.Artifacts.Sorted | 
                 Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Sorted -GroupByDependency -OneRunspace:$cosmoArtifacts.Download.NuGet @downloadParameters
 
         # Download unsorted Artifacts (Async) - Start
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Unsorted.Count) Artifacts (Async)"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Unsorted.Count) Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.Unsorted += 
             $cosmoArtifacts.Artifacts.Unsorted | 
                 Group-Object -Property dependsOn | 
@@ -126,19 +126,19 @@ try {
         }
 
         # Download Add-In, Font and Demodata Artifacts
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.AddIn.Count) Add-In Artifacts"
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Font.Count) Font Artifacts"
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Demodata.Count) Demodata Artifacts"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.AddIn.Count) Add-In Artifacts"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Font.Count) Font Artifacts"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Demodata.Count) Demodata Artifacts"
         $( $cosmoArtifacts.Artifacts.AddIn; $cosmoArtifacts.Artifacts.Font; $cosmoArtifacts.Artifacts.Demodata ) | 
             Invoke-DownloadArtifact @downloadParameters
 
         # Download sorted Artifacts
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Sorted.Count) manually sorted Artifacts"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Sorted.Count) manually sorted Artifacts"
         $cosmoArtifacts.Artifacts.Sorted | 
             Invoke-DownloadArtifact -destination $cosmoArtifacts.Path.Sorted -groupByDependency @downloadParameters
 
         # Download unsorted Artifacts
-        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Download.Runspaces.Unsorted.Count) Artifacts"
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Unsorted.Count) Artifacts"
         $cosmoArtifacts.Artifacts.Unsorted | 
             Group-Object -Property dependsOn | 
             ForEach-Object {
