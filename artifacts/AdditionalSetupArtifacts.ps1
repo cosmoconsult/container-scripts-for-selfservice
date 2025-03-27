@@ -166,7 +166,7 @@ if ($global:cosmoRunspacePool) {
         $telemetryProperties["artifacts"] = ( $global:cosmoArtifacts.Artifacts.All | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
         
         Invoke-LogOperation -name "AdditionalSetup - Download Artifacts (Async) - Wait & Finish" -started $global:cosmoArtifacts.Download.Start -ended $global:cosmoArtifacts.Download.End -telemetryClient $telemetryClient -properties $telemetryProperties
-        Add-ArtifactsLog -message "Download Artifacts (Async) done. (Duration: $(New-TimeSpan -start $global:cosmoArtifacts.Download.Start -end $global:cosmoArtifacts.Download.End))"
+        Add-ArtifactsLog -message "Download Artifacts (Async) done. (Duration: $(New-TimeSpan -start $global:cosmoArtifacts.Download.Start -end $global:cosmoArtifacts.Download.End); Elapsed: $(New-TimeSpan -start $global:cosmoArtifacts.Download.Start))"
     }
     catch {
         Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
