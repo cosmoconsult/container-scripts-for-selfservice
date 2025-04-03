@@ -61,6 +61,26 @@ function Move-Database {
 
 }
 
+function Import-PPIModules {
+
+    if (Test-Path "c:\run\my\PPIArtifactUtils.ps1") {
+        . "c:\run\my\PPIArtifactUtils.ps1"
+    }
+    
+    if (Test-Path "c:\run\my\PPIOverrides.ps1") {
+        . "c:\run\my\PPIOverrides.ps1"
+    }
+
+    if (Test-Path "c:\run\my\PPIAsyncUtils.ps1") {
+        . "c:\run\my\PPIAsyncUtils.ps1"
+    }
+
+    if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)) {
+        Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
+        Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
+    }
+}
+
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
     if (!$TenantId) { $TenantId = "default" }
@@ -113,56 +133,13 @@ if ($env:cosmoUpgradeSysApp) {
     }
 }
 
-
 Write-Host ""
 Write-Host "=== Additional Setup ==="
 
-if (Test-Path "$serviceTierFolder") {
-    if (Test-Path "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1") {
-        Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1"
-        Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking 2>$null
-    }
-    else {
-        Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.dll"
-        Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.dll" -Force -ErrorAction SilentlyContinue -DisableNameChecking 2>$null
-    }
-    if (Test-Path "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
-        Write-Host "Import App Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
-        Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
-    }
-    elseif (Test-Path "$serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
-        Write-Host "Import App Management Utils from $serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1"
-        Import-Module "$serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
-    }
-}
-if (Test-Path "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1") {
-    Write-Host "Import Nav IDE from $roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1"
-    Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking 2>$null
-}
+Import-PPIModules
+Import-NAVModules -ServiceTierFolder $serviceTierFolder -RoleTailoredClientFolder $roleTailoredClientFolder -Force 2>$null
 
-if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)) {
-    Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
-    Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
-}
-
-$ppiau = Get-Module -Name PPIArtifactUtils
-if (-not $ppiau) {
-    if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
-        Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-        Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
-    }
-}
-
-if (Test-Path "c:\run\my\PPIOverrides.ps1") {
-    . "c:\run\my\PPIOverrides.ps1"
-}
-
-$env:nugetImported = $false
-
-$targetDir = "C:\run\my\apps"
-$targetDirManuallySorted = "C:\run\my\manuallysorted-apps"
 $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
-$properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
@@ -174,34 +151,33 @@ Get-NAVAppInfo -Tenant $tenantId -TenantSpecificProperties -ServerInstance $Serv
     Out-String -Width 1024
 Write-Host "##[endgroup]"
 
-# Download Artifacts
-try {
-    Write-Host "##[group]Download Artifacts"
-    $started = Get-Date -Format "o"
-    $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | 
-        Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | 
-        Group-Object -Property dependsOn | 
-        ForEach-Object {
-            # Download per dependency for separated indexes
-            $_.Group | Invoke-DownloadArtifact -destination $targetDir -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-        }
-    $artifacts | 
-        Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } |
-        Invoke-DownloadArtifact -destination $targetDirManuallySorted -groupByDependency -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
- 
-    $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
-    Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
-    $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct ??_*" })
-    $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)    
+if ($global:cosmoRunspacePool) {
+    # Download Artifacts (Async) - Wait & Finish
+    try {
+        Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
+        $cosmoArtifactsDownloadEnd = $null
+        $global:cosmoArtifacts.Download.Runspaces.Values | 
+            ForEach-Object { $_ } |
+            Where-Object { $_ } |
+            Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient -End ([ref]$cosmoArtifactsDownloadEnd)
+        $global:cosmoArtifacts.Download.End = $cosmoArtifactsDownloadEnd
+
+        $telemetryProperties = @{}
+        $telemetryProperties["artifacts"] = ( $global:cosmoArtifacts.Artifacts.All | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
+        
+        Invoke-LogOperation -name "AdditionalSetup - Download Artifacts (Async) - Wait & Finish" -started $global:cosmoArtifacts.Download.Start -ended $global:cosmoArtifacts.Download.End -telemetryClient $telemetryClient -properties $telemetryProperties
+        Add-ArtifactsLog -message "Download Artifacts (Async) done. (Duration: $(New-TimeSpan -start $global:cosmoArtifacts.Download.Start -end $global:cosmoArtifacts.Download.End); Elapsed: $(New-TimeSpan -start $global:cosmoArtifacts.Download.Start))"
+    }
+    catch {
+        Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
+    }
+    finally {
+        Write-Host "##[endgroup]"
+    }
 }
-catch {
-    Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
-}
-finally {
-    Add-ArtifactsLog -message "Download Artifacts done."
-    Write-Host "##[endgroup]"
-}
+
+$installModifiedBaseAppManually = $null -ne ( $global:cosmoArtifacts.Artifacts.All | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" } )
+$installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
 
 # Initialize company
 if ($env:mode -eq "4ps") {
@@ -250,7 +226,7 @@ try {
     $ExcludeApps = [string]::IsNullOrEmpty($env:AppExcludeExprEnabled) -or ($env:AppExcludeExprEnabled -eq "true")
 
     Import-Artifacts `
-        -Path            (Join-Path $targetDirManuallySorted '/general') `
+        -Path            (Join-Path $global:cosmoArtifacts.Path.Sorted '/general') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
@@ -262,7 +238,7 @@ try {
         -ExcludeApps     $ExcludeApps
 
     Import-Artifacts `
-        -Path            (Join-Path $targetDir '/general') `
+        -Path            (Join-Path $global:cosmoArtifacts.Path.Unsorted '/general') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
@@ -291,7 +267,7 @@ Add-Content $artifactSettings -Value ('$SyncMode         = "' + "$SyncMode" + '"
 Add-Content $artifactSettings -Value ('$Scope            = "' + "$Scope" + '"')
 
 if ($env:IsBuildContainer) {
-    Setup-Compiler
+    Initialize-Compiler
 }
 
 $enablePerformanceCounter = $($env:enablePerformanceCounter)

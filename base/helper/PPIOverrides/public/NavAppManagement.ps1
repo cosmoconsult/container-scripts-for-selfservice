@@ -5,11 +5,11 @@ if (! (Test-Path "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Micros
 
 # Import PPI Powershell Core Utils
 if (! (Get-Module 'PPIPowershellCoreUtils')) {
-    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -DisableNameChecking -Global -Force
+    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -Global -WarningAction SilentlyContinue
 }
 
 # Create powershell core remote session (may enable remoting for powershell core)
-Request-PwshCoreSession | Out-Null
+Get-PwshCoreSessionConfiguration | Out-Null
 
 function Publish-NAVApp() {
     [CmdletBinding()]

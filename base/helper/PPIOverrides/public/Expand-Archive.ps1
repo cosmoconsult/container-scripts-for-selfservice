@@ -1,29 +1,29 @@
-Import-Module Microsoft.PowerShell.Utility -DisableNameChecking -Global
+Import-Module Microsoft.PowerShell.Archive -Global -WarningAction SilentlyContinue
 
-function Invoke-WebRequest() {
-    [CmdletBinding()]
+function Expand-Archive() {
+    [CmdletBinding(DefaultParameterSetName = "Path")]
     Param()
 
     DynamicParam {
-        ConvertTo-DynamicParameters -CommandName 'Microsoft.PowerShell.Utility\Invoke-WebRequest'
+        ConvertTo-DynamicParameters -CommandName 'Microsoft.PowerShell.Archive\Expand-Archive'
     }
-    
+
     begin {
         $MyInvocation.MyCommand.Parameters.Values | Where-Object { ! $_.IsDynamic } | Foreach-Object {
             $PSBoundParameters.Remove($_.Name) | Out-Null
         }
     }
-    
+
     process {
         try {
             $previousProgressPreference = $global:ProgressPreference
             $global:ProgressPreference = 'SilentlyContinue'
             
-            Microsoft.PowerShell.Utility\Invoke-WebRequest @PSBoundParameters
+            Microsoft.PowerShell.Archive\Expand-Archive @PSBoundParameters
         }
         finally {
             $global:ProgressPreference = $previousProgressPreference
         }
     }
 }
-Export-ModuleMember -Function Invoke-WebRequest
+Export-ModuleMember -Function Expand-Archive
