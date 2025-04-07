@@ -24,7 +24,7 @@ function Invoke-4PSArtifactHandling {
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
             }
-            elseif ("CRONUS" -eq $appDatabaseName -or "default" -eq $appDatabaseName -and !$msftStandardDatabase) {
+            elseif (("CRONUS" -eq $appDatabaseName) -or ("default" -eq $appDatabaseName) -and $msftStandardDatabase) {
                 Write-Host "4PS initialization skipped as this seems to be a Microsoft standard database"
             }
             else {
