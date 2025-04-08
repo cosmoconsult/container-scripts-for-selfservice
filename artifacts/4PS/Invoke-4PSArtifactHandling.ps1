@@ -16,15 +16,19 @@ function Invoke-4PSArtifactHandling {
 
             $appDatabaseName = Get-AppDatabaseName
             Write-Host "  app database name is: $appDatabaseName"
-            $msftStandardDatabase = [string]::IsNullOrEmpty($env:cosmoBaseAppVersion)
-            if(!$msftStandardDatabase) {
+            $isMsftStandardDatabase = [string]::IsNullOrEmpty($env:cosmoBaseAppVersion)
+            $isSaaSBak = ![string]::IsNullOrEmpty($env:saasbakfile)
+            if(!$isMsftStandardDatabase -and !$isSaaSBak) {
                 Write-Host "  modified base app was installed, therefore this is not a microsoft standard database"
             }
 
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
             }
-            elseif (("CRONUS" -eq $appDatabaseName) -or ("default" -eq $appDatabaseName) -and $msftStandardDatabase) {
+            elseif($isSaaSBak) {
+                Write-Host "4PS initialization skipped as this seems to be a SaaS backup restore"
+            }
+            elseif (("CRONUS" -eq $appDatabaseName) -or ("default" -eq $appDatabaseName) -and $isMsftStandardDatabase) {
                 Write-Host "4PS initialization skipped as this seems to be a Microsoft standard database"
             }
             else {
