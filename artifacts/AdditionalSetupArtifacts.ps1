@@ -480,13 +480,16 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     } while ($unsyncedApps.Count -gt 0)
 
     Write-Host " - Upgrading all apps"
+    $upgradeCount = 0
     do {
         $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq $true }
+        Write-Host "   - Upgrade run $upgradeCount"
         foreach($upgradeableApp in $upgradeableApps) {
             Write-Host "Upgrade $($upgradeableApp.Publisher)_$($upgradeableApp.Name)_$($upgradeableApp.Version) .."
-            Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue -AppId $($upgradeableApp.AppId)
+            Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue -AppId $($upgradeableApp.AppId)
         }
-    } while ($upgradeableApps.Count -gt 0)
+        $upgradeCount++;
+    } while ($upgradeableApps.Count -gt 0 -and $upgradeCount -lt 10)
 
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
