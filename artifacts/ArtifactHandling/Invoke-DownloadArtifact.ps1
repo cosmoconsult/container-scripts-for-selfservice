@@ -14,6 +14,7 @@ function Invoke-DownloadArtifact {
         [Parameter(ValueFromPipelineByPropertyName)][string]  $Target            = "",        
         [Parameter(ValueFromPipelineByPropertyName)][string]  $TargetFolder      = "",
         [Parameter(ValueFromPipelineByPropertyName)][string]  $AppImportScope    = "",
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $AppImportSyncMode = "",
         [Parameter(ValueFromPipelineByPropertyName)][string]  $Pat               = "",
         [Parameter(ValueFromPipelineByPropertyName)][string[]]$CosmoArtifactType = @(),
         [Parameter(ValueFromPipelineByPropertyName)][string]  $DependsOn         = "",
