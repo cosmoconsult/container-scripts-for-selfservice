@@ -53,6 +53,8 @@ function Unpublish-AllNavAppsInServerInstance {
         $apps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $Tenant -TenantSpecificProperties | ForEach-Object { Get-NAVAppInfo -id "$($_.AppId)" -publisher $_.publisher -name $_.name -version $_.Version -ServerInstance $ServerInstance -Tenant $Tenant -TenantSpecificProperties }
         $apps | ForEach-Object { AddAnApp -AnApp $_ }
         $apps = $script:installedApps
+        # Do not remove microsoft system application.
+        $apps = $apps | Where-Object {$_.AppId.value -ne "63ca2fa4-4f03-4f2b-a480-172fef340d3f"}
         [Array]::Reverse($apps)
         
         foreach ($InstalledApp in $apps) {
@@ -68,7 +70,7 @@ function Unpublish-AllNavAppsInServerInstance {
             }
         }
         $runNo = 1
-        while (Get-NAVAppInfo -ServerInstance $ServerInstance) {
+        while (Get-NAVAppInfo -ServerInstance $ServerInstance | Where-Object {$_.AppId.value -ne "63ca2fa4-4f03-4f2b-a480-172fef340d3f"}) {
             foreach ($ExistingApp in $apps) {  
                 Write-Host "Unpublishing $($ExistingApp.name) version $($ExistingApp.Version)..."
                 try {

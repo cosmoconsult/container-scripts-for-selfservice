@@ -205,13 +205,13 @@ if ($env:mode -eq "4ps") {
 if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManually) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
     Unpublish-AllNavAppsInServerInstance -KeepData (![string]::IsNullOrEmpty($env:saasbakfile))
-    $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-    Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
-    Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-    Write-Host "  Sync the system application with ForceSync"
-    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Mode ForceSync
-    Write-Host "  Install the system application"
-    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    # $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    # Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
+    # Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    # Write-Host "  Sync the system application with ForceSync"
+    # Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Mode ForceSync
+    # Write-Host "  Install the system application"
+    # Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
 }
 
 # Import Artifacts
