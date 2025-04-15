@@ -565,15 +565,17 @@ Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -
 
 # make sure BC is healthy before returning
 Write-Host " - Check BC Health"
-for ($i = 0; $i -lt 12; $i++) {
+for ($i = 0; $i -lt 10; $i++) {
     . C:\run\CheckHealth.ps1 | Out-Null
     if ($LASTEXITCODE -eq 0) {
         Write-Host " - - BC is healthy"
         break;
     }
 
-    Write-Host " - - BC not healthy yet (try $i), sleeping 10s and trying again"
-    Start-Sleep -Seconds 10
+    Write-Host " - - BC not healthy yet (try $i), outputting service tier and tenant info, sleeping 30s and trying again"
+    Get-NAVServerInstance -ServerInstance $ServerInstance
+    Get-NAVTenant -ServerInstance $ServerInstance | Format-Table
+    Start-Sleep -Seconds 30
 }
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
