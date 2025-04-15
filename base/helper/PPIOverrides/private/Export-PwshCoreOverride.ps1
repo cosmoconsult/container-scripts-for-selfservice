@@ -1,6 +1,6 @@
 # Import PPI Powershell Core Utils
 if (! (Get-Module 'PPIPowershellCoreUtils')) {
-    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -DisableNameChecking -Global -Force
+    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -Global -Force
 }
 
 $script:PwshCoreOverrides = @{}

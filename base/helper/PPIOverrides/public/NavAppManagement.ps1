@@ -4,6 +4,11 @@ if ($PSVersionTable.PSEdition -eq 'Core') { return }
 $bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
 if ($bcVersion -and $bcVersion.Major -lt 24) { return }
 
+# Import PPI Powershell Core Utils
+if (! (Get-Module 'PPIPowershellCoreUtils')) {
+    Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -Global -Force
+}
+
 # Create powershell core remote session (may enable remoting for powershell core)
 Get-PwshCoreSessionConfiguration | Out-Null
 
