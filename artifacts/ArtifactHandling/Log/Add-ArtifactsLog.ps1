@@ -1,21 +1,22 @@
 function Add-ArtifactsLog {
     [CmdletBinding()]
     param (
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName)]
         [string]$message = "",        
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName)]
         [string]$time = (Get-Date -format "o"),
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName)]
         [ValidateSet("", "FOB", "App", "RIM", "DLL", "Font")]
         [string]$kind = "",
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName)]
         [ValidateSet("Info", "Warn", "Error", "Debug")]
         [string]$severity = "Info",
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName)]
         [ValidateSet("", "success", "fail", "skip")]
         [string]$success = $null,
-        [Parameter(Mandatory = $false)]
+        [Parameter(Mandatory = $false, ValueFromPipelineByPropertyName)]
         [System.Object]$data = $null,
+        
         [Parameter(Mandatory = $false)]
         [string]$artifactsLogFile = "C:/inetpub/wwwroot/http/artifacts.log.json",
         [switch]$lowerCase,

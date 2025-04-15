@@ -4,6 +4,9 @@ if ($PSVersionTable.PSEdition -eq 'Core') { return }
 $bcVersion = [Version](Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe").VersionInfo.FileVersion
 if ($bcVersion -and $bcVersion.Major -lt 24) { return }
 
+# Create powershell core remote session (may enable remoting for powershell core)
+Get-PwshCoreSessionConfiguration | Out-Null
+
 $commands = Invoke-CommandInPwshCore -ScriptBlock {
     $moduleName = 'Microsoft.BusinessCentral.Apps.Management'
     if (! (Get-Module $moduleName)) {

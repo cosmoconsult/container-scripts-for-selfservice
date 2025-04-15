@@ -30,12 +30,7 @@ function Request-PwshCoreSession() {
         }
 
         # Find or setup session configuration
-        $sessionConfiguration = Get-PSSessionConfiguration -Force | Where-Object { $_.Name -eq $SessionConfigurationName } | Select-Object -First 1
-        if (! $sessionConfiguration) {
-            Write-Warning "Remoting for powershell core not enabled... enabling"
-            pwsh -Command 'Enable-PSRemoting -wa SilentlyContinue' | Out-Null
-            $sessionConfiguration = Get-PSSessionConfiguration -Name $SessionConfigurationName
-        }
+        $sessionConfiguration = Get-PwshCoreSessionConfiguration -SessionConfigurationName $SessionConfigurationName
         if (! $sessionConfiguration) { return }
 
         # Create session

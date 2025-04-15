@@ -58,30 +58,36 @@ function Get-AppFilesSortedByDependencies {
         if ($Depth) {
             $optionalParameters["Depth"] = $Depth
         }
-        Write-Host ("Seraching for apps excluding: {0}" -f $ExcludeExpr)
-        $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Recurse @optionalParameters | Where { $_.Name -NotMatch $ExcludeExpr }
+        if($ExcludeExpr) {
+            Write-Host ("Searching for apps excluding: {0}" -f $ExcludeExpr)
+        } else {
+            Write-Host "Searching for apps"
+        }
+        $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Recurse @optionalParameters | Where-Object { [string]::IsNullOrEmpty($ExcludeExpr) -or ($_.Name -NotMatch $ExcludeExpr) }
 
         $AllApps = [System.Collections.ArrayList]@()
+        $ApplicationAppId = ""
         foreach ($AppFile in $AllAppFiles) {
             try {
-                Write-Host "Processing $($AppFile.FullName)"
                 $App = Get-NAVAppInfo -Path $AppFile.FullName 
+                $AppId = $App.AppId
+                if ($App.Name -eq "Application") {
+                    $ApplicationAppId = $App.AppId
+                    $AppId = "00000000-0000-0000-0000-000000000000" 
+                }
                 if ($Distinct) {
-                    $equalApp = ($AllApps | Where-Object { $App.AppId -eq $_.AppId })
+                    $equalApp = ($AllApps | Where-Object { $AppId -eq $_.AppId })
                     if ($null -ne $equalApp) {
-                        Write-Host "Found equal app"
                         if ([System.Version]::Parse($App.Version) -gt [System.Version]::Parse($equalApp.Version)) {
-                            Write-Host "Removed version $($equalApp.Version) as $($App.Version) is greater."
                             $AllApps.Remove($equalApp)
                         }
                         else {
-                            Write-Host "Existing version $($equalApp.version) is greater than or equal to $($App.Version). Skipping this one."
                             continue;
                         }
                     }
                 }
                 $AllApps.Add([PSCustomObject]@{
-                        AppId        = $App.AppId
+                        AppId        = $AppId
                         Version      = $App.Version
                         Name         = $App.Name
                         Publisher    = $App.Publisher
@@ -94,7 +100,6 @@ function Get-AppFilesSortedByDependencies {
                 Write-Warning "Got no AppInfo from $AppFile ... $_"
             }
         }
-        
         $FinalResult = @()
 
         $AllApps | ForEach-Object {    
@@ -102,7 +107,7 @@ function Get-AppFilesSortedByDependencies {
         }
 
         $FinalResult = $FinalResult | Sort-Object ProcessOrder
-
+        $FinalResult | Where-Object { $_.Name -eq "Application" } | Foreach-Object { $_.AppId = $ApplicationAppId }
         return $FinalResult
     }
 }

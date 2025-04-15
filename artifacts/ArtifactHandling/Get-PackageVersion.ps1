@@ -18,14 +18,9 @@ function Get-PackageVersion {
         [Parameter(Mandatory = $false)]
         [string]$accessToken = "$($env:AZURE_DEVOPS_EXT_PAT)",
         [Parameter(Mandatory = $false)]
-        [string]$artifactVersion = "",
-        [Parameter(Mandatory = $false)]
-        [System.Object]$telemetryClient = $null
+        [string]$artifactVersion = ""
     )
     begin {
-        if (! $telemetryClient) {
-            $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
-        }
         if ("$accessToken" -eq "") {
             # Try get the PAT from environment
             $accessToken = (@("$($env:AZURE_DEVOPS_TOKEN)", "$($env:AZURE_DEVOPS_EXT_PAT)", "$($env:AZP_TOKEN)") | ? { "$_" -ne "" } | select -First 1)            
@@ -46,39 +41,46 @@ function Get-PackageVersion {
                 catch {}
             }            
         }
-        if ("" -eq "$accessToken") {
-            Add-ArtifactsLog -message "PAT not present" -severity Warn
+        if ("" -eq "$accessToken" -and $protocolType -ne "nuget") {
+            New-ArtifactsLogEntry -Message "PAT not present" -Severity Warn
         }
     }
     process {
-        try {
-            $started = Get-Date -Format "o"
+        $startTime = Get-Date
 
-            if ("$scope" -ne "project") { $project = "" }
-            $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
-            $baseuri = [string]::Join('/', (@($organization, $project) | Where-Object { "$_" -ne "" }))
-            $uri = "https://feeds.dev.azure.com/$baseuri/_apis/packaging/feeds/$feed/packages?api-version=5.1-preview.1"
-            Add-ArtifactsLog -message "Get Package for $name ... $uri" #$($headers | ConvertTo-Json -Compress)
-            $package = (((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | ConvertFrom-Json).value | Where-Object { $_.name -eq $name -and $_.protocolType -eq $protocolType } | Select-Object -first 1)
-            $uri = "https://feeds.dev.azure.com/$baseuri/_apis/packaging/feeds/$feed/packages/$($package.id)/versions?isListed=true&isDeleted=false&api-version=5.1-preview.1"
-            Add-ArtifactsLog -message "Get Version for $name ... $uri" #$($headers | ConvertTo-Json -Compress)
-            if ($artifactVersion -ne "") {
-                Add-ArtifactsLog -message "Requested Version: $artifactVersion"
-            }
-            $artifactVersion = $artifactVersion.Replace("*", "")
-            if ($artifactVersion -eq "") {
-                $version = ((((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | ConvertFrom-Json).value | Where-Object { $_.views | Where-Object { "$view" -eq "" -or $_.name -eq $view } }) | Select-Object version -First 1).version
-            }
-            else {
-                $version = ((((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | ConvertFrom-Json).value | Where-Object { $_.views | Where-Object { "$view" -eq "" -or $_.name -eq $view } }) | Where-Object { $_.version.StartsWith($artifactVersion) } | Select-Object version -First 1).version
-            }
-            
-            Invoke-LogRequest -name "Get-PakageVersion" -started $started -success $true -telemetryClient $telemetryClient
-            return $version            
+        if ("$scope" -ne "project") { $project = "" }
+        $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
+        $baseuri = [string]::Join('/', (@($organization, $project) | Where-Object { "$_" -ne "" }))
+        $uri = "https://feeds.dev.azure.com/$baseuri/_apis/packaging/feeds/$feed/packages?api-version=5.1-preview.1"
+        New-ArtifactsLogEntry -Message "Get Package for $name ... $uri" #$($headers | ConvertTo-Json -Compress)
+        $package = (((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | 
+            ConvertFrom-Json).value | 
+            Where-Object { $_.name -eq $name -and $_.protocolType -eq $protocolType } | 
+            Select-Object -first 1)
+        $uri = "https://feeds.dev.azure.com/$baseuri/_apis/packaging/feeds/$feed/packages/$($package.id)/versions?isListed=true&isDeleted=false&api-version=5.1-preview.1"
+        New-ArtifactsLogEntry -Message "Get Version for $name ... $uri" #$($headers | ConvertTo-Json -Compress)
+        if ($artifactVersion -ne "") {
+            New-ArtifactsLogEntry -Message "Requested Version: $artifactVersion"
         }
-        catch {
-            Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient
-        }        
+        $artifactVersion = $artifactVersion.Replace("*", "")
+        if ($artifactVersion -eq "") {
+            $version = ((((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | 
+                ConvertFrom-Json).value | 
+                Where-Object { $_.views | 
+                    Where-Object { "$view" -eq "" -or $_.name -eq $view } }) | 
+                Select-Object version -First 1).version
+        }
+        else {
+            $version = ((((Invoke-WebRequest -Method Get -uri $uri -Headers $headers -UseBasicParsing).Content | 
+                ConvertFrom-Json).value | 
+                Where-Object { $_.views | 
+                    Where-Object { "$view" -eq "" -or $_.name -eq $view } }) | 
+                Where-Object { $_.version.StartsWith($artifactVersion) } | 
+                Select-Object version -First 1).version
+        }
+        
+        New-RequestTelemetry -Name "Get-PakageVersion" -StartTime $startTime -success $true
+        return $version        
     }
     end {
         

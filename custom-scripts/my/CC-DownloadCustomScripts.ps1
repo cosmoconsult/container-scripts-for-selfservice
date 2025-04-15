@@ -17,8 +17,15 @@ $Headers = @{
 $url = "https://dev.azure.com/$($env:CcOrgName)/$($env:CcProjectId)/_apis/git/repositories/$($env:CcRepoId)/items?path=%2F.container-my&download=true&resolveLfs=true&%24format=zip&api-version=5.0"
 
 if (-not [string]::IsNullOrEmpty($env:CcBranch)) {
-    $url += "&versionDescriptor%5Bversion%5D=$([System.Uri]::EscapeDataString($env:CcBranch))"
-    Write-Host "- Using branch $($env:CcBranch)"
+    $commitHashPattern = "^[0-9a-f]{40}$"
+    if ($env:CcBranch -match $commitHashPattern) {
+        $url += "&versionDescriptor.versionType=commit&versionDescriptor.version=$($env:CcBranch)"
+        Write-Host "- Using commit hash $($env:CcBranch)"
+    }
+    else {
+        $url += "&versionDescriptor%5Bversion%5D=$([System.Uri]::EscapeDataString($env:CcBranch))"
+        Write-Host "- Using branch $($env:CcBranch)"
+    }
 }
 elseif (([string]::IsNullOrEmpty($env:CcBranch)) -and (-not [string]::IsNullOrEmpty($env:AZP_CONFIG_REPO_PATH))) {
     $url += "&versionDescriptor%5Bversion%5D=master"

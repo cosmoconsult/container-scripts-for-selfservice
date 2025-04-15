@@ -16,7 +16,7 @@ $ppiau = Get-Module -Name PPIArtifactUtils
 if (-not $ppiau) {
     if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
         Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-        Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
+        Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
     }
 }
 $parentFolder = [System.IO.Path]::GetTempPath()
