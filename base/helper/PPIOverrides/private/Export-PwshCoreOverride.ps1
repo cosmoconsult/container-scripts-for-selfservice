@@ -32,7 +32,7 @@ function Export-PwshCoreOverride() {
                         if ($using:override.ModuleImportPath) {
                             Import-Module $using:override.ModuleImportPath -wa SilentlyContinue
                         } else {
-                            . $using:override.ModuleImportScriptBlock
+                            . ( [ScriptBlock]::create($using:override.ModuleImportScriptBlock) )
                         }
                     }
                     (Get-Command $using:override.CommandName).Parameters
@@ -55,7 +55,7 @@ function Export-PwshCoreOverride() {
                         if ($using:override.ModuleImportPath) {
                             Import-Module $using:override.ModuleImportPath -wa SilentlyContinue
                         } else {
-                            . $using:override.ModuleImportScriptBlock
+                            . ( [ScriptBlock]::create($using:override.ModuleImportScriptBlock) )
                         }
                     }
                     & $using:override.CommandName @using:PSBoundParameters | Select-Object -Property *
