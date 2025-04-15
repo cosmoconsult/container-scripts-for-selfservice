@@ -6,10 +6,16 @@ if (! (Get-Module 'PPIPowershellCoreUtils')) {
 $script:PwshCoreOverrides = @{}
 
 function Export-PwshCoreOverride() {
-    [CmdletBinding()]
+    [CmdletBinding(DefaultParameterSetName = 'ModuleImportPath')]
     Param(
-        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
-        [object]$Command
+        [Parameter(Mandatory)]
+        [string]$CommandName,
+        [Parameter(Mandatory)]
+        [string]$ModuleName,
+        [Parameter(ParameterSetName = 'ModuleImportPath', Mandatory)]
+        [string]$ModuleImportPath,
+        [Parameter(ParameterSetName = 'ModuleImportScriptBlock', Mandatory)]
+        [scriptblock]$ModuleImportScriptBlock
     )
 
     begin {
@@ -23,7 +29,11 @@ function Export-PwshCoreOverride() {
                 if (!$pwshCoreSession) { return }
                 $overwrittenParameters = Invoke-Command -Session $pwshCoreSession -ScriptBlock {
                     if (! (Get-Module $using:override.ModuleName)) {
-                        Import-Module $using:override.ModulePath -wa SilentlyContinue
+                        if ($using:override.ModuleImportPath) {
+                            Import-Module $using:override.ModuleImportPath -wa SilentlyContinue
+                        } else {
+                            . $using:override.ModuleImportScriptBlock
+                        }
                     }
                     (Get-Command $using:override.CommandName).Parameters
                 }
@@ -42,7 +52,11 @@ function Export-PwshCoreOverride() {
                 if (!$pwshCoreSession) { return }
                 Invoke-Command -Session $pwshCoreSession -ScriptBlock {
                     if (! (Get-Module $using:override.ModuleName)) {
-                        Import-Module $using:override.ModulePath -wa SilentlyContinue
+                        if ($using:override.ModuleImportPath) {
+                            Import-Module $using:override.ModuleImportPath -wa SilentlyContinue
+                        } else {
+                            . $using:override.ModuleImportScriptBlock
+                        }
                     }
                     & $using:override.CommandName @using:PSBoundParameters | Select-Object -Property *
                 }
@@ -51,16 +65,14 @@ function Export-PwshCoreOverride() {
     }
 
     process {
-        if (! $Command) { return }
-
-        $overrideName = $Command.Name
-        $script:PwshCoreOverrides[$overrideName] = @{ 
-            ModuleName = $Command.ModuleName
-            ModulePath = $Command.Module.Path
-            CommandName = '{0}\{1}' -f $Command.ModuleName, $Command.Name
+        $script:PwshCoreOverrides[$CommandName] = @{ 
+            ModuleName = $ModuleName
+            ModuleImportPath = $ModuleImportPath
+            ModuleImportScriptBlock = $ModuleImportScriptBlock
+            CommandName = '{0}\{1}' -f $ModuleName, $CommandName
         }
 
-        Set-Item -Path "function:script:$overrideName" -Value $scriptBlock
-        Export-ModuleMember -Function $overrideName
+        Set-Item -Path "function:script:$CommandName" -Value $scriptBlock
+        Export-ModuleMember -Function $CommandName
     }
 }

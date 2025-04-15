@@ -7,27 +7,20 @@ if ($bcVersion -and $bcVersion.Major -lt 24) { return }
 # Create powershell core remote session (may enable remoting for powershell core)
 Get-PwshCoreSessionConfiguration | Out-Null
 
-$commands = Invoke-CommandInPwshCore -ScriptBlock {
-    $moduleName = 'Microsoft.BusinessCentral.Apps.Management'
-    if (! (Get-Module $moduleName)) {
-        c:\run\prompt.ps1 -silent
-    }
+$moduleName = 'Microsoft.BusinessCentral.Apps.Management'
+$moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
+$commandNames = @(
+    'Get-NavAppRuntimePackage', 
+    'Install-NAVApp', 
+    'Invoke-InplacePublishing', 
+    'Publish-NAVApp', 
+    'Repair-NAVApp', 
+    'Start-NAVAppDataUpgrade', 
+    'Sync-NAVApp', 
+    'Uninstall-NAVApp', 
+    'Unpublish-NAVApp'
+) 
 
-    $commands = @(
-        'Get-NavAppRuntimePackage', 
-        'Install-NAVApp', 
-        'Invoke-InplacePublishing', 
-        'Publish-NAVApp', 
-        'Repair-NAVApp', 
-        'Start-NAVAppDataUpgrade', 
-        'Sync-NAVApp', 
-        'Uninstall-NAVApp', 
-        'Unpublish-NAVApp'
-     ) 
-     $commands |
-        Foreach-Object { Get-Command -Module $moduleName -Name $_ } |
-        Select-Object -Property *
+$commandNames | ForEach-Object {
+    Export-PwshCoreOverride -CommandName $_ -ModuleName $moduleName -ModuleImportScriptBlock $moduleImportScriptBlock
 }
-if (! $commands) { return }
-
-$commands | Export-PwshCoreOverride
