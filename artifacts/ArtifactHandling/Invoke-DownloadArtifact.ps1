@@ -58,6 +58,7 @@ function Invoke-DownloadArtifact {
             Target = $Target
             TargetFolder = $TargetFolder
             AppImportScope = $AppImportScope
+            AppImportSyncMode = $AppImportSyncMode
             Pat = $Pat
             CosmoArtifactType = $CosmoArtifactType
             DependsOn = $DependsOn
