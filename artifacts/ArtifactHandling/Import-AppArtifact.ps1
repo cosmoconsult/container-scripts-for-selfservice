@@ -144,7 +144,7 @@ function Import-AppArtifact {
             if ($success) {
                 try {
                     $started2 = Get-Date -Format "o"
-                    Add-ArtifactsLog -kind App -message "Sync App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
+                    Add-ArtifactsLog -kind App -message "Sync App $($app.Name) $($app.Publisher) $($app.Version) Mode: $($SyncMode)..." -data $app
                     Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
