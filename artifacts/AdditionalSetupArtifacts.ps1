@@ -563,6 +563,11 @@ if (![string]::IsNullOrEmpty($env:saasbakfile)) {
 
 Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
 
+if (!(Test-Path "C:\CosmoSetupCompleted.txt")) {
+    New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
+    Write-Host "Set marker for health check"
+}
+
 # make sure BC is healthy before returning
 Write-Host " - Check BC Health"
 for ($i = 0; $i -lt 10; $i++) {
@@ -581,8 +586,5 @@ for ($i = 0; $i -lt 10; $i++) {
 
 Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
 Write-Host "=== Additional Setup Done ==="
-if (!(Test-Path "C:\CosmoSetupCompleted.txt")) {
-    New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
-    Write-Host "Set marker for health check"
-}
+
 Write-Host ""
