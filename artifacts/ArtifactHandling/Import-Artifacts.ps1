@@ -116,16 +116,20 @@ function Import-Artifacts {
                 foreach ($item in $items) {
                     # Try to Find the App-Specific Import Scope stored during download in "artifact.json" (Global setup is used, when no app specific information are present in the parent folders)
                     $importScope = $Scope
+                    $importSyncMode = $SyncMode
                     if (Test-Path -Path $item.Path) {
                         $artifactJson = Get-ArtifactJson -path $item.Path -ErrorAction SilentlyContinue
                         if ($artifactJson -and $artifactJson.appImportScope) {
                             $importScope = $artifactJson.appImportScope
                         }
+                        if ($artifactJson -and $artifactJson.appImportSyncMode) {
+                            $importSyncMode = $artifactJson.appImportSyncMode
+                        }
                     }
 
                     $IsModifiedBaseApp = $item.Publisher -eq "4PS B.V." -and $item.Name -eq $modifiedBaseAppName
                         
-                    @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $SyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue -IsModifiedBaseApp:$IsModifiedBaseApp
+                    @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $importSyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue -IsModifiedBaseApp:$IsModifiedBaseApp
                 }                
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)

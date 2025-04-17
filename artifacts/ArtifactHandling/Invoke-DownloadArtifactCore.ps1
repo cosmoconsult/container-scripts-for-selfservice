@@ -14,6 +14,7 @@ function Invoke-DownloadArtifactCore {
         [Parameter(ValueFromPipelineByPropertyName)][string]  $target,
         [Parameter(ValueFromPipelineByPropertyName)][string]  $targetFolder,
         [Parameter(ValueFromPipelineByPropertyName)][string]  $appImportScope,
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $appImportSyncMode,
         [Parameter(ValueFromPipelineByPropertyName)][string]  $pat,
         [Parameter(ValueFromPipelineByPropertyName)][string[]]$cosmoArtifactType,
         [Parameter(ValueFromPipelineByPropertyName)][string]  $dependsOn,
@@ -235,21 +236,29 @@ function Invoke-DownloadArtifactCore {
                         Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
                     }
 
-                    if ($appImportScope) {
+                    if ($appImportScope -or $appImportSyncMode) {
                         # Store the Artifact Specific Import Scope Information
                         $artifactJson = Get-ChildItem -LiteralPath "$folder" -Filter "artifact.json" -Recurse -ErrorAction SilentlyContinue | 
                             Select-Object -First 1 | 
                             Get-Content -ErrorAction SilentlyContinue | 
                             ConvertFrom-Json -ErrorAction SilentlyContinue
                         if (! $artifactJson) { $artifactJson = ConvertFrom-Json "{}" }
-                        $artifactJson  | 
-                            add-member -Name "appImportScope" -value "$appImportScope" -MemberType NoteProperty -ErrorAction Ignore
-                        $artifactJson.appImportScope = $appImportScope
+                        
+                        if($appImportSyncMode) {
+                            $artifactJson | 
+                                add-member -Name "appImportSyncMode" -value "$appImportSyncMode" -MemberType NoteProperty -ErrorAction Ignore
+                            $artifactJson.appImportSyncMode = $appImportSyncMode
+                        }
+                        if($appImportScope) {
+                            $artifactJson  | 
+                                add-member -Name "appImportScope" -value "$appImportScope" -MemberType NoteProperty -ErrorAction Ignore
+                            $artifactJson.appImportScope = $appImportScope
+                        }
                         $artifactJson | 
                             ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue | 
                             Set-Content -LiteralPath "$folder/artifact.json" -ErrorAction SilentlyContinue
                     }
-
+                    
                     New-ArtifactsLogEntry -Message "  Downloaded Files ($folder):"
                     New-ArtifactsLogEntry -Message "$((Get-ChildItem $folder -Recurse) | 
                         Select-Object FullName, Length | 
