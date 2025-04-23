@@ -176,7 +176,7 @@ if ($global:cosmoRunspacePool) {
     }
 }
 
-$installModifiedBaseAppManually = $null -ne ( $global:cosmoArtifacts.Artifacts.All | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" } )
+$installModifiedBaseAppManually = $null -ne ( $global:cosmoArtifacts.Artifacts.All | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct ??_*" } )
 $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
 
 # Initialize company
