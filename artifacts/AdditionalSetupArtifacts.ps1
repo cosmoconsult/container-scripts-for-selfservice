@@ -176,7 +176,7 @@ if ($global:cosmoRunspacePool) {
     }
 }
 
-$installModifiedBaseAppManually = $null -ne ( $global:cosmoArtifacts.Artifacts.All | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" } )
+$installModifiedBaseAppManually = $null -ne ( $global:cosmoArtifacts.Artifacts.All | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct ??_*" } )
 $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
 
 # Initialize company
@@ -480,13 +480,16 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     } while ($unsyncedApps.Count -gt 0)
 
     Write-Host " - Upgrading all apps"
+    $upgradeCount = 0
     do {
         $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq $true }
+        Write-Host "   - Upgrade run $upgradeCount"
         foreach($upgradeableApp in $upgradeableApps) {
             Write-Host "Upgrade $($upgradeableApp.Publisher)_$($upgradeableApp.Name)_$($upgradeableApp.Version) .."
-            Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue -AppId $($upgradeableApp.AppId)
+            Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue -AppId $($upgradeableApp.AppId)
         }
-    } while ($upgradeableApps.Count -gt 0)
+        $upgradeCount++;
+    } while ($upgradeableApps.Count -gt 0 -and $upgradeCount -lt 10)
 
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
@@ -560,10 +563,28 @@ if (![string]::IsNullOrEmpty($env:saasbakfile)) {
 
 Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
 
-Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
-Write-Host "=== Additional Setup Done ==="
 if (!(Test-Path "C:\CosmoSetupCompleted.txt")) {
     New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
     Write-Host "Set marker for health check"
 }
+
+# make sure BC is healthy before returning
+Write-Host " - Check BC Health"
+for ($i = 0; $i -lt 10; $i++) {
+    . C:\run\CheckHealth.ps1
+    Write-Host " - - CheckHealth returned $LASTEXITCODE, healthCheckBaseUrl is $($env:healthCheckBaseUrl)"
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host " - - BC is healthy"
+        break;
+    }
+
+    Write-Host " - - BC not healthy yet (try $i), outputting service tier and tenant info, sleeping 30s and trying again"
+    Get-NAVServerInstance -ServerInstance $ServerInstance
+    Get-NAVTenant -ServerInstance $ServerInstance
+    Start-Sleep -Seconds 30
+}
+
+Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
+Write-Host "=== Additional Setup Done ==="
+
 Write-Host ""
