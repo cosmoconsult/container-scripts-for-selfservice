@@ -36,18 +36,22 @@ foreach ($account in $accounts) {
 
     # Check if account already exists
     $BcUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant default | Where-Object { $_.UserName -ieq $shortenedAccount -or $_.UserName -like "$($shortenedAccount)@*" }
-    if($BcUser -and $BcUser.State -eq "Disabled") {
-        '  User {0} already exists in the database, but is disabled.' -f $userNameToSet | Write-Host 
+    if($BcUser) {
+        if ($BcUser.State -eq "Disabled") {
+            '  User {0} already exists in the database, but is disabled.' -f $userNameToSet | Write-Host 
 
-        Set-NAVServerUser `
-            -ServerInstance $ServerInstance `
-            -UserName $userNameToSet `
-            -State Enabled `
-            -tenant default `
-            -AuthenticationEmail $account `
-            -password $securePassword
+            Set-NAVServerUser `
+                -ServerInstance $ServerInstance `
+                -UserName $userNameToSet `
+                -State Enabled `
+                -tenant default `
+                -AuthenticationEmail $account `
+                -password $securePassword
 
-        '  User {0} is now set to enabled and has the default password.' -f $userNameToSet | Write-Host
+            '  User {0} is now set to enabled and has the default password.' -f $userNameToSet | Write-Host
+        } else {
+            '  User {0} already exists in the database and is enabled, doing nothing.' -f $userNameToSet | Write-Host 
+        }
     } else {
         '  User {0} does not exist in the database.' -f $userNameToSet | Write-Host 
         if ($navuserpasswordAuth) {
