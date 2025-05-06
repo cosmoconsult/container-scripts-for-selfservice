@@ -51,6 +51,7 @@ foreach ($account in $accounts) {
             '  User {0} is now set to enabled and has the default password.' -f $userNameToSet | Write-Host
         } else {
             '  User {0} already exists in the database and is enabled, doing nothing.' -f $userNameToSet | Write-Host 
+            continue
         }
     } else {
         '  User {0} does not exist in the database.' -f $userNameToSet | Write-Host 
