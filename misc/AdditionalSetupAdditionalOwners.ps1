@@ -1,6 +1,6 @@
 Write-Host "Handling multiple owners"
 
-if ($env:owner -eq $null) {
+if ($env:owner -eq $null -or $env:owner -eq "") {
     Write-Host "No owners found in env variable, skipping."
     return
 }
