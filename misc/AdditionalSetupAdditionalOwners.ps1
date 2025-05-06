@@ -48,12 +48,13 @@ foreach ($account in $accounts) {
 
         '  User {0} is now set to enabled.' -f $userNameToSet | Write-Host
     } else {
+        '  User {0} does not exist in the database.' -f $userNameToSet | Write-Host 
         if ($navuserpasswordAuth) {
             New-NavServerUser `
                 -ServerInstance $ServerInstance `
                 -UserName $userNameToSet `
                 -tenant default `
-                -password (ConvertTo-SecureString -String $env:password -AsPlainText -Force)
+                -password $securePassword
         } else {
             New-NavServerUser `
                 -ServerInstance $ServerInstance `
