@@ -180,7 +180,7 @@ $installModifiedBaseAppManually = $null -ne ( $global:cosmoArtifacts.Artifacts.A
 $installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
 
 # Initialize company
-if ($env:mode -eq "4ps") {
+if ($env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     if(![string]::IsNullOrEmpty($env:removeAllCompanies)){
         $companies = Get-NAVCompany -ServerInstance BC -Tenant $TenantId | Where-Object { $_.CompanyName -like "CRONUS*" }
         foreach ($company in $companies) {
