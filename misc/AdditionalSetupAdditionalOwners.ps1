@@ -15,7 +15,10 @@ $accounts = @($env:owner.Split(","))
 foreach ($account in $accounts) {
     Write-Host "  Processing account: $account"
     $shortenedAccount = $account.Split("@")[0]
-    $userNameToSet = $navuserpasswordAuth ? $shortenedAccount : $account
+    $userNameToSet = $account
+    if ($navuserpasswordAuth) {
+        $userNameToSet = $shortenedAccount
+    }
 
     # Check if account already exists
     $BcUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenant | Where-Object { $_.UserName -ieq $shortenedAccount -or $_.UserName -like "$($shortenedAccount)@*" }
