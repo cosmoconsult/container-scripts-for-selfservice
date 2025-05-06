@@ -10,7 +10,7 @@ if ($env:auth -ieq "aad") {
     $navuserpasswordAuth = $false
 }
 
-$PermissionSet  = 'SUPER'
+$PermissionSet = "SUPER"
 
 $accounts = @($env:owner.Split(","))
 
