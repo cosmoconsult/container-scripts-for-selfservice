@@ -16,7 +16,7 @@ $accounts = @($env:owner.Split(","))
 
 Write-Host "  Wait for container to be operational"
 for ($i = 0; $i -lt 60; $i++) {
-    $TenantState = (Get-NavTenant -ServerInstance BC -Tenant default).State
+    $TenantState = (Get-NavTenant -ServerInstance BC -Tenant $tenantId).State
     if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
         break;
     }
@@ -35,7 +35,7 @@ foreach ($account in $accounts) {
     }
 
     # Check if account already exists
-    $BcUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant default | Where-Object { $_.UserName -ieq $shortenedAccount -or $_.UserName -like "$($shortenedAccount)@*" }
+    $BcUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenantId | Where-Object { $_.UserName -ieq $shortenedAccount -or $_.UserName -like "$($shortenedAccount)@*" }
     if($BcUser) {
         if ($BcUser.State -eq "Disabled") {
             '  User {0} already exists in the database, but is disabled.' -f $userNameToSet | Write-Host 
@@ -44,7 +44,7 @@ foreach ($account in $accounts) {
                 -ServerInstance $ServerInstance `
                 -UserName $userNameToSet `
                 -State Enabled `
-                -tenant default `
+                -tenant $tenantId `
                 -AuthenticationEmail $account `
                 -password $securePassword
 
@@ -59,13 +59,13 @@ foreach ($account in $accounts) {
             New-NavServerUser `
                 -ServerInstance $ServerInstance `
                 -UserName $userNameToSet `
-                -tenant default `
+                -tenant $tenantId `
                 -password $securePassword
         } else {
             New-NavServerUser `
                 -ServerInstance $ServerInstance `
                 -UserName $userNameToSet `
-                -tenant default `
+                -tenant $tenantId `
                 -AuthenticationEmail $account
         }
 
@@ -75,7 +75,7 @@ foreach ($account in $accounts) {
     # Set user permission set
     $PermissionSetIDs = (Get-NAVServerUserPermissionSet `
                         -UserName $userNameToSet `
-                        -tenant default `
+                        -tenant $tenantId `
                         -ServerInstance $ServerInstance).PermissionSetID
     if ($PermissionSet -in $PermissionSetIDs) {
         '  User {0} already has the PermissionSet {1}.' -f $userNameToSet, $PermissionSet | Write-Host
@@ -83,7 +83,7 @@ foreach ($account in $accounts) {
         New-NavServerUserPermissionSet `
             -ServerInstance  $ServerInstance `
             -UserName $userNameToSet `
-            -tenant default `
+            -tenant $tenantId `
             -PermissionSetId $PermissionSet
 
         '  Added permission set {0} on user {1} in Business Central.' -f $PermissionSet, $userNameToSet | Write-Host
