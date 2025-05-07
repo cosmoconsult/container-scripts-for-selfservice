@@ -1,5 +1,10 @@
 Write-Host "Handling multiple owners"
 
+if ($env:IsBuildContainer -eq "true") {
+    Write-Host "Running in a build container, skipping."
+    return
+}
+
 if ($env:owner -eq $null -or $env:owner -eq "") {
     Write-Host "No owners found in env variable, skipping."
     return
