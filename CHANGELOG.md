@@ -31,4 +31,3 @@
 - Add pwsh as ssh default shell for BC24+
 - Find path of pwsh.exe with where.exe
 - Add version of bc server executable to output at startup
-- Reenabled configuration "ServerFileCacheDirectory" for BC26
