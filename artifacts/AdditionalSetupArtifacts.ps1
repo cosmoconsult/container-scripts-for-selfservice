@@ -110,6 +110,7 @@ if ($env:cosmoUpgradeSysApp) {
 
     Write-Host    "Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
+    Wait-NAVTenantReady -ServerInstance BC -Tenant $tenantId
     Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($sysAppInfoFS.Version)"
 
     if ($env:mode -ne "4ps") {
