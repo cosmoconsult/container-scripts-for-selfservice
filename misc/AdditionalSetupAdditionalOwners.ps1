@@ -19,16 +19,7 @@ $PermissionSet = "SUPER"
 
 $accounts = @($env:owner.Split(","))
 
-Write-Host "  Wait for container to be operational"
-for ($i = 0; $i -lt 60; $i++) {
-    $TenantState = (Get-NavTenant -ServerInstance BC -Tenant $tenantId).State
-    if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
-        break;
-    }
-
-    Write-Host "  Tenant not operational yet (try $i), sleeping 10s"
-    Start-Sleep -Seconds 10
-}
+Wait-NAVTenantReady -ServerInstance $ServerInstance -Tenant $tenantId -Retries 60 -OutputPrefix "  "
 
 
 foreach ($account in $accounts) {

@@ -32,6 +32,7 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/NAV/Get-NAVServiceTierFolder.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/NAV/Get-NAVRoleTailoredClientFolder.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/NAV/Import-NAVModules.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/NAV/Wait-NAVTenantReady.ps1")
 
 # Artifact BCContainerHelper functions
 . (Join-Path $PSScriptRoot "ArtifactHandling/BcContainerHelper/Set-BCContainerHelperConfig.ps1")
