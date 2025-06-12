@@ -73,7 +73,7 @@ function Invoke-4PSArtifactHandling {
                         Write-Error "Container seems to have a version where we don't have a matching initializer app: $($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor)"
                     }
 
-                    $initializerPath = "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app"
+                    $initializerPath = "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_30.5.0.0.app"
                     if (-not (Test-Path $initializerPath)) {
                         Write-Error "Couldn't find the expected initializer app at $initializerPath"
                     }
@@ -175,6 +175,15 @@ function Invoke-4PSArtifactHandling {
                                     -CompanyName $companyName `
                                     -CodeunitId 50189 `
                                     -MethodName CreateLicenses
+
+                                if ($env:InitializeAppRegistration) {
+                                    Write-Host "Initialize app registration"
+                                    Invoke-NavCodeunit `
+                                        -ServerInstance BC `
+                                        -CompanyName $companyName `
+                                        -CodeunitId 50189 `
+                                        -MethodName InitializeAppRegistration
+                                }
                             }
                             
                             Set-NAVServerConfiguration -KeyName "ServicesDefaultCompany" -KeyValue "$companyName" -ServerInstance BC
