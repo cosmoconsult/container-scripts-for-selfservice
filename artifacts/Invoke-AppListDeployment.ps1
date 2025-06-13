@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param (
-    [string[]]$AppsToDeploy,
+    [string]$AppsToDeploy,
     [string]$Username,
     [string]$Password,
     [string]$BearerToken = "",
@@ -33,7 +33,8 @@ try {
     
     # copy all apps into a folder so that we can order them later
     New-Item -ItemType Directory -Path $tempFullPath | Out-Null
-    $AppsToDeploy | % {
+    $AppsToDeployAsArray = $AppsToDeploy -split ","
+    $AppsToDeployAsArray | % {
         $AppToDeploy = $_
         if ($AppToDeploy.StartsWith("http")) {
             # given a URL, so need to download

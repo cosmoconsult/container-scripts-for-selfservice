@@ -11,7 +11,10 @@ param (
 
     [Parameter(Mandatory = $false, Position = 2)]
     [switch]
-    $OnlyGetStatus
+    $OnlyGetStatus,
+
+    [Parameter(Mandatory = $false, ValueFromRemainingArguments=$true)]
+    $RemainingArgs
 )
 
 $lockFile = "$Id.lock"  # holds status
@@ -61,7 +64,17 @@ try {
     }
 
     # run script in the background and redirect all output to a log file
-    $p = Start-Process -FilePath $ps -ArgumentList "-File $ScriptPath" -NoNewWindow -RedirectStandardOutput $scriptLog -RedirectStandardError $scriptLogErr -PassThru
+    $argumentList = "-File", "$ScriptPath"
+    foreach ($arg in $RemainingArgs) {
+        # If argument contains spaces, add quotes
+        if ($arg -match '[\s"]') {
+            $argumentList += " `"$($arg -replace '"', '\"')`""
+        } else {
+            $argumentList += " $arg"
+        }
+    }
+    # output the type of variable argumentList
+    $p = Start-Process -FilePath $ps -ArgumentList $argumentList -NoNewWindow -RedirectStandardOutput $scriptLog -RedirectStandardError $scriptLogErr -PassThru
     $handle = $p.Handle  # cache the handle
 
     Set-Content -Path $lockFile -Value "InProgress"
