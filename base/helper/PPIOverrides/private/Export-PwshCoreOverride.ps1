@@ -27,7 +27,8 @@ function Export-PwshCoreOverride() {
                 $override = $script:PwshCoreOverrides[$MyInvocation.MyCommand.Name]
                 $pwshCoreSession = Request-PwshCoreSession
                 if (!$pwshCoreSession) { return }
-                $overwrittenParameters = Invoke-Command -Session $pwshCoreSession -ScriptBlock {
+                $overwrittenParameters = @{}
+                Invoke-Command -Session $pwshCoreSession -ScriptBlock {
                     if (! (Get-Module $using:override.ModuleName)) {
                         if ($using:override.ModuleImportPath) {
                             Import-Module $using:override.ModuleImportPath -wa SilentlyContinue
@@ -35,8 +36,11 @@ function Export-PwshCoreOverride() {
                             . ( [ScriptBlock]::create($using:override.ModuleImportScriptBlock) )
                         }
                     }
-                    (Get-Command $using:override.CommandName).Parameters
-                }
+                    # Get parameters and their attributes for the command
+                    (Get-Command $using:override.CommandName).Parameters.Values | Select-Object -Property *
+                } | ForEach-Object {
+                    $overwrittenParameters[$_.Name] = $_;
+                } | Out-Null
                 ConvertTo-DynamicParameters -CommandName $override.CommandName -Parameters $overwrittenParameters
             }
     
@@ -58,7 +62,15 @@ function Export-PwshCoreOverride() {
                             . ( [ScriptBlock]::create($using:override.ModuleImportScriptBlock) )
                         }
                     }
-                    & $using:override.CommandName @using:PSBoundParameters | Select-Object -Property *
+
+                    # Convert deserialized parameters to string
+                    $parameters = $using:PSBoundParameters
+                    @( $parameters.GetEnumerator() ) | 
+                        Where-Object { $_.Value -is [PSObject] } | 
+                        Where-Object { $_.Value.PSObject.TypeNames -match '^Deserialized\.' } |
+                        ForEach-Object { $parameters[$_.Name] = $_.Value.ToString() }
+
+                    & $using:override.CommandName @parameters | Select-Object -Property *
                 }
             }
         }
