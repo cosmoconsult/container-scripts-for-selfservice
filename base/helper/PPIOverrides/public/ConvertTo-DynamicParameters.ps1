@@ -28,10 +28,11 @@ function ConvertTo-DynamicParameters() {
                 continue
             }
 
-            $dynamicParamType = [type]"System.Object"
             try {
                 $dynamicParamType = [type]($param.ParameterType.ToString())
-            } catch {}
+            } catch {
+                $dynamicParamType = [type]"System.Object"
+            }
 
             $dynamicParam = New-Object System.Management.Automation.RuntimeDefinedParameter(
                 $param.Name,
