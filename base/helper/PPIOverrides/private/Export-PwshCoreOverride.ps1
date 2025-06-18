@@ -63,12 +63,7 @@ function Export-PwshCoreOverride() {
                         }
                     }
 
-                    # Convert deserialized parameters to string
-                    $parameters = $using:PSBoundParameters
-                    @( $parameters.GetEnumerator() ) | 
-                        Where-Object { $_.Value -is [PSObject] } | 
-                        Where-Object { $_.Value.PSObject.TypeNames -match '^Deserialized\.' } |
-                        ForEach-Object { $parameters[$_.Name] = $_.Value.ToString() }
+                    $parameters = Convert-DeserializedParameters -Parameters $using:PSBoundParameters
 
                     & $using:override.CommandName @parameters | Select-Object -Property *
                 }
@@ -87,4 +82,19 @@ function Export-PwshCoreOverride() {
         Set-Item -Path "function:script:$CommandName" -Value $scriptBlock
         Export-ModuleMember -Function $CommandName
     }
+}
+
+function Convert-DeserializedParameters() {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Mandatory)]
+        [hashtable]$Parameters
+    )
+    
+    @( $Parameters.GetEnumerator() ) | 
+        Where-Object { $_.Value -is [PSObject] } | 
+        Where-Object { $_.Value.PSObject.TypeNames -match '^Deserialized\.' } |
+        ForEach-Object { $Parameters[$_.Name] = $_.Value.ToString() }
+
+    return $Parameters
 }
