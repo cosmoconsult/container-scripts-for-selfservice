@@ -64,7 +64,7 @@ function Export-PwshCoreOverride() {
                     }
 
                     # Convert deserialized parameters to string
-                    $parameters = $using:PSBoundParameters
+                    $parameters = ($using:PSBoundParameters).Clone()
                     @( $parameters.GetEnumerator() ) | 
                         Where-Object { $_.Value -is [PSObject] } | 
                         Where-Object { $_.Value.PSObject.TypeNames -match '^Deserialized\.' } |
