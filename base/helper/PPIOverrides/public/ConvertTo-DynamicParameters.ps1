@@ -28,50 +28,9 @@ function ConvertTo-DynamicParameters() {
                 continue
             }
 
-            try {
-                $dynamicParamType = [type]($param.ParameterType.ToString())
-            } catch {
-                $dynamicParamType = [type]"System.Object"
-            }
+            $dynamicParameter = ConvertTo-DynamicParameter -Parameter $param
 
-            $dynamicParam = New-Object System.Management.Automation.RuntimeDefinedParameter(
-                $param.Name,
-                $dynamicParamType,
-                ( $param.Attributes | Where-Object { $_ -is [System.Attribute] } )
-            )
-
-            # Add deserialized parameter attributes
-            $param.Attributes | Where-Object { $_ -is [PSObject] } | Where-Object { $_.TypeId -eq 'System.Management.Automation.ParameterAttribute' } | ForEach-Object {
-                $paramAttribute = $_
-                $dynamicParamParameterAttribute = New-Object $paramAttribute.TypeId
-                $dynamicParamParameterAttribute.PSObject.Properties | 
-                    Where-Object { $_.IsSettable } | 
-                    ForEach-Object {
-                        if ($paramAttribute.$($_.Name)) {
-                            $_.Value = $paramAttribute.$($_.Name)
-                        }
-                    }
-                $dynamicParam.Attributes.Add($dynamicParamParameterAttribute)
-            }
-
-            # Add fallback parameter attribute
-            $dynamicParamParameterAttribute = $dynamicParam.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] } | Select-Object -First 1
-            if (!$dynamicParamParameterAttribute) {
-                $dynamicParamParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
-                $dynamicParamParameterAttribute.ParameterSetName = "__AllParameterSets"
-                $dynamicParam.Attributes.Add($dynamicParamParameterAttribute)
-            }
-
-            # Add aliases
-            if ($param.Aliases) {
-                $dynamicParamAliasAttribute = $dynamicParam.Attributes | Where-Object { $_ -is [System.Management.Automation.AliasAttribute] } | Select-Object -First 1
-                if (! $dynamicParamAliasAttribute) {
-                    $dynamicParamAliasAttribute = New-Object System.Management.Automation.AliasAttribute($param.Aliases)
-                    $dynamicParam.Attributes.Add($dynamicParamAliasAttribute)
-                }
-            }
-
-            $script:DynamicParameters[$commandKey].Add($dynamicParam.Name, $dynamicParam)
+            $script:DynamicParameters[$commandKey].Add($dynamicParameter.Name, $dynamicParameter)
         }
     }
     return $script:DynamicParameters[$commandKey]
