@@ -32,3 +32,4 @@
 - Find path of pwsh.exe with where.exe
 - Add version of bc server executable to output at startup
 - Reenabled configuration "ServerFileCacheDirectory" for BC26
+- Fixed overrides for powershell pipelines
