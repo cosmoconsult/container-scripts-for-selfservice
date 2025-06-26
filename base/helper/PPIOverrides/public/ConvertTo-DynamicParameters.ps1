@@ -28,36 +28,9 @@ function ConvertTo-DynamicParameters() {
                 continue
             }
 
-            $dynamicParamType = [type]"System.Object"
-            try {
-                if ($param.ParameterType.ToString() -like 'System.*') {
-                    $dynamicParamType = [type]($param.ParameterType)
-                }
-            }
-            catch {}
+            $dynamicParameter = ConvertTo-DynamicParameter -Parameter $param
 
-            $dynamicParam = New-Object System.Management.Automation.RuntimeDefinedParameter(
-                $param.Name,
-                $dynamicParamType,
-                $param.Attributes
-            )
-
-            $dynamicParamParameterAttribute = $dynamicParam.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] } | Select-Object -First 1
-            if (!$dynamicParamParameterAttribute) {
-                $dynamicParamParameterAttribute = New-Object System.Management.Automation.ParameterAttribute
-                $dynamicParamParameterAttribute.ParameterSetName = "__AllParameterSets"
-                $dynamicParam.Attributes.Add($dynamicParamParameterAttribute)
-            }
-
-            if ($param.Aliases) {
-                $dynamicParamAliasAttribute = $dynamicParam.Attributes | Where-Object { $_ -is [System.Management.Automation.AliasAttribute] } | Select-Object -First 1
-                if (! $dynamicParamAliasAttribute) {
-                    $dynamicParamAliasAttribute = New-Object System.Management.Automation.AliasAttribute($param.Aliases)
-                    $dynamicParam.Attributes.Add($dynamicParamAliasAttribute)
-                }
-            }
-
-            $script:DynamicParameters[$commandKey].Add($dynamicParam.Name, $dynamicParam)
+            $script:DynamicParameters[$commandKey].Add($dynamicParameter.Name, $dynamicParameter)
         }
     }
     return $script:DynamicParameters[$commandKey]
