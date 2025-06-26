@@ -1,5 +1,3 @@
-$script:DynamicParameters = @{}
-
 function ConvertTo-DynamicParameter() {
     Param(
         [Parameter(Mandatory)]
