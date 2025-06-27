@@ -85,8 +85,13 @@ function Invoke-NuGetPackageDownload() {
         $PredefinedApps |
             Where-Object { $downloadParameters.packageName -notmatch "^$($_.Publisher)\.$($_.Name)(\.[^\.][^\.])?(\.symbols)?\.$($_.id)`$" } |
             Where-Object { $downloadParameters.installedApps.id -notcontains $_.id } |
-            ForEach-Object { 
-                $downloadParameters.installedApps += $_ 
+            ForEach-Object {
+                $downloadParameters.installedApps += [PSCustomObject]@{
+                    Name      = $_.Name
+                    Publisher = $_.Publisher
+                    id        = $_.Id
+                    Version   = ('{0}.65535.0.0.0' -f $_.Version).Trim('.').Split('.')[0..3] -join '.' # Normalize version to 4 digits (first missing digit is set to max value)
+                }
             }
 
         New-Item -ItemType Directory -Path $Destination -ErrorAction SilentlyContinue -Force | Out-Null
