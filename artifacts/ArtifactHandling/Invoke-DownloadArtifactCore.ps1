@@ -52,11 +52,11 @@ function Invoke-DownloadArtifactCore {
             Where-Object { $_.Type -eq "nuget" } |
             Where-Object { $_.Version -match '^\d+(\.\d+){0,3}$' } |
             ForEach-Object {
-                if ($_.Name -match '^([^\.]+)\.([^\.]+)(\.[^\.][^\.])?(\.symbols)?(\.[0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})$') {
+                if ($_.Name -match '^([^\.]+)\.([^\.]+)(?:\.[^\.][^\.])?(?:\.symbols)?(?:\.([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12}))$') {
                     [PSCustomObject]@{
                         Publisher = $matches[1]
                         Name      = $matches[2]
-                        id        = $matches[5]
+                        id        = $matches[3]
                         Version   = ('{0}.{1}.0.0' -f $_.Version, [int]::MaxValue).Split('.')[0..3] -join '.' # Normalize to 4 digits (first missing digit is set to max value)
                     }
                 }
