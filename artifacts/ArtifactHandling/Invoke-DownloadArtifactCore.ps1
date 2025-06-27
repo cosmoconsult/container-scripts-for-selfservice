@@ -19,6 +19,9 @@ function Invoke-DownloadArtifactCore {
         [Parameter(ValueFromPipelineByPropertyName)][string[]]$cosmoArtifactType,
         [Parameter(ValueFromPipelineByPropertyName)][string]  $dependsOn,
 
+        # Artifacts Parameter
+        [object[]] $allArtifacts = @(),
+
         # Download Parameters
         [string]  $destination,
         [switch]  $groupByDependency,
@@ -44,6 +47,21 @@ function Invoke-DownloadArtifactCore {
         $getVersionFromAPI = $apiFeatures -contains "GetArtifactLatest"
 
         $platformVersion = [Version](Get-Item (Join-Path $serviceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
+
+        $predefinedNuGetApps = @( $allArtifacts | 
+            Where-Object { $_.Type -eq "nuget" } |
+            Where-Object { $_.Version -match '^\d+(\.\d+){0,3}$' } |
+            ForEach-Object {
+                if ($_.Name -match '^([^\.]+)\.([^\.]+)(\.[^\.][^\.])?(\.symbols)?(\.[0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12})$') {
+                    [PSCustomObject]@{
+                        Publisher = $matches[1]
+                        Name      = $matches[2]
+                        id        = $matches[5]
+                        Version   = ('{0}.{1}.0.0' -f $_.Version, [int]::MaxValue).Split('.')[0..3] -join '.' # Normalize to 4 digits (first missing digit is set to max value)
+                    }
+                }
+            }
+        )
     }
     
     process {
@@ -195,6 +213,7 @@ function Invoke-DownloadArtifactCore {
                             InstalledAppsPath = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
                             ServiceTierFolder = $serviceTierFolder
                             PlatformVersion   = $platformVersion
+                            PredefinedApps    = $predefinedNuGetApps
                         }
                         Invoke-NuGetPackageDownload @nuGetParameters *>&1 | 
                             Where-Object { $_ -ne $null } |

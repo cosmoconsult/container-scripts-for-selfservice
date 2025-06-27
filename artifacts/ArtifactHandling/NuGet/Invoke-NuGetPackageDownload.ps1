@@ -10,7 +10,8 @@ function Invoke-NuGetPackageDownload() {
         [string]$Version,
         [string]$InstalledAppsPath,
         [string]$ServiceTierFolder,
-        [Version]$PlatformVersion
+        [Version]$PlatformVersion,
+        [PSCustomObject[]]$PredefinedApps = @()
     )
 
     try {
@@ -80,6 +81,13 @@ function Invoke-NuGetPackageDownload() {
                     }
                 }
         }
+
+        $PredefinedApps |
+            Where-Object { $downloadParameters.packageName -notmatch "^$($_.Publisher)\.$($_.Name)(\.[^\.][^\.])?(\.symbols)?\.$($_.id)`$" } |
+            Where-Object { $downloadParameters.installedApps.id -notcontains $_.id } |
+            ForEach-Object { 
+                $downloadParameters.installedApps += $_ 
+            }
 
         New-Item -ItemType Directory -Path $Destination -ErrorAction SilentlyContinue -Force | Out-Null
         Download-BcNuGetPackageToFolder @downloadParameters

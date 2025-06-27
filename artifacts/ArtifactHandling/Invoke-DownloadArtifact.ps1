@@ -19,6 +19,9 @@ function Invoke-DownloadArtifact {
         [Parameter(ValueFromPipelineByPropertyName)][string[]]$CosmoArtifactType = @(),
         [Parameter(ValueFromPipelineByPropertyName)][string]  $DependsOn         = "",
 
+        # Artifacts Parameter
+        [object[]] $AllArtifacts = @(),
+
         # Download Parameters
         [string]  $Destination       = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
         [switch]  $GroupByDependency = $false,
@@ -83,6 +86,7 @@ function Invoke-DownloadArtifact {
         }
 
         $parameters = @{
+            AllArtifacts = $AllArtifacts
             Destination = $Destination
             GroupByDependency = $GroupByDependency
             BaseUrl = $BaseUrl

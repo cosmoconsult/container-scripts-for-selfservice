@@ -65,6 +65,7 @@ try {
         ServiceTierFolder = Get-NAVServiceTierFolder
         ApiFeatures       = Get-AzureDevOpsApiFeatures
         AccessToken       = Get-AzureDevOpsAccessToken -Artifacts $cosmoArtifacts.Artifacts.All
+        AllArtifacts      = $cosmoArtifacts.Artifacts.All
     }
     
     if ($global:cosmoRunspacePool) {
