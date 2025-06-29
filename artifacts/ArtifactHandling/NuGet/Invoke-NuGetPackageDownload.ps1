@@ -101,7 +101,7 @@ function Invoke-NuGetPackageDownload() {
                 if (! ($predefinedPackage.Package -match $namePattern)) {
                     continue
                 }
-                
+
                 # Ignore predefined package if name does not contain the id
                 if (! $matches.id) {
                     continue
@@ -123,10 +123,10 @@ function Invoke-NuGetPackageDownload() {
 
                 # Set version to highest possible version based on predefined package version
                 if (! $predefinedPackage.Version) {
-                    $versionParts = ( @([int32]::MaxValue) * 3 ) + ( [int32]::MaxValue - 1 ) 
+                    $versionParts = @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue - 1)
                     $installedApp.Version = $versionParts[0..3] -join '.'
                 } elseif ($predefinedPackage.Version -match $versionPattern) {
-                    $versionParts = $matches.version.Split('.') + ( @([int]::MaxValue) * 3 )
+                    $versionParts = $matches.version.Split('.') + @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue)
                     $installedApp.Version = '{0}{1}{2}' -f ($versionParts[0..3] -join '.'), $matches.prerelease, $matches.metadata
                 }
 
