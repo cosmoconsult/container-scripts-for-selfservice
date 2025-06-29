@@ -108,7 +108,7 @@ function Invoke-NuGetPackageDownload() {
                 }
 
                 # Ignore predefined package if it matches an installed app
-                if ($downloadParameters.installedApps.Id -contains $matches.id) {
+                if ($downloadParameters.installedApps.Id -eq $matches.id) {
                     continue
                 }
 
