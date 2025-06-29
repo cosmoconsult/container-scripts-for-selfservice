@@ -98,14 +98,10 @@ function Invoke-NuGetPackageDownload() {
                 }
 
                 # Ignore predefined package if not matches the name pattern
-                if ($predefinedPackage.Package -notmatch $namePattern) {
-                    continue
-                }
-
-                # Perform an explicit match to populate $matches
                 if (! ($predefinedPackage.Package -match $namePattern)) {
                     continue
                 }
+                
                 # Ignore predefined package if name does not contain the id
                 if (! $matches.id) {
                     continue
