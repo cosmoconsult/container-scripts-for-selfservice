@@ -112,7 +112,7 @@ function Invoke-NuGetPackageDownload() {
                     continue
                 }
 
-                # Use predefined package as installed app
+                # Create installed app object from predefined package
                 $installedApp = [PSCustomObject]@{
                     Package   = $predefinedPackage.Package
                     Name      = $matches.name
