@@ -28,6 +28,19 @@ function Invoke-NuGetPackageDownload() {
     process {
         try {
             Write-Host "##[group]Download NuGet Package '$Package'"
+            
+            if ($Package -notmatch $namePattern) {
+                throw "Invalid NuGet package name '$Package'. Expected format: <publisher>.<name>[.<country>][.<symbols>][.<id>]"
+            }
+
+            $packageInfo = @{
+                Name      = $matches.name
+                Publisher = $matches.publisher
+                Country   = $matches.country
+                Symbols   = $matches.symbols
+                Id        = $matches.id
+            }
+
             Write-Host "Waiting for other NuGet Package downloads..."
             while (! $nuGetPackageDownloadLockFileStream) {
                 try { $nuGetPackageDownloadLockFileStream = [System.IO.File]::Open($script:nuGetPackageDownloadLockFile, 'OpenOrCreate', 'ReadWrite', 'None') }
@@ -78,6 +91,7 @@ function Invoke-NuGetPackageDownload() {
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
                 Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
                     ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
+                    Where-Object { $packageInfo.Id -in $_.AppId, $null }|
                     ForEach-Object {
                         $installedApp = [PSCustomObject]@{
                             Package   = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
@@ -92,53 +106,53 @@ function Invoke-NuGetPackageDownload() {
                     }
             }
 
-            foreach ($predefinedPackage in $PredefinedPackages) {
-                # Ignore predefined package if it matches the requrested package
-                if ($predefinedPackage.Package -eq $Package) {
-                    continue
-                }
+            # foreach ($predefinedPackage in $PredefinedPackages) {
+            #     # Ignore predefined package if it matches the requrested package
+            #     if ($predefinedPackage.Package -eq $Package) {
+            #         continue
+            #     }
 
-                # Ignore predefined package if not matches the name pattern
-                if ($predefinedPackage.Package -notmatch $namePattern) {
-                    continue
-                }
+            #     # Ignore predefined package if not matches the name pattern
+            #     if ($predefinedPackage.Package -notmatch $namePattern) {
+            #         continue
+            #     }
 
-                # Ignore predefined package if name does not contain the id
-                if (! $matches.id) {
-                    continue
-                }
+            #     # Ignore predefined package if name does not contain the id
+            #     if (! $matches.id) {
+            #         continue
+            #     }
 
-                # Ignore predefined package if it matches an installed app
-                if ($downloadParameters.installedApps.Id -notcontains $matches.id) {
-                    continue
-                }
+            #     # Ignore predefined package if it matches an installed app
+            #     if ($downloadParameters.installedApps.Id -notcontains $matches.id) {
+            #         continue
+            #     }
 
-                # Use predefined package as installed app
-                $installedApp = [PSCustomObject]@{
-                    Package   = $predefinedPackage.Package
-                    Name      = $matches.name
-                    Publisher = $matches.publisher
-                    Id        = $matches.id
-                    Version   = $null
-                }
+            #     # Use predefined package as installed app
+            #     $installedApp = [PSCustomObject]@{
+            #         Package   = $predefinedPackage.Package
+            #         Name      = $matches.name
+            #         Publisher = $matches.publisher
+            #         Id        = $matches.id
+            #         Version   = $null
+            #     }
 
-                # Normalize version to 4 segements and use maximum for missing parts
-                if (! $predefinedPackage.Version) {
-                    $versionParts = ( @([int32]::MaxValue) * 3 ) + ( [int32]::MaxValue - 1 ) 
-                    $installedApp.Version = $versionParts[0..3] -join '.'
-                } elseif ($predefinedPackage.Version -match $versionPattern) {
-                    $versionParts = $matches.version.Split('.') + ( @([int]::MaxValue) * 3 )
-                    $installedApp.Version = '{0}{1}{2}' -f ($versionParts[0..3] -join '.'), $matches.prerelease, $matches.metadata
-                }
+            #     # Normalize version to 4 segements and use maximum for missing parts
+            #     if (! $predefinedPackage.Version) {
+            #         $versionParts = ( @([int32]::MaxValue) * 3 ) + ( [int32]::MaxValue - 1 ) 
+            #         $installedApp.Version = $versionParts[0..3] -join '.'
+            #     } elseif ($predefinedPackage.Version -match $versionPattern) {
+            #         $versionParts = $matches.version.Split('.') + ( @([int]::MaxValue) * 3 )
+            #         $installedApp.Version = '{0}{1}{2}' -f ($versionParts[0..3] -join '.'), $matches.prerelease, $matches.metadata
+            #     }
 
-                # Ignore predefined package if it has no valid version (e.g. version range)
-                if (! $installedApp.Version) {
-                    continue
-                }
+            #     # Ignore predefined package if it has no valid version (e.g. version range)
+            #     if (! $installedApp.Version) {
+            #         continue
+            #     }
 
-                Write-Host "Use predefined package as installed app: $($installedApp.Package) (version: $($installedApp.Version)))"
-                $downloadParameters.installedApps += $installedApp
-            }
+            #     Write-Host "Use predefined package as installed app: $($installedApp.Package) (version: $($installedApp.Version)))"
+            #     $downloadParameters.installedApps += $installedApp
+            # }
 
             New-Item -ItemType Directory -Path $Destination -ErrorAction SilentlyContinue -Force | Out-Null
             Download-BcNuGetPackageToFolder @downloadParameters
