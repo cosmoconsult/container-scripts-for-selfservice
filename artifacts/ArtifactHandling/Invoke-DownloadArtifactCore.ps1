@@ -123,18 +123,22 @@ function Invoke-DownloadArtifactCore {
         $isArchive = $isDownload -or "$sourceUri".EndsWith(".zip")
         if ($sourceUri -or $isNuGet) {
             if ($isNuget) {
+                Write-Host "##[section]Download Artifact from NuGet package $name"
                 New-ArtifactsLogEntry -Message "Download Artifact from NuGet package $name"
             }
             elseif ($isDownload) {
                 $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
                 if ($url_output.Length -gt 1) {
+                    Write-Host "##[section]Download Artifact from $($url_output[0])"
                     New-ArtifactsLogEntry -Message "Download Artifact from $($url_output[0])&pat=***"
                 }
                 else {
+                    Write-Host "##[section]Download Artifact from $sourceUri"
                     New-ArtifactsLogEntry -Message "Download Artifact from $($sourceUri)"
                 }
             }
             else {
+                Write-Host "##[section]Copy Artifact from $sourceUri"
                 New-ArtifactsLogEntry -Message "Copy Artifact from $sourceUri"
             }
 
