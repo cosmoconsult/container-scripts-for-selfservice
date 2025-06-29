@@ -90,7 +90,7 @@ function Invoke-NuGetPackageDownload() {
                 Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
                     ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
                     Where-Object { 
-                        Write-Host "Check: $($_.AppId) -ne $($packageInfo.Id)"
+                        Write-Host "Check: '$($_.AppId)' -ne '$($packageInfo.Id)'"
                         $_.AppId -ne $packageInfo.Id
                     } |
                     ForEach-Object {
