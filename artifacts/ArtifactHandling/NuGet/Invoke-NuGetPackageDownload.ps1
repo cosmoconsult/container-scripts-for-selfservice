@@ -27,7 +27,7 @@ function Invoke-NuGetPackageDownload() {
 
     process {
         try {
-            Write-Host "##[group]Download NuGet Package '$Package'"
+            Write-Host "##[section]Download NuGet Package '$Package'"
             
             if ($Package -notmatch $namePattern) {
                 throw "Invalid NuGet package name '$Package'. Expected format: <publisher>.<name>[.<country>][.<symbols>][.<id>]"
@@ -91,7 +91,7 @@ function Invoke-NuGetPackageDownload() {
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
                 Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
                     ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
-                    Where-Object { $packageInfo.Id -in $_.AppId, $null }|
+                    Where-Object { $_.AppId -ne $packageInfo.Id }|
                     ForEach-Object {
                         $installedApp = [PSCustomObject]@{
                             Package   = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
@@ -160,7 +160,6 @@ function Invoke-NuGetPackageDownload() {
             if ($nuGetPackageDownloadLockFileStream) {
                 $nuGetPackageDownloadLockFileStream.Close()
             }
-            Write-Host "##[endgroup]"
         }
     }
 }
