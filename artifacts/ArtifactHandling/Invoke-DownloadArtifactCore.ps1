@@ -48,16 +48,12 @@ function Invoke-DownloadArtifactCore {
 
         $platformVersion = [Version](Get-Item (Join-Path $serviceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
 
-        $predefinedNuGetApps = @( $allArtifacts | 
-            Where-Object { $_.Type -eq "nuget" } |
+        $predefinedNuGetPackages = @( $allArtifacts | 
+            Where-Object { $_.Type -eq 'nuget' } |
             ForEach-Object {
-                if ($_.Name -match '^([^\.]+)\.([^\.]+)(?:\.[^\.][^\.])?(?:\.symbols)?(?:\.([0-9A-Fa-f]{8}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{4}\-[0-9A-Fa-f]{12}))$') {
-                    [PSCustomObject]@{
-                        Publisher = $matches[1]
-                        Name      = $matches[2]
-                        Id        = $matches[3]
-                        Version   = $_.Version
-                    }
+                [PSCustomObject]@{
+                    Package = $_.Name
+                    Version = $_.Version
                 }
             }
         )
@@ -206,13 +202,13 @@ function Invoke-DownloadArtifactCore {
 
                     if ($isNuGet) {
                         $nuGetParameters = @{
-                            Destination       = $folder
-                            Package           = $name
-                            Version           = $version
-                            InstalledAppsPath = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
-                            ServiceTierFolder = $serviceTierFolder
-                            PlatformVersion   = $platformVersion
-                            PredefinedApps    = $predefinedNuGetApps
+                            Destination        = $folder
+                            Package            = $name
+                            Version            = $version
+                            InstalledAppsPath  = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
+                            ServiceTierFolder  = $serviceTierFolder
+                            PlatformVersion    = $platformVersion
+                            PredefinedPackages = $predefinedNuGetPackages
                         }
                         Invoke-NuGetPackageDownload @nuGetParameters *>&1 | 
                             Where-Object { $_ -ne $null } |
