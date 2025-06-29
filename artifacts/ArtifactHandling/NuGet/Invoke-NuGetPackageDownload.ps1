@@ -120,10 +120,10 @@ function Invoke-NuGetPackageDownload() {
 
                 # Normalize version to 4 segements and use maximum for missing parts
                 if (! $predefinedPackage.Version) {
-                    $versionParts = @([int]::MaxValue) * 4
+                    $versionParts = ( @([int32]::MaxValue) * 3 ) + ( [int32]::MaxValue - 1 ) 
                     $installedApp.Version = $versionParts[0..3] -join '.'
                 } elseif ($predefinedPackage.Version -match $versionPattern) {
-                    $versionParts = $matches.version.Split('.') + ( @([int]::MaxValue) * 4 )
+                    $versionParts = $matches.version.Split('.') + ( @([int]::MaxValue) * 3 )
                     $installedApp.Version = '{0}{1}{2}' -f ($versionParts[0..3] -join '.'), $matches.prerelease, $matches.metadata
                 }
 
