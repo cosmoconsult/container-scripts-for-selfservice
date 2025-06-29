@@ -121,7 +121,7 @@ function Invoke-NuGetPackageDownload() {
                     Version   = $null
                 }
 
-                # Normalize version to 4 segements and use maximum for missing parts
+                # Set version to highest possible version based on predefined package version
                 if (! $predefinedPackage.Version) {
                     $versionParts = ( @([int32]::MaxValue) * 3 ) + ( [int32]::MaxValue - 1 ) 
                     $installedApp.Version = $versionParts[0..3] -join '.'
