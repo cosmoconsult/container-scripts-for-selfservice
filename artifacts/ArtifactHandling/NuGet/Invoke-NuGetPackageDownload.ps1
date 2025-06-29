@@ -132,7 +132,7 @@ function Invoke-NuGetPackageDownload() {
                     continue
                 }
 
-                Write-Host "Use predefined package as installed app: $($installedApp.Publisher) $($installedApp.Name) $($installedApp.Version) (Id: $($installedApp.AppId))"
+                Write-Host "Use predefined package as installed app: $($installedApp.Publisher) $($installedApp.Name) $($installedApp.Version) (Id: $($installedApp.Id))"
                 $downloadParameters.installedApps += $installedApp
             }
 
