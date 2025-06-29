@@ -92,7 +92,7 @@ function Invoke-NuGetPackageDownload() {
             }
 
             foreach ($predefinedPackage in $PredefinedPackages) {
-                # Ignore predefined package if it matches the requrested package
+                # Ignore predefined package if it matches the requested package
                 if ($predefinedPackage.Package -eq $Package) {
                     continue
                 }
