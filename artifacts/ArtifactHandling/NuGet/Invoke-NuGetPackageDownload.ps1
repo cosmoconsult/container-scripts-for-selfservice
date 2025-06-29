@@ -27,6 +27,7 @@ function Invoke-NuGetPackageDownload() {
 
     process {
         try {
+            Write-Host "##[group]Download NuGet Package '$Package'"
             Write-Host "Waiting for other NuGet Package downloads..."
             while (! $nuGetPackageDownloadLockFileStream) {
                 try { $nuGetPackageDownloadLockFileStream = [System.IO.File]::Open($script:nuGetPackageDownloadLockFile, 'OpenOrCreate', 'ReadWrite', 'None') }
@@ -78,13 +79,16 @@ function Invoke-NuGetPackageDownload() {
                 Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
                     ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
                     ForEach-Object {
-                        Write-Host "Use file as installed app: $($_.Publisher) $($_.Name) $($_.Version) (Id: $($_.AppId))"
-                        $downloadParameters.installedApps += [PSCustomObject]@{
+                        $installedApp = [PSCustomObject]@{
+                            Package   = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
                             Name      = $_.Name
                             Publisher = $_.Publisher
                             Id        = $_.AppId
                             Version   = $_.Version
                         }
+
+                        Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
+                        $downloadParameters.installedApps += $installedApp
                     }
             }
 
@@ -99,13 +103,13 @@ function Invoke-NuGetPackageDownload() {
                     continue
                 }
 
-                $installedApp = $downloadParameters.installedApps | 
-                        Where-Object { $matches.name      -eq $_.Name } |
-                        Where-Object { $matches.publisher -eq $_.Publisher } |
-                        Where-Object { $matches.id        -in $_.Id, $null }
+                # Ignore predefined package if name does not contain the id
+                if (! $matches.id) {
+                    continue
+                }
 
                 # Ignore predefined package if it matches an installed app
-                if ($installedApp) {
+                if ($downloadParameters.installedApps.Id -notcontains $matches.id) {
                     continue
                 }
 
@@ -132,7 +136,7 @@ function Invoke-NuGetPackageDownload() {
                     continue
                 }
 
-                Write-Host "Use predefined package as installed app: $($installedApp.Publisher) $($installedApp.Name) $($installedApp.Version) (Id: $($installedApp.Id))"
+                Write-Host "Use predefined package as installed app: $($installedApp.Package) (version: $($installedApp.Version)))"
                 $downloadParameters.installedApps += $installedApp
             }
 
@@ -142,6 +146,7 @@ function Invoke-NuGetPackageDownload() {
             if ($nuGetPackageDownloadLockFileStream) {
                 $nuGetPackageDownloadLockFileStream.Close()
             }
+            Write-Host "##[endgroup]"
         }
     }
 }
