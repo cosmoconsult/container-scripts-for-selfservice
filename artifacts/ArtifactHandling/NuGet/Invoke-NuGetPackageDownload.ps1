@@ -108,7 +108,7 @@ function Invoke-NuGetPackageDownload() {
                 }
 
                 # Ignore predefined package if it matches an installed app
-                if ($downloadParameters.installedApps.Id -eq $matches.id) {
+                if ($downloadParameters.installedApps | Where-Object { $_.Id -eq $matches.id; Write-Host "Check: $($_.Id) -eq $($matches.id) = $($_.Id -eq $matches.id)" }) {
                     continue
                 }
 
