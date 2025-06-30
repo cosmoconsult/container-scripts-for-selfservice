@@ -172,7 +172,7 @@ function Invoke-4PSArtifactHandling {
                                         -ServerInstance BC `
                                         -CompanyName $companyName `
                                         -CodeunitId 50189 `
-                                        -MethodName InitializeAppRegistration
+                                        -MethodName InitializeTestAppRegistration
                                 }
                             }
                             
