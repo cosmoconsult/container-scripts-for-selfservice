@@ -114,7 +114,7 @@ function Invoke-NuGetPackageDownload() {
                     continue
                 }
 
-                # Determin highest possible version of predefined package
+                # Determine highest possible version of predefined package
                 $packageVersion = $null
                 if (! $predefinedPackage.Version) {
                     $versionParts = @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue, ([int32]::MaxValue - 1))
