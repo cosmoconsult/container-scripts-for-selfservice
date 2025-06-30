@@ -114,17 +114,6 @@ function Invoke-4PSArtifactHandling {
                             -Argument "$($demoDataFile.FullName)"
                         
                         if ($use4PSContainerInitializer) {
-                            if ($sysAppInfoFS.Version.Major -le 20) {
-                                # Only required on 20 and older
-                                Write-Host "    Run manual data upgrade 4PS"
-                                Invoke-NavCodeunit `
-                                    -ServerInstance BC `
-                                    -CompanyName $companyName `
-                                    -CodeunitId 50189 `
-                                    -MethodName RunManualDataUpgrade `
-                                    -Argument "$firstRun"
-                            }   
-
                             Write-Host "    Initialize FSA setup"
                             Invoke-NavCodeunit `
                                 -ServerInstance BC `
@@ -176,6 +165,7 @@ function Invoke-4PSArtifactHandling {
                                     -CodeunitId 50189 `
                                     -MethodName CreateLicenses
 
+                                Write-Host "Initialize Test App Registration"
                                 if ($env:InitializeAppRegistration) {
                                     Write-Host "Initialize app registration"
                                     Invoke-NavCodeunit `
@@ -187,10 +177,8 @@ function Invoke-4PSArtifactHandling {
                             }
                             
                             Set-NAVServerConfiguration -KeyName "ServicesDefaultCompany" -KeyValue "$companyName" -ServerInstance BC
-                            
                             $firstRun = $false
-                        }
-                        if ($use4PSContainerInitializer) {
+
                             Write-Host "    Initialize General User ($username / $unsecurepassword) in $companyName"
                             Invoke-NAVCodeunit `
                                 -ServerInstance BC `
@@ -198,7 +186,7 @@ function Invoke-4PSArtifactHandling {
                                 -CodeunitId 50189 `
                                 -MethodName CreateGeneralAppUser `
                                 -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
-
+    
                             Write-Host "    Initialize FSA User"
                             Invoke-NAVCodeunit `
                                 -ServerInstance BC `
@@ -206,7 +194,7 @@ function Invoke-4PSArtifactHandling {
                                 -CodeunitId 50189 `
                                 -MethodName CreateFSAUser `
                                 -Argument "$($username.PadRight(100))$($unsecurepassword.PadRight(64))"
-
+    
                             Write-Host "    Initialize OSA User"
                             Invoke-NAVCodeunit `
                                 -ServerInstance BC `
