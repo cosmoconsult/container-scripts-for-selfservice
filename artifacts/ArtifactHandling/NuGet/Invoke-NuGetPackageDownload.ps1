@@ -102,37 +102,41 @@ function Invoke-NuGetPackageDownload() {
                     continue
                 }
 
+                $packageNameMatches = $matches
+
                 # Ignore predefined package if name does not contain the id
-                if (! $matches.id) {
+                if (! $packageNameMatches.id) {
                     continue
                 }
 
                 # Ignore predefined package if it matches an installed app
-                if ($downloadParameters.installedApps | Where-Object { $_.Id.ToString() -eq $matches.id }) {
+                if ($downloadParameters.installedApps | Where-Object { $_.Id.ToString() -eq $packageNameMatches.id }) {
+                    continue
+                }
+
+                # Determin highest possible version of predefined package
+                $packageVersion = $null
+                if (! $predefinedPackage.Version) {
+                    $versionParts = @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue, ([int32]::MaxValue - 1))
+                    $packageVersion = $versionParts[0..3] -join '.'
+                } elseif ($predefinedPackage.Version -match $versionPattern) {
+                    $versionMatches = $matches
+                    $versionParts = $versionMatches.version.Split('.') + @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue)
+                    $packageVersion = '{0}{1}{2}' -f ($versionParts[0..3] -join '.'), $versionMatches.prerelease, $versionMatches.metadata
+                }
+
+                # Ignore predefined package if no version could be determined (e.g. version range)
+                if (! $packageVersion) {
                     continue
                 }
 
                 # Create installed app object from predefined package
                 $installedApp = [PSCustomObject]@{
                     Package   = $predefinedPackage.Package
-                    Name      = $matches.name
-                    Publisher = $matches.publisher
-                    Id        = $matches.id
-                    Version   = $null
-                }
-
-                # Set version to highest possible version based on predefined package version
-                if (! $predefinedPackage.Version) {
-                    $versionParts = @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue, ([int32]::MaxValue - 1))
-                    $installedApp.Version = $versionParts[0..3] -join '.'
-                } elseif ($predefinedPackage.Version -match $versionPattern) {
-                    $versionParts = $matches.version.Split('.') + @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue)
-                    $installedApp.Version = '{0}{1}{2}' -f ($versionParts[0..3] -join '.'), $matches.prerelease, $matches.metadata
-                }
-
-                # Ignore predefined package if it has no valid version (e.g. version range)
-                if (! $installedApp.Version) {
-                    continue
+                    Name      = $packageNameMatches.name
+                    Publisher = $packageNameMatches.publisher
+                    Id        = $packageNameMatches.id
+                    Version   = $packageVersion
                 }
 
                 Write-Host "Use predefined package as installed app: $($installedApp.Package) (version: $($installedApp.Version)))"
