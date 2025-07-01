@@ -29,5 +29,3 @@ $duration = Measure-Command {
     Copy-Item -Path $defaultServerFileCacheDirectory -Destination $serverFileCacheDirectory -Recurse 
 }
 Write-Host "Copy default Server File Cache to Server File Cache done. (Duration: ${duration})"
-
-Get-ChildItem -Path $serverFileCacheDirectory -Recurse -Depth 3
