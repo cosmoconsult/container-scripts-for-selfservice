@@ -8,20 +8,24 @@ if (! $serverFileCacheDirectory) {
     return;
 }
 
+Write-Host "Server File Cache Directory: '$serverFileCacheDirectory'"
+
 if (Test-Path -Path $serverFileCacheDirectory) {
-    Write-Host "ServerFileCacheDirectory already exists: '$serverFileCacheDirectory'"
+    Write-Host "Server File Cache Directory already exists"
     return;
 }
 
 $defaultServerFileCacheDirectoryPattern = "C:\ProgramData\Microsoft\Microsoft Dynamics NAV\*\Server\${NavServiceName}"
 $defaultServerFileCacheDirectory = (Get-Item $defaultServerFileCacheDirectoryPattern -ea SilentlyContinue).FullName
 if (! $defaultServerFileCacheDirectory) {
-    Write-Host "Default Server File Cache directory not found. Expected: '${defaultServerFileCacheDirectoryPattern}'"
+    Write-Host "Default Server File Cache Directory not found. Expected: '${defaultServerFileCacheDirectoryPattern}'"
     return;
 }
 
-Write-Host "Copy default Server File Cache from '${defaultServerFileCacheDirectory}' to '${serverFileCacheDirectory}'"
+Write-Host "Default Server File Cache Directory: '${defaultServerFileCacheDirectory}'"
+
+Write-Host "Copy default Server File Cache to Server File Cache"
 $duration = Measure-Command { 
     Copy-Item -Path $defaultServerFileCacheDirectory -Destination $serverFileCacheDirectory -Recurse 
 }
-Write-Host "Copy default Server File Cache done. (Duration: ${duration})"
+Write-Host "Copy default Server File Cache to Server File Cache done. (Duration: ${duration})"
