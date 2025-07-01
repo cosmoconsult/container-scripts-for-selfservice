@@ -1,5 +1,5 @@
-$CustomConfigFile =  Join-Path $ServiceTierFolder "CustomSettings.config"
-$CustomConfig = [xml](Get-Content $CustomConfigFile)
+$customConfigFile =  Join-Path $ServiceTierFolder "CustomSettings.config"
+$customConfig = [xml](Get-Content $customConfigFile)
 
 $serverFileCacheDirectory = $customConfig.SelectSingleNode("//appSettings/add[@key='ServerFileCacheDirectory']").Value
 
