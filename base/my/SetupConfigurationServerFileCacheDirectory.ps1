@@ -12,10 +12,11 @@ if (Test-Path -Path $serverFileCacheDirectory) {
     Write-Host "ServerFileCacheDirectory already exists: '$serverFileCacheDirectory'"
     return;
 }
- 
-$defaultServerFileCacheDirectory = (Get-Item "C:\ProgramData\Microsoft\Microsoft Dynamics NAV\*\Server\${NavServiceName}" -ea SilentlyContinue).FullName
+
+$defaultServerFileCacheDirectoryPattern = "C:\ProgramData\Microsoft\Microsoft Dynamics NAV\*\Server\${NavServiceName}"
+$defaultServerFileCacheDirectory = (Get-Item $defaultServerFileCacheDirectoryPattern -ea SilentlyContinue).FullName
 if (! $defaultServerFileCacheDirectory) {
-    Write-Host "Default Server File Cache directory not found. Expected: 'C:\ProgramData\Microsoft\Microsoft Dynamics NAV\*\Server\${NavServiceName}'"
+    Write-Host "Default Server File Cache directory not found. Expected: '${defaultServerFileCacheDirectoryPattern}'"
     return;
 }
 
