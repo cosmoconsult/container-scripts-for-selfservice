@@ -30,5 +30,4 @@ $duration = Measure-Command {
 }
 Write-Host "Copy default Server File Cache to Server File Cache done. (Duration: ${duration})"
 
-dir 'C:\DatabasesVol\'
-dir 'C:\DatabasesVol\ALAssemblies\'
+Get-ChildItem -Path $serverFileCacheDirectory -Recurse -Depth 3
