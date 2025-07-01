@@ -33,3 +33,4 @@
 - Add version of bc server executable to output at startup
 - Reenabled configuration "ServerFileCacheDirectory" for BC26
 - Fixed overrides for powershell pipelines
+- Force version of nuget artifacts (see [#4384](https://dev.azure.com/cc-ppi/Self-Service/_workitems/edit/4384))

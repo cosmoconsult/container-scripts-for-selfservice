@@ -5,6 +5,9 @@ function Invoke-DownloadArtifactAsync {
         [Parameter(ValueFromPipeline)]
         [object]$Artifact,
 
+        # Artifacts Parameter
+        [object[]] $AllArtifacts = @(),
+
         # Download Parameters
         [string]  $Destination       = "$($env:TEMP)/$([System.IO.Path]::GetRandomFileName())",
         [switch]  $GroupByDependency = $false,
@@ -81,6 +84,7 @@ function Invoke-DownloadArtifactAsync {
                 $scriptBlockParameters = @{
                     Artifacts = @( $_.Group )
                     Parameters = @{
+                        AllArtifacts = $AllArtifacts
                         Destination = $Destination
                         GroupByDependency = $GroupByDependency
                         BaseUrl = $BaseUrl

@@ -19,6 +19,9 @@ function Invoke-DownloadArtifactCore {
         [Parameter(ValueFromPipelineByPropertyName)][string[]]$cosmoArtifactType,
         [Parameter(ValueFromPipelineByPropertyName)][string]  $dependsOn,
 
+        # Artifacts Parameter
+        [object[]] $allArtifacts = @(),
+
         # Download Parameters
         [string]  $destination,
         [switch]  $groupByDependency,
@@ -44,6 +47,16 @@ function Invoke-DownloadArtifactCore {
         $getVersionFromAPI = $apiFeatures -contains "GetArtifactLatest"
 
         $platformVersion = [Version](Get-Item (Join-Path $serviceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
+
+        $predefinedNuGetPackages = @( $allArtifacts | 
+            Where-Object { $_.Type -eq 'nuget' } |
+            ForEach-Object {
+                [PSCustomObject]@{
+                    Package = $_.Name
+                    Version = $_.Version
+                }
+            }
+        )
     }
     
     process {
@@ -110,18 +123,22 @@ function Invoke-DownloadArtifactCore {
         $isArchive = $isDownload -or "$sourceUri".EndsWith(".zip")
         if ($sourceUri -or $isNuGet) {
             if ($isNuget) {
+                Write-Host "##[section]Download Artifact from NuGet package $name"
                 New-ArtifactsLogEntry -Message "Download Artifact from NuGet package $name"
             }
             elseif ($isDownload) {
                 $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
                 if ($url_output.Length -gt 1) {
+                    Write-Host "##[section]Download Artifact from $($url_output[0])"
                     New-ArtifactsLogEntry -Message "Download Artifact from $($url_output[0])&pat=***"
                 }
                 else {
+                    Write-Host "##[section]Download Artifact from $sourceUri"
                     New-ArtifactsLogEntry -Message "Download Artifact from $($sourceUri)"
                 }
             }
             else {
+                Write-Host "##[section]Copy Artifact from $sourceUri"
                 New-ArtifactsLogEntry -Message "Copy Artifact from $sourceUri"
             }
 
@@ -189,12 +206,13 @@ function Invoke-DownloadArtifactCore {
 
                     if ($isNuGet) {
                         $nuGetParameters = @{
-                            Destination       = $folder
-                            Package           = $name
-                            Version           = $version
-                            InstalledAppsPath = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
-                            ServiceTierFolder = $serviceTierFolder
-                            PlatformVersion   = $platformVersion
+                            Destination        = $folder
+                            Package            = $name
+                            Version            = $version
+                            InstalledAppsPath  = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
+                            ServiceTierFolder  = $serviceTierFolder
+                            PlatformVersion    = $platformVersion
+                            PredefinedPackages = $predefinedNuGetPackages
                         }
                         Invoke-NuGetPackageDownload @nuGetParameters *>&1 | 
                             Where-Object { $_ -ne $null } |
