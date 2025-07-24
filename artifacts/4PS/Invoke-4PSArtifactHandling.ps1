@@ -37,16 +37,23 @@ function Invoke-4PSArtifactHandling {
                 $me = whoami
                 $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $me
                 if (! $userexist) {
+                    Write-Host "  User $me does not exist, creating it"
                     New-NAVServerUser -ServerInstance BC -WindowsAccount $me -Force -ErrorAction SilentlyContinue
-                    New-NAVServerUserPermissionSet -ServerInstance BC -WindowsAccount $me -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
-                    Start-Sleep -Seconds 1
                 }
+                else {
+                    Write-Host "  User $me does exist, updating password"
+                    Set-NAVServerUser -ServerInstance BC -Username $me -Password $securepassword -Force -ErrorAction SilentlyContinue
+                }
+                New-NAVServerUserPermissionSet -ServerInstance BC -WindowsAccount $me -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds 1
 
                 $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $username
                 if (! $userexist) {
+                    Write-Host "  User $username does not exist, creating it"
                     New-NAVServerUser -ServerInstance BC -Username $username -Password $securepassword -Force -ErrorAction SilentlyContinue
                 }
                 else {
+                    Write-Host "  User $username does exist, updating password"
                     Set-NAVServerUser -ServerInstance BC -Username $username -Password $securepassword -Force -ErrorAction SilentlyContinue
                 }
                 New-NAVServerUserPermissionSet -ServerInstance BC -Username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
