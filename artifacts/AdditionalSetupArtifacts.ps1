@@ -219,7 +219,7 @@ if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManua
         Write-Host "  Publish the Business Foundation $($sysAppInfoFS.Version)"
         Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\BusinessFoundation\Source\Microsoft_Business Foundation.app'
         Write-Host "  Sync the Business Foundation with ForceSync"
-        Sync-NAVApp -ServerInstance BC -Name "Business Foundation" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Mode ForceSync
+        Sync-NAVApp -ServerInstance BC -Name "Business Foundation" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Mode ForceSync -Force
         Write-Host "  Install the Business Foundation"
         Install-NAVApp -ServerInstance BC -Name "Business Foundation" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
     }
