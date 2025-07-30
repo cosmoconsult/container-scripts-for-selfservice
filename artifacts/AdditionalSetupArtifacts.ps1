@@ -213,6 +213,16 @@ if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManua
     Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Mode ForceSync
     Write-Host "  Install the system application"
     Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+
+    # Publish Microsoft Business Foundation App for 26x and higher
+    if ($sysAppInfoFS.Version.Major -ge "26") {
+        Write-Host "  Publish the Business Foundation $($sysAppInfoFS.Version)"
+        Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\BusinessFoundation\Source\Microsoft_Business Foundation.app'
+        Write-Host "  Sync the Business Foundation with ForceSync"
+        Sync-NAVApp -ServerInstance BC -Name "Business Foundation" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Mode ForceSync
+        Write-Host "  Install the Business Foundation"
+        Install-NAVApp -ServerInstance BC -Name "Business Foundation" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    }
 }
 
 # Import Artifacts
