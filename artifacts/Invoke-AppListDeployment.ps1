@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param (
-    [string[]]$AppsToDeploy,
+    [string]$AppsToDeploy,
     [string]$Username,
     [string]$Password,
     [string]$BearerToken = "",
@@ -16,7 +16,7 @@ $ppiau = Get-Module -Name PPIArtifactUtils
 if (-not $ppiau) {
     if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
         Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-        Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
+        Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
     }
 }
 $parentFolder = [System.IO.Path]::GetTempPath()
@@ -32,8 +32,9 @@ try {
     }
     
     # copy all apps into a folder so that we can order them later
-    New-Item -ItemType Directory -Path $tempFullPath
-    $AppsToDeploy | % {
+    New-Item -ItemType Directory -Path $tempFullPath | Out-Null
+    $AppsToDeployAsArray = $AppsToDeploy -split ","
+    $AppsToDeployAsArray | % {
         $AppToDeploy = $_
         if ($AppToDeploy.StartsWith("http")) {
             # given a URL, so need to download
@@ -41,11 +42,11 @@ try {
             $headers = @{}
             $headers.Add("authorization", "Bearer $BearerToken")
             if (-not (Test-Path $basePath)) {
-                New-Item "$basePath" -ItemType Directory
+                New-Item "$basePath" -ItemType Directory | Out-Null
             }
             $subfolder = $([convert]::tostring((get-random 65535), 16).padleft(8, '0'))
             $folder = Join-Path $basePath $subfolder
-            New-Item "$folder" -ItemType Directory
+            New-Item "$folder" -ItemType Directory | Out-Null
             $filename = "downloadedapp.app"
             if ($AppToDeploy.EndsWith("zip")) {
                 $filename = "downloadedapp.zip"

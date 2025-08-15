@@ -2,7 +2,7 @@ $volPath = "$env:volPath"
 
 if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
     Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-    Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
+    Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
 }
 
 if ($restartingInstance) {
@@ -13,7 +13,7 @@ if ($restartingInstance) {
 elseif (($volPath -ne "") -and (Test-Path $volPath)) {
     # database volume path is provided, check if the database is already there or not
 
-    if ((Get-ChildItem $volPath).Count -eq 0) {
+    if ((Get-ChildItem $volPath -Directory -Exclude ALAssemblies).Count -eq 0) {
         # folder is empty, try to move the existing database to the db volume path
 
         Write-Host "Setting up database with default script"

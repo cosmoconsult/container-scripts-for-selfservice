@@ -1,6 +1,5 @@
 {
-    "githubPullRequests.ignoredPullRequestBranches": [
-        "main"
-    ],
-    "Workspace_Formatter.includePattern": ["*.ps1", "*.psm1", "*.psd1"]
+  "githubPullRequests.ignoredPullRequestBranches": ["main"],
+  "Workspace_Formatter.includePattern": ["*.ps1", "*.psm1", "*.psd1"],
+  "editor.formatOnSave": false
 }

@@ -16,11 +16,19 @@ function Invoke-4PSArtifactHandling {
 
             $appDatabaseName = Get-AppDatabaseName
             Write-Host "  app database name is: $appDatabaseName"
+            $isModifiedBaseAppInstalled = ![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)
+            $isSaaSBak = ![string]::IsNullOrEmpty($env:saasbakfile)
+            if($isModifiedBaseAppInstalled -and !$isSaaSBak) {
+                Write-Host "  modified base app was installed, therefore this is not a microsoft standard database"
+            }
 
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
             }
-            elseif ("CRONUS" -eq $appDatabaseName -or "default" -eq $appDatabaseName) {
+            elseif($isSaaSBak) {
+                Write-Host "4PS initialization skipped as this seems to be a SaaS backup restore"
+            }
+            elseif (("CRONUS" -eq $appDatabaseName) -or ("default" -eq $appDatabaseName) -and !$isModifiedBaseAppInstalled) {
                 Write-Host "4PS initialization skipped as this seems to be a Microsoft standard database"
             }
             else {
@@ -29,16 +37,23 @@ function Invoke-4PSArtifactHandling {
                 $me = whoami
                 $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $me
                 if (! $userexist) {
+                    Write-Host "  User $me does not exist, creating it"
                     New-NAVServerUser -ServerInstance BC -WindowsAccount $me -Force -ErrorAction SilentlyContinue
-                    New-NAVServerUserPermissionSet -ServerInstance BC -WindowsAccount $me -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
-                    Start-Sleep -Seconds 1
                 }
+                else {
+                    Write-Host "  User $me does exist, updating password"
+                    Set-NAVServerUser -ServerInstance BC -Username $me -Password $securepassword -Force -ErrorAction SilentlyContinue
+                }
+                New-NAVServerUserPermissionSet -ServerInstance BC -WindowsAccount $me -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
+                Start-Sleep -Seconds 1
 
                 $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $username
                 if (! $userexist) {
+                    Write-Host "  User $username does not exist, creating it"
                     New-NAVServerUser -ServerInstance BC -Username $username -Password $securepassword -Force -ErrorAction SilentlyContinue
                 }
                 else {
+                    Write-Host "  User $username does exist, updating password"
                     Set-NAVServerUser -ServerInstance BC -Username $username -Password $securepassword -Force -ErrorAction SilentlyContinue
                 }
                 New-NAVServerUserPermissionSet -ServerInstance BC -Username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
@@ -158,7 +173,7 @@ function Invoke-4PSArtifactHandling {
                                 Invoke-NavCodeunit `
                                     -ServerInstance BC `
                                     -CompanyName $companyName `
-                                    -CodeunitId 11128546 `
+                                    -CodeunitId 50189 `
                                     -MethodName InitializeOSA
 
                                 Write-Host "    Initialize License"

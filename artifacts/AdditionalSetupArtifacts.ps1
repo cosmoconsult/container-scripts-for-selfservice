@@ -61,6 +61,26 @@ function Move-Database {
 
 }
 
+function Import-PPIModules {
+
+    if (Test-Path "c:\run\my\PPIArtifactUtils.ps1") {
+        . "c:\run\my\PPIArtifactUtils.ps1"
+    }
+    
+    if (Test-Path "c:\run\my\PPIOverrides.ps1") {
+        . "c:\run\my\PPIOverrides.ps1"
+    }
+
+    if (Test-Path "c:\run\my\PPIAsyncUtils.ps1") {
+        . "c:\run\my\PPIAsyncUtils.ps1"
+    }
+
+    if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)) {
+        Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
+        Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
+    }
+}
+
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
     if (!$TenantId) { $TenantId = "default" }
@@ -90,6 +110,7 @@ if ($env:cosmoUpgradeSysApp) {
 
     Write-Host    "Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
+    Wait-NAVTenantReady -ServerInstance BC -Tenant $tenantId
     Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($sysAppInfoFS.Version)"
 
     if ($env:mode -ne "4ps") {
@@ -113,86 +134,62 @@ if ($env:cosmoUpgradeSysApp) {
     }
 }
 
-
 Write-Host ""
 Write-Host "=== Additional Setup ==="
 
-if (Test-Path "$serviceTierFolder") {
-    if (Test-Path "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1") {
-        Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1"
-        Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking 2>$null
-    }
-    else {
-        Write-Host "Import Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Management.dll"
-        Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Management.dll" -Force -ErrorAction SilentlyContinue -DisableNameChecking 2>$null
-    }
-    if (Test-Path "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
-        Write-Host "Import App Management Utils from $serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1"
-        Import-Module "$serviceTierFolder\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
-    }
-    elseif (Test-Path "$serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1") {
-        Write-Host "Import App Management Utils from $serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1"
-        Import-Module "$serviceTierFolder\Management\Microsoft.Dynamics.Nav.Apps.Management.psd1" -Force -DisableNameChecking
-    }
-}
-if (Test-Path "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1") {
-    Write-Host "Import Nav IDE from $roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1"
-    Import-Module "$roleTailoredClientFolder\Microsoft.Dynamics.Nav.Ide.psm1" -Force -ErrorAction SilentlyContinue -DisableNameChecking 2>$null
-}
+Import-PPIModules
+Import-NAVModules -ServiceTierFolder $serviceTierFolder -RoleTailoredClientFolder $roleTailoredClientFolder -Force 2>$null
 
-if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)) {
-    Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
-    Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
-}
-
-$ppiau = Get-Module -Name PPIArtifactUtils
-if (-not $ppiau) {
-    if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
-        Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-        Import-Module "c:\run\PPIArtifactUtils.psd1" -DisableNameChecking -Force
-    }
-}
-
-if (Test-Path "c:\run\my\PPIOverrides.ps1") {
-    . "c:\run\my\PPIOverrides.ps1"
-}
-
-$env:nugetImported = $false
-
-$targetDir = "C:\run\my\apps"
-$targetDirManuallySorted = "C:\run\my\manuallysorted-apps"
 $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
-$properties = @{}
 
 Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
 # Show installed apps
 Write-Host "##[group]Initially installed apps"
-Get-NAVAppInfo -Tenant $tenantId -TenantSpecificProperties -ServerInstance $ServerInstance
+Get-NAVAppInfo -Tenant $tenantId -TenantSpecificProperties -ServerInstance $ServerInstance | 
+    Select-Object Name, Publisher, Version, Scope, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion | 
+    Format-Table -AutoSize | 
+    Out-String -Width 1024
 Write-Host "##[endgroup]"
 
-# Download Artifacts
-try {
-    Write-Host "##[group]Download Artifacts"
-    $started = Get-Date -Format "o"
-    $artifacts = Get-ArtifactsFromEnvironment -path $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { "$($_.target)".ToLower() -ne "bak" -and "$($_.target)".ToLower() -ne "saasbak" -and ($_.name -eq $null -or ($_.name -ne $null -and !($_.name.StartsWith("sortorder")))) } | Invoke-DownloadArtifact -destination $targetDir -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
-    $artifacts | Where-Object { $_.name -ne $null -and $_.name.StartsWith("sortorder") } | Invoke-DownloadArtifact -destination $targetDirManuallySorted -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
- 
-    $properties["artifacts"] = ($artifacts | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue)
-    Invoke-LogOperation -name "AdditionalSetup - Get Artifacts" -started $started -telemetryClient $telemetryClient -properties $properties
-    $installModifiedBaseAppManually = $null -ne ($artifacts | Where-Object { $null -ne $_.name -and $_.name -like "*_4PS Construct DE_*" })
-}
-catch {
-    Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
-}
-finally {
-    Add-ArtifactsLog -message "Download Artifacts done."
-    Write-Host "##[endgroup]"
+if ($global:cosmoRunspacePool) {
+    # Download Artifacts (Async) - Wait & Finish
+    try {
+        Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
+        $cosmoArtifactsDownloadEnd = $null
+        $global:cosmoArtifacts.Download.Runspaces.Values | 
+            ForEach-Object { $_ } |
+            Where-Object { $_ } |
+            Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient -End ([ref]$cosmoArtifactsDownloadEnd)
+        $global:cosmoArtifacts.Download.End = $cosmoArtifactsDownloadEnd
+
+        $telemetryProperties = @{}
+        $telemetryProperties["artifacts"] = ( $global:cosmoArtifacts.Artifacts.All | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
+        
+        Invoke-LogOperation -name "AdditionalSetup - Download Artifacts (Async) - Wait & Finish" -started $global:cosmoArtifacts.Download.Start -ended $global:cosmoArtifacts.Download.End -telemetryClient $telemetryClient -properties $telemetryProperties
+        Add-ArtifactsLog -message "Download Artifacts (Async) done. (Duration: $(New-TimeSpan -start $global:cosmoArtifacts.Download.Start -end $global:cosmoArtifacts.Download.End); Elapsed: $(New-TimeSpan -start $global:cosmoArtifacts.Download.Start))"
+    }
+    catch {
+        Add-ArtifactsLog -message "Download Artifacts Error: $($_.Exception.Message)" -severity Error
+    }
+    finally {
+        Write-Host "##[endgroup]"
+    }
 }
 
+$installModifiedBaseAppManually = $null -ne ( $global:cosmoArtifacts.Artifacts.All | Where-Object { $null -ne $_.url -and [System.IO.Path]::GetFileName($_.url) -like "*_4PS Construct ??_*" } )
+$installModifiedBaseAppManually = $installModifiedBaseAppManually -or ![string]::IsNullOrEmpty($env:systemAppOnly)
+
 # Initialize company
-if ($env:mode -eq "4ps") {
+if ($env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
+    if(![string]::IsNullOrEmpty($env:removeAllCompanies)){
+        $companies = Get-NAVCompany -ServerInstance BC -Tenant $TenantId | Where-Object { $_.CompanyName -like "CRONUS*" }
+        foreach ($company in $companies) {
+            Write-Host "Remove company $($company.CompanyName)"
+            Remove-NAVCompany -CompanyName $company.CompanyName -ServerInstance BC -Force -Tenant $TenantId
+            Write-Host "Company $($company.CompanyName) removed."
+        }
+    }
     $files = Get-DemoDataFiles
     foreach ($demoDataFile in $files) {
         $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
@@ -200,7 +197,7 @@ if ($env:mode -eq "4ps") {
         if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
             $companyName = $Matches[1]
             Write-Host "  Create company $companyName"
-            New-NAVCompany -CompanyName $companyName -ServerInstance BC
+            New-NAVCompany -CompanyName $companyName -ServerInstance BC -Tenant $TenantId
         }
     }
 }
@@ -208,12 +205,12 @@ if ($env:mode -eq "4ps") {
 # If SaaS backup for 4PS (modified base app), we need to remove all apps and reinstall the System App first
 if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManually) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
-    Unpublish-AllNavAppsInServerInstance
+    Unpublish-AllNavAppsInServerInstance -KeepData (![string]::IsNullOrEmpty($env:saasbakfile))
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
     Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
     Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-    Write-Host "  Sync the system application"
-    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
+    Write-Host "  Sync the system application with ForceSync"
+    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Mode ForceSync
     Write-Host "  Install the system application"
     Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
 }
@@ -223,13 +220,14 @@ try {
     $SyncMode = $env:IMPORT_SYNC_MODE
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
+    if (![string]::IsNullOrEmpty($env:saasbakfile)) { $SyncMode = "ForceSync" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
-    if ($env:mode -eq "4ps") {
-        $env:AppExcludeExpr = "I_DONT_WANT_TO_EXCLUDE_ANYTHING"
-    }
+
+    # Exclude apps if environment variable is missing or set to "true"
+    $ExcludeApps = [string]::IsNullOrEmpty($env:AppExcludeExprEnabled) -or ($env:AppExcludeExprEnabled -eq "true")
 
     Import-Artifacts `
-        -Path            $targetDirManuallySorted `
+        -Path            (Join-Path $global:cosmoArtifacts.Path.Sorted '/general') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
@@ -237,17 +235,19 @@ try {
         -Scope           "Global" `
         -telemetryClient $telemetryClient `
         -ErrorAction     SilentlyContinue `
-        -SkipFontImport  $true
+        -SkipFontImport  $true `
+        -ExcludeApps     $ExcludeApps
 
     Import-Artifacts `
-        -Path            $targetDir `
+        -Path            (Join-Path $global:cosmoArtifacts.Path.Unsorted '/general') `
         -NavServiceName  $NavServiceName `
         -ServerInstance  $ServerInstance `
         -Tenant          $TenantId `
         -SyncMode        $SyncMode `
         -Scope           $Scope `
         -telemetryClient $telemetryClient `
-        -ErrorAction     SilentlyContinue
+        -ErrorAction     SilentlyContinue  `
+        -ExcludeApps     $ExcludeApps
 }
 catch {
     Write-Host "Import Artifacts Error: $($_.Exception.Message)" -f Red
@@ -268,7 +268,7 @@ Add-Content $artifactSettings -Value ('$SyncMode         = "' + "$SyncMode" + '"
 Add-Content $artifactSettings -Value ('$Scope            = "' + "$Scope" + '"')
 
 if ($env:IsBuildContainer) {
-    Setup-Compiler
+    Initialize-Compiler
 }
 
 $enablePerformanceCounter = $($env:enablePerformanceCounter)
@@ -360,13 +360,18 @@ $excludeAppsFromSaaSBak = @(
         Reason = "deprecated"
     },
     [pscustomobject]@{
-        Name   = "Intelligent Cloud Base";
-        Id     = '58623bfa-0559-4bc2-ae1c-0979c29fd9e0';
+        Name   = "Dynamics GP Intelligent Cloud";
+        Id     = 'feeb3504-556e-4790-b28d-a2b9ce302d81';
         Reason = "works only on SaaS"
     },
     [pscustomobject]@{
-        Name   = "Business Central Intelligent Cloud";
-        Id     = '334ef79e-547e-4631-8ba1-7a7f18e14de6';
+        Name   = "Business Central Cloud Migration API";
+        Id     = '57623bfa-0559-4bc2-ae1c-0979c29fc8d1';
+        Reason = "works only on SaaS"
+    }
+    [pscustomobject]@{
+        Name   = "Business Central Cloud Migration - Previous Release";
+        Id     = '6992416f-3f39-4d3c-8242-3fff61350bea';
         Reason = "works only on SaaS"
     }
 )
@@ -387,6 +392,13 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     if (!(Test-Path -Path $databaseFolder -PathType Container)) {
         New-Item -Path $databaseFolder -itemtype Directory | Out-Null
     }
+
+    if ($bak.StartsWith("http")) {
+        $uri = New-Object System.Uri($bak)
+        $bak = Join-Path -Path $databaseFolder -ChildPath $uri.Segments[-1]
+        Write-Host " - Downloading SaaS DB from $bak"
+        Invoke-WebRequest -Uri $uri -OutFile $bak
+    }
     
     Write-Host " - Restoring SaaS DB to $databaseFolder"
     New-NAVDatabase -DatabaseServer $DatabaseServer `
@@ -403,7 +415,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     }
 
     foreach ($excludeApp in $excludeAppsFromSaaSBak) {
-        Write-Host "   - Removing app '$($excludeApp.Name)' if installed, reason '$($excludeApp.Reason)', id '$($excludeApp.Id)'"
+        Write-Host "   - Removing app '$($excludeApp.Name)' with id '$($excludeApp.Id)' if installed, reason: '$($excludeApp.Reason)'"
         Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Published App] WHERE [App ID] = '$($excludeApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
         Invoke-Sqlcmd -Database $tenantId -Query "DELETE FROM [dbo].[NAV App Installed App] WHERE [App ID] = '$($excludeApp.Id)'" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     }
@@ -452,6 +464,9 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -EnvironmentType Sandbox `
         -OverwriteTenantIdInDatabase `
         -Force
+
+    Write-Host "    - Showing status"
+    Get-NavTenant -ServerInstance $ServerInstance 
         
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
@@ -460,16 +475,28 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Force
 
     Write-Host " - Syncing all apps"
+    $syncCount = 0
     do {
         $unsyncedApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.SyncState -ne "Synced" }
-        $unsyncedApps | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
-    } while ($unsyncedApps.Count -gt 0)
+        Write-Host "   - Sync run $syncCount"
+        foreach ($unsyncedApp in $unsyncedApps) {
+            Write-Host "Sync $($unsyncedApp.Publisher)_$($unsyncedApp.Name)_$($unsyncedApp.Version) .."
+            Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue -WarningAction Continue -AppId $($unsyncedApp.AppId)
+        }
+        $syncCount++;
+    } while ($unsyncedApps.Count -gt 0 -and $syncCount -lt 10)
 
     Write-Host " - Upgrading all apps"
+    $upgradeCount = 0
     do {
         $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq $true }
-        $upgradeableApps | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue
-    } while ($upgradeableApps.Count -gt 0)
+        Write-Host "   - Upgrade run $upgradeCount"
+        foreach($upgradeableApp in $upgradeableApps) {
+            Write-Host "Upgrade $($upgradeableApp.Publisher)_$($upgradeableApp.Name)_$($upgradeableApp.Version) .."
+            Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue -AppId $($upgradeableApp.AppId)
+        }
+        $upgradeCount++;
+    } while ($upgradeableApps.Count -gt 0 -and $upgradeCount -lt 10)
 
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
@@ -478,8 +505,8 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Force
 
     Write-Host " - Upgrading tenant"
-    Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
-    Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
+    Start-NAVDataUpgrade -ServerInstance BC -Tenant $TenantId -ContinueOnError
+    Wait-DataUpgradeToFinish -ServerInstance BC -Tenant $TenantId
 
     Write-Host " - Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
@@ -498,14 +525,16 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Check-DataUpgradeExecuted -ServerInstance BC -RequiredTenantDataVersion "$($env:cosmoBaseAppVersion)"
     }
 
-    Write-Host " - Deactivate all users to ensure license compliance"
+    Write-Host " - Deactivate all other users to ensure license compliance"
     Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -ne $env:username.ToLower() } | % {
         Write-Host " - Disable $($_.UserName)"
         Set-NAVServerUser -UserName $_.UserName -State Disabled -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue
     }
 
-    Write-Host " - Create user in new tenant (if not exists)"
-    if (!(Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() })) {
+    Write-Host " - Create user or set password if NavUserPassword authin new tenant"
+    $existingUser = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.UserName.ToLower() -eq $env:username.ToLower() }
+    if (!$existingUser) {
+        Write-Host " - - Create user $env:username"
         if ($($env:username).indexOf("@") -gt 0) {
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -AuthenticationEMail $env:username -ErrorAction Continue
         }
@@ -513,6 +542,9 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
             New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
         }
         New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -PermissionSetId SUPER -ErrorAction Continue
+    } elseif ($env:auth -eq "NavUserPassword") {
+        Write-Host " - - User $env:username already exists and we run with NavUserPassword auth, setting password"
+        Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -UserName $env:username -Password $securePassword -ErrorAction Continue
     }
 }
 
@@ -538,10 +570,28 @@ if (![string]::IsNullOrEmpty($env:saasbakfile)) {
 
 Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
 
-Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
-Write-Host "=== Additional Setup Done ==="
 if (!(Test-Path "C:\CosmoSetupCompleted.txt")) {
     New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
     Write-Host "Set marker for health check"
 }
+
+# make sure BC is healthy before returning
+Write-Host " - Check BC Health"
+for ($i = 0; $i -lt 10; $i++) {
+    . C:\run\CheckHealth.ps1
+    Write-Host " - - CheckHealth returned $LASTEXITCODE, healthCheckBaseUrl is $($env:healthCheckBaseUrl)"
+    if ($LASTEXITCODE -eq 0) {
+        Write-Host " - - BC is healthy"
+        break;
+    }
+
+    Write-Host " - - BC not healthy yet (try $i), outputting service tier and tenant info, sleeping 30s and trying again"
+    Get-NAVServerInstance -ServerInstance $ServerInstance
+    Get-NAVTenant -ServerInstance $ServerInstance
+    Start-Sleep -Seconds 30
+}
+
+Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
+Write-Host "=== Additional Setup Done ==="
+
 Write-Host ""

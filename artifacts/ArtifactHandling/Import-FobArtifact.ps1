@@ -89,6 +89,7 @@ function Import-FobArtifact {
                 Add-ArtifactsLog -kind FOB -message "Sync NAV Tenant successful" -success success
                 Write-Host "Restart NAV service"
                 Restart-Service -Name $NavServiceName
+                Wait-NAVTenantReady -ServerInstance $ServerInstance -Tenant $Tenant
                 Invoke-LogOperation -name "Sync NAV Tenant" -started $started2 -telemetryClient $telemetryClient
             }
             catch {

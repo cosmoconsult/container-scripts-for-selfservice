@@ -8,7 +8,7 @@ param (
 )
 
 try {
-    if (Test-Path $ppiArtifactUtils) { Import-Module $ppiArtifactUtils -DisableNameChecking -Force -ErrorAction SilentlyContinue }
+    if (Test-Path $ppiArtifactUtils) { Import-Module $ppiArtifactUtils -Force -ErrorAction SilentlyContinue }
     . "c:\run\ArtifactSettings.ps1"
 
     $started = Get-Date -Format "o"
