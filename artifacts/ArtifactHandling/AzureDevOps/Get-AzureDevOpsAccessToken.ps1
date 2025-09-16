@@ -6,7 +6,7 @@ function Get-AzureDevOpsAccessToken {
     )
     
     process {
-        if (! $Artifacts | Where-Object { ! $_.Url } | Where-Object { $_.Type -ne "nuget" }) {
+        if (! ($Artifacts | Where-Object { ! $_.Url } | Where-Object { $_.Type -ne "nuget" })) {
             # Skip if all artifacts have a download URL or are nuget packages
             return
         }
