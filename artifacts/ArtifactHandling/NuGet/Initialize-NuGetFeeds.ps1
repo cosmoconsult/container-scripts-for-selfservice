@@ -26,8 +26,7 @@
         if ($global:extendedEnv.CustomNugetFeeds) {            
             Write-Host "Collecting custom nuget feeds"
             $customNugetFeedsBase64 = $global:extendedEnv.CustomNugetFeeds
-            $customNugetFeedsBytes = [System.Convert]::FromBase64String($customNugetFeedsBase64)
-            $customNugetFeedsJson = [System.Text.Encoding]::UTF8.GetString($customNugetFeedsBytes)
+            $customNugetFeedsJson = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($customNugetFeedsBase64))
             ($customNugetFeedsJson | ConvertFrom-Json) |
                 Where-Object { $_ } |
                 ForEach-Object {
