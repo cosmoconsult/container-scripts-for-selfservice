@@ -36,3 +36,4 @@
 - Force version of nuget artifacts (see [#4384](https://dev.azure.com/cc-ppi/Self-Service/_workitems/edit/4384))
 - Copy default server file cache to persistent directory
 - Fixed wrong missing PAT warning
+- Fixed issue with multiple custom nuget feeds
