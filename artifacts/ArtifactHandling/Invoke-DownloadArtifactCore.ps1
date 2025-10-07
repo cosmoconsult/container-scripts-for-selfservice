@@ -148,8 +148,9 @@ function Invoke-DownloadArtifactCore {
                 if (! $isNuget) {
                     if ($isDownload) { 
 $invokeWebRequestSplat = @{
-                            Uri    = $sourceUri
-                            Method = 'Get'
+                            Uri             = $sourceUri
+                            Method          = 'Get'
+                            UseBasicParsing = $true
                         }
                         if ("$sourceUri".StartsWith("$baseUrl")) {
                             $invokeWebRequestSplat += @{Headers = $headers }
