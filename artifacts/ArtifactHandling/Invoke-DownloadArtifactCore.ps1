@@ -197,6 +197,7 @@ $invokeWebRequestSplat = @{
                             Default {
                                 # also zip, do this to not break existing implementations
                                 $destinationPath = $tempArchive
+                                $isArchive = $true
                             }
                         }
                       
