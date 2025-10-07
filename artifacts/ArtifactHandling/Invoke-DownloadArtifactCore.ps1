@@ -162,7 +162,11 @@ $invokeWebRequestSplat = @{
 
                         # Determine file type based on Content-Disposition header or content signature
                         $fileType = ''
-                        $contentDisposition = $response.Headers["Content-Disposition"][0] # access first element since it's an array
+                        $contentDisposition = $response.Headers["Content-Disposition"]
+                        if ($contentDisposition -is [string[]]) {
+                            # If it's an array, take the first element. This is required for compatibility with PowerShell 5.1. Headers are return as array in pwsh 7 and return as string in Windows PowerShell 5.1
+                            $contentDisposition = $contentDisposition[0]
+                        }
                         switch ($true) {
                             { $contentDisposition -and $contentDisposition.EndsWith(".zip") } {
                                 $fileType = 'zip'
