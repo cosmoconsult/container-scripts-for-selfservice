@@ -43,6 +43,7 @@ function Invoke-DownloadArtifactCore {
 
         $rootFolder = $destination
         $tempArchive = "$([System.IO.Path]::GetTempFileName()).zip"
+        $tempApp = "$([System.IO.Path]::GetTempFileName()).app"
 
         $getVersionFromAPI = $apiFeatures -contains "GetArtifactLatest"
 
@@ -120,7 +121,7 @@ function Invoke-DownloadArtifactCore {
 
         $isNuGet = $type -eq "nuget"
         $isDownload = "$sourceUri".StartsWith("http")
-        $isArchive = $isDownload -or "$sourceUri".EndsWith(".zip")
+        $isArchive = "$sourceUri".EndsWith(".zip")
         if ($sourceUri -or $isNuGet) {
             if ($isNuget) {
                 Write-Host "##[section]Download Artifact from NuGet package $name"
@@ -146,13 +147,62 @@ function Invoke-DownloadArtifactCore {
                 $startTime = Get-Date
                 if (! $isNuget) {
                     if ($isDownload) { 
+$invokeWebRequestSplat = @{
+                            Uri             = $sourceUri
+                            Method          = 'Get'
+                            UseBasicParsing = $true
+                        }
                         if ("$sourceUri".StartsWith("$baseUrl")) {
-                            Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive" -Headers $headers
+                            $invokeWebRequestSplat += @{Headers = $headers }
                         }
                         else {
                             New-ArtifactsLogEntry -Message "External artifact URL detected, ignoring Authorization header" -Severity Debug
-                            Invoke-WebRequest -Method Get -uri $sourceUri -OutFile "$tempArchive"
+                            }
+                        $response = Invoke-WebRequest @invokeWebRequestSplat
+
+                        # Determine file type based on Content-Disposition header or content signature
+                        $fileType = ''
+                        $contentDisposition = $response.Headers["Content-Disposition"]
+                        if ($contentDisposition -is [string[]]) {
+                            # If it's an array, take the first element. This is required for compatibility with PowerShell 5.1. Headers are return as array in pwsh 7 and return as string in Windows PowerShell 5.1
+                            $contentDisposition = $contentDisposition[0]
                         }
+                        switch ($true) {
+                            { $contentDisposition -and $contentDisposition.EndsWith(".zip") } {
+                                $fileType = 'zip'
+                                break
+                            }
+                            { $contentDisposition -and $contentDisposition.EndsWith(".app") } {
+                                $fileType = 'app'
+                                break
+                            }
+                            { [string]::new([char[]]($response.Content[0..3])) -eq "NAVX" } {
+                                $fileType = 'app'
+                                break
+                            }
+                            { [string]::new([char[]]($response.Content[0..1])) -eq "PK" } {
+                                $fileType = 'zip'
+                                break
+                            }
+                            Default {
+                                New-ArtifactsLogEntry -Message "Unknown file type detected" -Severity Warn
+                                $fileType = 'unknown'
+                            }
+                        }
+                        switch ($fileType) {
+                            'app' {
+                                $destinationPath = $tempApp
+                                $isArchive = $false
+                            }
+                            Default {
+                                # also zip, do this to not break existing implementations
+                                $destinationPath = $tempArchive
+                                $isArchive = $true
+                            }
+                        }
+                      
+                        [System.IO.File]::WriteAllBytes($destinationPath, $response.Content)
+                        $sourceUri = $destinationPath
                     }
                     else {
                         if (Test-Path $sourceUri) {
@@ -163,10 +213,7 @@ function Invoke-DownloadArtifactCore {
                         }                    
                     }
 
-                    if ($isDownload) {
-                        $archive = $tempArchive
-                    }
-                    elseif ($isArchive) {
+                    if ($isArchive) {
                         $archive = $sourceUri
                     }
                     else {
