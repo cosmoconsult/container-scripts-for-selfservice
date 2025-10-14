@@ -19,7 +19,7 @@ function Get-AppInfo {
     $appInfoFilename = ("appInfo" + [DateTime]::Now.ToString("yyyy-MM-ddHH.mm.ss") + ".json")
     $appInfoPath = Join-Path $appInfoFolder $appInfoFilename
   
-    Get-NavAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties | Select-Object @{Name = 'AppId'; Expression = { $_.AppId.ToString() } }, Name, Publisher, @{Name = 'Version'; Expression = { $_.Version.ToString() } } | ConvertTo-Json -Compress | Out-File -FilePath $appInfoPath -Encoding utf8
+    Get-NavAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties | Select-Object @{Name = 'AppId'; Expression = { $_.AppId.ToString() } }, Name, Publisher, @{Name = 'Version'; Expression = { $_.Version.ToString() } } | ConvertTo-Json -Compress | Set-Content -Path $appInfoPath -Force
     
     Write-Host "got appinfo"
     Write-Host ("Apps:" + $appInfoFilename)
