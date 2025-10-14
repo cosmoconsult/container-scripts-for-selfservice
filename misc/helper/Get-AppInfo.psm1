@@ -21,7 +21,7 @@ function Get-AppInfo {
   
     Get-NavAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties | Select-Object @{Name = 'Id'; Expression = { $_.AppId.ToString() } }, Name, Publisher, @{Name = 'Version'; Expression = { $_.Version.ToString() } } | ConvertTo-Json -Compress | Set-Content -Path $appInfoPath -Force
     
-    Write-Host "got appinfo"
+    Write-Host "Got app info"
     Write-Host ("Apps:" + $appInfoFilename)
 }
 
