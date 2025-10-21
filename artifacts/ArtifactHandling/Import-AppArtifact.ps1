@@ -109,9 +109,10 @@ function Import-AppArtifact {
                 Write-Host 'Setting up users'
                 $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $username
                 if (! $userexist) {
-                    New-NAVServerUser -ServerInstance BC -username $username -Password $Password -Force -ErrorAction SilentlyContinue
+                    write-Host 'Creating user'
+                    New-NAVServerUser -ServerInstance BC -username $username -Password $Password -Force
                     Write-Host 'User created - Creating permission sets'
-                    New-NAVServerUserPermissionSet -ServerInstance BC -username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
+                    New-NAVServerUserPermissionSet -ServerInstance BC -username $username -PermissionSetId SUPER -Force
                 }
 
                 Write-Host 'Invoking deployment script'
