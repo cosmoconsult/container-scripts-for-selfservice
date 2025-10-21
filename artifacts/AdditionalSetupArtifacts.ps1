@@ -237,7 +237,8 @@ try {
         -ErrorAction     SilentlyContinue `
         -SkipFontImport  $true `
         -ExcludeApps     $ExcludeApps
-
+        -securepassword  $securePassword
+        
     Import-Artifacts `
         -Path            (Join-Path $global:cosmoArtifacts.Path.Unsorted '/general') `
         -NavServiceName  $NavServiceName `
@@ -248,6 +249,8 @@ try {
         -telemetryClient $telemetryClient `
         -ErrorAction     SilentlyContinue  `
         -ExcludeApps     $ExcludeApps
+        -securepassword  $securePassword
+
 }
 catch {
     Write-Host "Import Artifacts Error: $($_.Exception.Message)" -f Red

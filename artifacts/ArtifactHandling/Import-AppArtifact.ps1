@@ -20,7 +20,9 @@ function Import-AppArtifact {
         [ValidateSet("Global", "Tenant", "Dev")]
         [string]$Scope = "Global",        
         [Parameter(Mandatory = $false)]
-        [System.Object]$telemetryClient = $null
+        [System.Object]$telemetryClient = $null,
+        [Parameter(Mandatory = $false)]
+        [securestring]$securePassword
     )
     
     begin {
@@ -104,21 +106,21 @@ function Import-AppArtifact {
                 Write-Host "Deploying to Dev environment"
                 Write-Host $env:COSMO_CONTAINER_PASSWORD
                 Write-Host $env:COSMO_CONTAINER_USERNAME
-                $username = 'adminTest'
-                $Password = 'admin'
-                Write-Host 'Setting up users'
-                $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $username
-                if (! $userexist) {
-                    write-Host 'Creating user'
-                    New-NAVServerUser -ServerInstance BC -username $username -Password $Password -Force
-                    Write-Host 'User created - Creating permission sets'
-                    New-NAVServerUserPermissionSet -ServerInstance BC -username $username -PermissionSetId SUPER -Force
-                }
+                $username = $env:username
+                # $Password = 'admin'
+                # Write-Host 'Setting up users'
+                # $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $username
+                # if (! $userexist) {
+                #     write-Host 'Creating user'
+                #     New-NAVServerUser -ServerInstance BC -username $username -Password $Password -Force
+                #     Write-Host 'User created - Creating permission sets'
+                #     New-NAVServerUserPermissionSet -ServerInstance BC -username $username -PermissionSetId SUPER -Force
+                # }
 
                 Write-Host 'Invoking deployment script'
                 $containerId = $($(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl) -split "/")[3]
                 Write-Host 'Container Id: ' $containerId
-                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $Password -ContainerId $ContainerId
+                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $securePassword -ContainerId $ContainerId
             }
 
             # Publish NAVApp

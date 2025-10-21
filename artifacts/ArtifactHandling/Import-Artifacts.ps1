@@ -29,7 +29,9 @@ function Import-Artifacts {
         [Parameter(Mandatory = $false)]
         [string]$AppExcludeExpr = $(if ($env:AppExcludeExpr) { $env:AppExcludeExpr }else { ".*Test_.*|.*Tests_.*" }),
         [Parameter(Mandatory = $false)]
-        [bool]$throwErrors = $false
+        [bool]$throwErrors = $false,
+        [parameter(Mandatory = $false)]
+        [securestring]$securePassword
     )
     
     begin {
@@ -129,7 +131,7 @@ function Import-Artifacts {
 
                     $IsModifiedBaseApp = $item.Publisher -eq "4PS B.V." -and $item.Name -eq $modifiedBaseAppName
                         
-                    @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $importSyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue -IsModifiedBaseApp:$IsModifiedBaseApp
+                    @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $importSyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue -IsModifiedBaseApp:$IsModifiedBaseApp -securepassword $securePassword
                 }                
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
