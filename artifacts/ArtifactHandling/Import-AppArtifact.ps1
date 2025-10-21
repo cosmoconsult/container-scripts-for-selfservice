@@ -113,7 +113,7 @@ function Import-AppArtifact {
                 }
 
                 $containerId = $($(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl) -split "/")[3]
-                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $Password -ContainerId $ContainerId 2>&1
+                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $Password -ContainerId $ContainerId
             }
 
             # Publish NAVApp
