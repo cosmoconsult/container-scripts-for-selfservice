@@ -236,9 +236,9 @@ try {
         -telemetryClient $telemetryClient `
         -ErrorAction     SilentlyContinue `
         -SkipFontImport  $true `
-        -ExcludeApps     $ExcludeApps
+        -ExcludeApps     $ExcludeApps `
         -securepassword  $securePassword
-        
+
     Import-Artifacts `
         -Path            (Join-Path $global:cosmoArtifacts.Path.Unsorted '/general') `
         -NavServiceName  $NavServiceName `
@@ -248,7 +248,7 @@ try {
         -Scope           $Scope `
         -telemetryClient $telemetryClient `
         -ErrorAction     SilentlyContinue  `
-        -ExcludeApps     $ExcludeApps
+        -ExcludeApps     $ExcludeApps `
         -securepassword  $securePassword
 
 }
