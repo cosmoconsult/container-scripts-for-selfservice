@@ -17,7 +17,7 @@ function Import-AppArtifact {
         [ValidateSet("Add", "ForceSync")]
         [string]$SyncMode = "Add",
         [Parameter(Mandatory = $false)]
-        [ValidateSet("Global", "Tenant")]
+        [ValidateSet("Global", "Tenant", "Dev")]
         [string]$Scope = "Global",        
         [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null
@@ -33,6 +33,7 @@ function Import-AppArtifact {
     }
     
     process {
+        Write-Host "Current Scope: $Scope"
         # check restart
         if ($env:cosmoServiceRestart -eq $true) {
             Add-ArtifactsLog -message "Skipping artifact import because this seems to be a service restart"
@@ -99,8 +100,24 @@ function Import-AppArtifact {
                 $success = $true
             }
     
+            if ($scope -eq 'Dev') {
+                Write-Host "Deploying to Dev environment"
+                Write-Host $env:COSMO_CONTAINER_PASSWORD
+                Write-Host $env:COSMO_CONTAINER_USERNAME
+                $username = 'adminTest'
+                $Password = 'admin'
+                $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $username
+                if (! $userexist) {
+                    New-NAVServerUser -ServerInstance BC -username $username -Password $Password -Force -ErrorAction SilentlyContinue
+                    New-NAVServerUserPermissionSet -ServerInstance BC -username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
+                }
+
+                $containerId = $($(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl) -split "/")[3]
+                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $Password -ContainerId $ContainerId 2>&1
+            }
+
             # Publish NAVApp
-            if ($success) {
+            if ($success -and  ($scope -ne 'Dev')) {
                 if ($sameVersionAlreadyPublished) {
                     Write-Host "Skipping publishing of App $($app.Name) $($app.Publisher) $($app.Version) as version $($oldApp.Version) is already published."
                 }
@@ -141,7 +158,7 @@ function Import-AppArtifact {
             }
 
             # Sync NAVApp
-            if ($success) {
+            if ($success -and ($scope -ne 'Dev')) {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Sync App $($app.Name) $($app.Publisher) $($app.Version) Mode: $($SyncMode) ..." -data $app
@@ -163,7 +180,7 @@ function Import-AppArtifact {
             }
 
             # Check for Data Upgrade
-            if ((! $skipInstall) -and ($runDataUpgrade)) {
+            if ((! $skipInstall) -and ($runDataUpgrade) -and ($scope -ne 'Dev')) {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version)..." -data $app

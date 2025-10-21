@@ -221,7 +221,7 @@ try {
     $Scope = $env:IMPORT_SCOPE
     if (! ($SyncMode -in @("Add", "ForceSync")) ) { $SyncMode = "Add" }
     if (![string]::IsNullOrEmpty($env:saasbakfile)) { $SyncMode = "ForceSync" }
-    if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
+    if (! ($Scope -in @("Global", "Tenant", "Dev")) ) { $Scope = "Global" }
 
     # Exclude apps if environment variable is missing or set to "true"
     $ExcludeApps = [string]::IsNullOrEmpty($env:AppExcludeExprEnabled) -or ($env:AppExcludeExprEnabled -eq "true")

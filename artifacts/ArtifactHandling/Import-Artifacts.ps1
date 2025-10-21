@@ -18,7 +18,7 @@ function Import-Artifacts {
         [ValidateSet("Add", "ForceSync")]
         [string]$SyncMode = "Add",
         [Parameter(Mandatory = $false)]
-        [ValidateSet("Global", "Tenant")]
+        [ValidateSet("Global", "Tenant", "Dev")]
         [string]$Scope = "Global",    
         [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null,
