@@ -106,13 +106,17 @@ function Import-AppArtifact {
                 Write-Host $env:COSMO_CONTAINER_USERNAME
                 $username = 'adminTest'
                 $Password = 'admin'
+                Write-Host 'Setting up users'
                 $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $username
                 if (! $userexist) {
                     New-NAVServerUser -ServerInstance BC -username $username -Password $Password -Force -ErrorAction SilentlyContinue
+                    Write-Host 'User created - Creating permission sets'
                     New-NAVServerUserPermissionSet -ServerInstance BC -username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
                 }
 
+                Write-Host 'Invoking deployment script'
                 $containerId = $($(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl) -split "/")[3]
+                Write-Host 'Container Id: ' $containerId
                 c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $Password -ContainerId $ContainerId
             }
 
