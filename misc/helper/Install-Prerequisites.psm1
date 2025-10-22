@@ -38,7 +38,7 @@ function Install-OpenSSH {
         }
     }
   
-    if ($success -eq $true) {
+    if ($success) {
         Write-Output "Download completed successfully."
 
         Write-Output "Expanding OpenSSH"
