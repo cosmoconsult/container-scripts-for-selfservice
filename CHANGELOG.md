@@ -37,3 +37,4 @@
 - Copy default server file cache to persistent directory
 - Fixed wrong missing PAT warning
 - Fixed issue with multiple custom nuget feeds
+- Stabilize SSH download and go to latest beta release of OpenSSH
