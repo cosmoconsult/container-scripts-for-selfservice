@@ -104,9 +104,9 @@ function Import-AppArtifact {
     
             if ($scope -eq 'Dev') {
                 Write-Host "Deploying to Dev environment"
-                Write-Host $env:COSMO_CONTAINER_PASSWORD
-                Write-Host $env:COSMO_CONTAINER_USERNAME
-                $username = $env:username
+                Write-Host $env:username
+                Write-Host $securePassword
+                $Username = $env:username
                 # $Password = 'admin'
                 # Write-Host 'Setting up users'
                 # $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $username
@@ -116,12 +116,15 @@ function Import-AppArtifact {
                 #     Write-Host 'User created - Creating permission sets'
                 #     New-NAVServerUserPermissionSet -ServerInstance BC -username $username -PermissionSetId SUPER -Force
                 # }
+                $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
+                $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+                Write-Host 'unsecurepassword: $unsecurepassword' 
 
                 Write-Host 'Invoking deployment script'
                 $containerId = $($(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl) -split "/")[3]
                 Write-Host 'Container Id: ' $containerId
                 $devServerUrl = "http://localhost:7049/BC/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
-                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $securePassword -ContainerId $ContainerId -devserverUrl $devServerUrl
+                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -ContainerId $ContainerId -devserverUrl $devServerUrl
             }
 
             # Publish NAVApp
