@@ -8,7 +8,8 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet('Global', 'Tenant', 'Dev')]
     [string] $Scope = "Tenant",
-    [string] $ContainerId
+    [string] $ContainerId,
+    [string] $devServerUrl = ""
 )
 
 c:\run\prompt.ps1
@@ -193,7 +194,9 @@ try {
         $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64)
         $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
         $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
-        $devServerUrl = "https://fps-alpaca.westeurope.cloudapp.azure.com/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+        if ($devServerUrl -eq "") {
+            $devServerUrl = "https://fps-alpaca.westeurope.cloudapp.azure.com/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+        }
 
         $appName = [System.IO.Path]::GetFileName($Path)      
         $multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
