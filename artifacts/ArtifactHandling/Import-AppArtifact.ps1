@@ -125,6 +125,7 @@ function Import-AppArtifact {
                 Write-Host 'Container Id: ' $containerId
                 $devServerUrl = "http://localhost:7049/BC/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
                 c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -ContainerId $ContainerId -devserverUrl $devServerUrl
+                $skipInstall = $true
             }
 
             # Publish NAVApp
