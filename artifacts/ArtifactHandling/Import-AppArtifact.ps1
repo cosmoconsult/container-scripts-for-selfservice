@@ -104,26 +104,13 @@ function Import-AppArtifact {
     
             if ($scope -eq 'Dev') {
                 Write-Host "Deploying to Dev environment"
-                Write-Host $env:username
-                Write-Host $securePassword
                 $Username = $env:username
-                # $Password = 'admin'
-                # Write-Host 'Setting up users'
-                # $userexist = Get-NAVServerUser -ServerInstance BC | Where-Object username -eq $username
-                # if (! $userexist) {
-                #     write-Host 'Creating user'
-                #     New-NAVServerUser -ServerInstance BC -username $username -Password $Password -Force
-                #     Write-Host 'User created - Creating permission sets'
-                #     New-NAVServerUserPermissionSet -ServerInstance BC -username $username -PermissionSetId SUPER -Force
-                # }
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
-                Write-Host 'unsecurepassword: $unsecurepassword' 
-
-                Write-Host 'Invoking deployment script'
-                $containerId = $($(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl) -split "/")[3]
-                Write-Host 'Container Id: ' $containerId
-                $devServerUrl = "http://localhost:7049/BC/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+                $publicWebBaseUrl = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl)
+                $containerId = $($publicWebBaseUrl -split "/")[3]
+                $devServerUrl = "$publicWebBaseUrl/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+                Write-Host "Invoking App Deployment Script for Dev Server URL: $devServerUrl"
                 c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -ContainerId $ContainerId -devserverUrl $devServerUrl
                 $skipInstall = $true
             }
