@@ -108,10 +108,9 @@ function Import-AppArtifact {
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
                 $publicWebBaseUrl = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl)
-                $containerId = $($publicWebBaseUrl -split "/")[3]
                 $devServerUrl = "$publicWebBaseUrl/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
                 Write-Host "Invoking App Deployment Script for Dev Server URL: $devServerUrl"
-                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -ContainerId $ContainerId -devserverUrl $devServerUrl
+                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -devserverUrl $devServerUrl
                 $skipInstall = $true
             }
 
