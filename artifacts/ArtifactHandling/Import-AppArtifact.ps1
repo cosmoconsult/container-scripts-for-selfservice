@@ -35,7 +35,6 @@ function Import-AppArtifact {
     }
     
     process {
-        Write-Host "Current Scope: $Scope"
         # check restart
         if ($env:cosmoServiceRestart -eq $true) {
             Add-ArtifactsLog -message "Skipping artifact import because this seems to be a service restart"
@@ -112,7 +111,6 @@ function Import-AppArtifact {
                 $baseURL = $($publicWebBaseUrl -split "/")[2]
                 $containerId = $($publicWebBaseUrl -split "/")[3]
                 $devServerUrl = "http://$baseURL`:$devPort/$containerId/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
-                Write-Host "Invoking App Deployment Script for Dev Server URL: $devServerUrl"
                 c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -devserverUrl $devServerUrl
                 $skipInstall = $true
             }
