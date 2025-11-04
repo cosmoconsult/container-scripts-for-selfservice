@@ -112,11 +112,11 @@ function Import-AppArtifact {
                 $containerId = $($publicWebBaseUrl -split "/")[3]
                 $devServerUrl = "http://$baseURL`:$devPort/$containerId/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
                 c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -devserverUrl $devServerUrl
-                $skipInstall = $true
+                return
             }
 
             # Publish NAVApp
-            if ($success -and  ($scope -ne 'Dev')) {
+            if ($success) {
                 if ($sameVersionAlreadyPublished) {
                     Write-Host "Skipping publishing of App $($app.Name) $($app.Publisher) $($app.Version) as version $($oldApp.Version) is already published."
                 }
@@ -157,7 +157,7 @@ function Import-AppArtifact {
             }
 
             # Sync NAVApp
-            if ($success -and ($scope -ne 'Dev')) {
+            if ($success) {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Sync App $($app.Name) $($app.Publisher) $($app.Version) Mode: $($SyncMode) ..." -data $app
@@ -179,7 +179,7 @@ function Import-AppArtifact {
             }
 
             # Check for Data Upgrade
-            if ((! $skipInstall) -and ($runDataUpgrade) -and ($scope -ne 'Dev')) {
+            if ((! $skipInstall) -and ($runDataUpgrade)) {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
