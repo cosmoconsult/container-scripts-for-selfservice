@@ -116,12 +116,12 @@ function Import-AppArtifact {
                 }
 
                 $publicWebBaseUrl = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl)
+                $containerId = $($publicWebBaseUrl -split "/")[3]
                 if ($publicWebBaseUrl -like "*localhost*") {
                     $devPort = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName DeveloperServicesPort)
                     $baseURL = $($publicWebBaseUrl -split "/")[2]
                     $devServerUrl = "http://$baseURL`:$devPort/$containerId/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
                 }
-                $containerId = $($publicWebBaseUrl -split "/")[3]
                 c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -ContainerId $containerId -devserverUrl $devServerUrl
                 return
             }
