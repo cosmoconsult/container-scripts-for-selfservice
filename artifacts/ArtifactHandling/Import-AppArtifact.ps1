@@ -106,6 +106,15 @@ function Import-AppArtifact {
                 $Username = $env:username
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+
+                ## set user again to avoid "The user does not exist" error
+                try {
+                    Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $Tenant -UserName $Username -Password $securePassword -ErrorAction Continue
+                }
+                catch {
+                    New-NAVServerUser -ServerInstance $ServerInstance -Tenant $Tenant -UserName $Username -Password $securePassword -AuthenticationEMail $Username -ErrorAction Continue
+                }
+
                 $publicWebBaseUrl = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl)
                 $devPort = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName DeveloperServicesPort)
                 $baseURL = $($publicWebBaseUrl -split "/")[2]
