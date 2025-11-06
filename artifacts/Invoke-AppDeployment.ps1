@@ -186,6 +186,29 @@ try {
         Import-Module (Join-Path $PSScriptRoot "helper\k8s-bc-helper.psd1")
         Import-Module "c:\run\helper\k8s-bc-helper.psd1"
 
+        if ($devServerUrl.StartsWith("Https")){
+        # check if dummy certificate already exists otherwise create it
+            if (-not ([System.Management.Automation.PSTypeName]'dummy').Type) {
+                Write-Host "Creating type for SSl certificate"
+                add-type -TypeDefinition @"
+using System;
+using System.Net;
+using System.Net.Security;
+using System.Security.Cryptography.X509Certificates;
+public static class Dummy {
+    public static bool ReturnTrue(object sender,
+        X509Certificate certificate,
+        X509Chain chain,
+        SslPolicyErrors sslPolicyErrors) { return true; }
+    public static RemoteCertificateValidationCallback GetDelegate() {
+        return new RemoteCertificateValidationCallback(Dummy.ReturnTrue);
+    }
+}
+"@  
+            [System.Net.ServicePointManager]::ServerCertificateValidationCallback = [dummy]::GetDelegate()
+            }
+        }
+
         $handler = New-Object System.Net.Http.HttpClientHandler
         $HttpClient = [System.Net.Http.HttpClient]::new($handler)
         $pair = "$($Username):$Password"

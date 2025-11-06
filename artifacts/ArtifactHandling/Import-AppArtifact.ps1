@@ -115,14 +115,15 @@ function Import-AppArtifact {
                     New-NAVServerUser -ServerInstance $ServerInstance -Tenant $Tenant -UserName $Username -Password $securePassword -AuthenticationEMail $Username -ErrorAction Continue
                 }
 
-                $publicWebBaseUrl = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl)
-                $containerId = $($publicWebBaseUrl -split "/")[3]
-                if ($publicWebBaseUrl -like "*localhost*") {
-                    $devPort = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName DeveloperServicesPort)
-                    $baseURL = $($publicWebBaseUrl -split "/")[2]
-                    $devServerUrl = "http://$baseURL`:$devPort/$containerId/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+                $sslEnabled = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName DeveloperServicesSSLEnabled)
+                $devPort = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName DeveloperServicesPort)
+                if ($sslEnabled) {
+                    $HttpPrefix = 'Https'
+                } else {
+                    $HttpPrefix = 'Http'
                 }
-                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -ContainerId $containerId -devserverUrl $devServerUrl
+                $devServerUrl = "$HttpPrefix`://localhost`:$devPort/$ServerInstance/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -devserverUrl $devServerUrl
                 return
             }
 
