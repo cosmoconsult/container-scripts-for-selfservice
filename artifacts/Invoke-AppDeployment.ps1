@@ -186,7 +186,7 @@ try {
         Import-Module (Join-Path $PSScriptRoot "helper\k8s-bc-helper.psd1")
         Import-Module "c:\run\helper\k8s-bc-helper.psd1"
 
-        if ($devServerUrl.StartsWith("Https://localhost")){
+        if ($devServerUrl.StartsWith("https://localhost")){
             if (-not ([System.Management.Automation.PSTypeName]'dummy').Type) {
                 Write-Host "Creating SSL certificate validation bypass for localhost"
                 add-type -TypeDefinition @"
