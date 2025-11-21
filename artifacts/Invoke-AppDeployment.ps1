@@ -218,11 +218,12 @@ public static class Dummy {
         $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
         if ($devServerUrl -eq "") {
             if ($env:mode -eq "4ps") {
-                $devServerUrl = "https://fps-alpaca.westeurope.cloudapp.azure.com/$($ContainerId)4ps/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+                $prefix = 'fps-'
             }
             else {
-                $devServerUrl = "https://alpaca.westeurope.cloudapp.azure.com/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+                $prefix = ''
             }
+            $devServerUrl = "https://$($prefix)alpaca.westeurope.cloudapp.azure.com/$($ContainerId)4ps/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
         }
 
         $appName = [System.IO.Path]::GetFileName($Path)      
