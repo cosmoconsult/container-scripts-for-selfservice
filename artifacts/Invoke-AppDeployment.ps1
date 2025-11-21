@@ -186,10 +186,9 @@ try {
         Import-Module (Join-Path $PSScriptRoot "helper\k8s-bc-helper.psd1")
         Import-Module "c:\run\helper\k8s-bc-helper.psd1"
 
-        if ($devServerUrl.StartsWith("Https")){
-        # check if dummy certificate already exists otherwise create it
+        if ($devServerUrl.StartsWith("Https://localhost")){
             if (-not ([System.Management.Automation.PSTypeName]'dummy').Type) {
-                Write-Host "Creating type for SSl certificate"
+                Write-Host "Creating SSL certificate validation bypass for localhost"
                 add-type -TypeDefinition @"
 using System;
 using System.Net;
@@ -218,7 +217,12 @@ public static class Dummy {
         $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
         $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
         if ($devServerUrl -eq "") {
-            $devServerUrl = "https://fps-alpaca.westeurope.cloudapp.azure.com/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+            if ($env:mode -eq "4ps") {
+                $devServerUrl = "https://fps-alpaca.westeurope.cloudapp.azure.com/$($ContainerId)4ps/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+            }
+            else {
+                $devServerUrl = "https://alpaca.westeurope.cloudapp.azure.com/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+            }
         }
 
         $appName = [System.IO.Path]::GetFileName($Path)      

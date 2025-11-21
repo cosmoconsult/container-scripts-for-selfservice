@@ -106,6 +106,7 @@ function Import-AppArtifact {
                 $Username = $env:username
                 $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($securepassword)
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+                [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
 
                 ## set user again to avoid "The user does not exist" error
                 try {
@@ -115,9 +116,9 @@ function Import-AppArtifact {
                     New-NAVServerUser -ServerInstance $ServerInstance -Tenant $Tenant -UserName $Username -Password $securePassword -AuthenticationEMail $Username -ErrorAction Continue
                 }
 
-                $publicWebBaseUrl = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl)
+                $publicWebBaseUrl = Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl
                 $HttpPrefix = $publicWebBaseUrl.split("://")[0]
-                $devPort = $(Get-NAVServerConfiguration -ServerInstance BC -KeyName DeveloperServicesPort)
+                $devPort = Get-NAVServerConfiguration -ServerInstance BC -KeyName DeveloperServicesPort
                 $devServerUrl = "$HttpPrefix`://localhost`:$devPort/$ServerInstance/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
                 c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -devserverUrl $devServerUrl
                 return
