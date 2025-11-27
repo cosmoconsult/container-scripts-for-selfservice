@@ -9,18 +9,32 @@
     }
 
     process {
+        if ($global:extendedEnv.PSObject.Properties.Name -contains "TrustedNugetFeeds") {
+            Write-Host "Collecting trusted nuget feeds"
+            if ($global:extendedEnv.TrustedNugetFeeds) {
+                $trustedNugetFeedsBase64 = $global:extendedEnv.TrustedNugetFeeds
+                $trustedNugetFeedsJson = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($trustedNugetFeedsBase64))
+                ($trustedNugetFeedsJson | ConvertFrom-Json) |
+                    Where-Object { $_ } |
+                    ForEach-Object {
+                        $url = $_.feedUrl
+                        Write-Host "- Adding NuGet feed: $url"
+                        $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat -TokenGitHubSecret $_.patGitHubSecret
+                    }
+            }
+            if ($feeds.Count -eq 0) {
+                Write-Host "- No NuGet feeds found"
+            }
+            return;
+        }
+
         Write-Host "Collecting Microsoft NuGet feeds"
         @( 
             "https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/index.json"
         ) | 
             ForEach-Object {
-                Write-Host "Adding NuGet feed: $_"
-                $feeds += [PSCustomObject]@{ 
-                    Url          = $_
-                    Token        = ""
-                    Patterns     = @('*')
-                    Fingerprints = @() 
-                }
+                Write-Host "- Adding NuGet feed: $_"
+                $feeds += Initialize-NuGetFeed -Url $_
             }
 
         if ($global:extendedEnv.CustomNugetFeeds) {            
@@ -32,15 +46,10 @@
                 ForEach-Object {
                     $url = $_.feedUrl
                     if ($url -in @( $feeds.Url )) {
-                        Write-Host "NuGet feed already added: $url - Skipping"
+                        Write-Host "- NuGet feed already added: $url - Skipping"
                     } else {
-                        Write-Host "Adding NuGet feed: $url"
-                        $feeds += [PSCustomObject]@{ 
-                            Url          = $url
-                            Token        = $_.pat
-                            Patterns     = @('*')
-                            Fingerprints = @()
-                        }
+                        Write-Host "- Adding NuGet feed: $url"
+                        $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat -TokenGitHubSecret $_.patGitHubSecret
                     }
                 }
         }
@@ -58,15 +67,10 @@
             ForEach-Object {
                 $url = $_.url
                 if ($url -in @( $feeds.Url )) {
-                    Write-Host "NuGet feed already added: $url - Skipping"
+                    Write-Host "- NuGet feed already added: $url - Skipping"
                 } else {
-                    Write-Host "Adding NuGet feed: $url"
-                    $feeds += [PSCustomObject]@{ 
-                        Url          = $url
-                        Token        = $_.pat
-                        Patterns     = @('*')
-                        Fingerprints = @()
-                    }
+                    Write-Host "- Adding NuGet feed: $url"
+                    $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat -TokenGitHubSecret $_.patGitHubSecret
                 }
             }
     }
@@ -80,3 +84,37 @@
     }
 }
 Export-ModuleMember -Function Initialize-NuGetFeeds
+
+function Initialize-NuGetFeed {
+    [cmdletbinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [string]$Url,
+        [Parameter(Mandatory = $false)]
+        [string]$Token = "",
+        [Parameter(Mandatory = $false)]
+        [string]$TokenGitHubSecret = $null,
+        [Parameter(Mandatory = $false)]
+        [string[]]$Patterns = @('*'),
+        [Parameter(Mandatory = $false)]
+        [string[]]$Fingerprints = @()
+    )
+
+    $feed = @{
+        Url          = $Url
+        Token        = $Token
+        Patterns     = $Patterns
+        Fingerprints = $Fingerprints
+    }
+
+    if ($TokenGitHubSecret) {
+        # TODO: Get github secret
+        if ($githubToken) {
+            $feed.Token = $githubToken
+        } else {
+            Write-Host "Warning: Could not retrieve GitHub secret '$TokenGitHubSecret' for NuGet feed '$Url'"
+        }
+    }
+
+    return [PSCustomObject]$feed
+}
