@@ -22,41 +22,36 @@
                         $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat -TokenGitHubSecret $_.patGitHubSecret
                     }
             }
-            if ($feeds.Count -eq 0) {
-                Write-Host "- No NuGet feeds found"
-            }
-            return;
-        }
-
-        Write-Host "Collecting Microsoft NuGet feeds"
-        @( 
-            "https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/index.json"
-        ) | 
-            ForEach-Object {
-                Write-Host "- Adding NuGet feed: $_"
-                $feeds += Initialize-NuGetFeed -Url $_
-            }
-
-        if ($global:extendedEnv.CustomNugetFeeds) {            
-            Write-Host "Collecting custom nuget feeds"
-            $customNugetFeedsBase64 = $global:extendedEnv.CustomNugetFeeds
-            $customNugetFeedsJson = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($customNugetFeedsBase64))
-            ($customNugetFeedsJson | ConvertFrom-Json) |
-                Where-Object { $_ } |
+        } else {
+            Write-Host "Collecting Microsoft NuGet feeds"
+            @( 
+                "https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/index.json"
+            ) | 
                 ForEach-Object {
-                    $url = $_.feedUrl
-                    if ($url -in @( $feeds.Url )) {
-                        Write-Host "- NuGet feed already added: $url - Skipping"
-                    } else {
-                        Write-Host "- Adding NuGet feed: $url"
-                        $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat -TokenGitHubSecret $_.patGitHubSecret
-                    }
+                    Write-Host "- Adding NuGet feed: $_"
+                    $feeds += Initialize-NuGetFeed -Url $_
                 }
+
+            if ($global:extendedEnv.CustomNugetFeeds) {            
+                Write-Host "Collecting custom nuget feeds"
+                $customNugetFeedsBase64 = $global:extendedEnv.CustomNugetFeeds
+                $customNugetFeedsJson = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($customNugetFeedsBase64))
+                ($customNugetFeedsJson | ConvertFrom-Json) |
+                    Where-Object { $_ } |
+                    ForEach-Object {
+                        $url = $_.feedUrl
+                        if ($url -in @( $feeds.Url )) {
+                            Write-Host "- NuGet feed already added: $url - Skipping"
+                        } else {
+                            Write-Host "- Adding NuGet feed: $url"
+                            $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat -TokenGitHubSecret $_.patGitHubSecret
+                        }
+                    }
+            }
         }
 
         @(
-            "C:\Run\my\trusted-nuget-feeds\trustedFeeds.json", 
-            "C:\Run\my\trusted-nuget-feeds\customTrustedFeeds.json"
+            "C:\Run\my\trusted-nuget-feeds\trustedFeeds.json"
         ) |
             Where-Object { Test-Path $_ -PathType Leaf } |
             ForEach-Object {
