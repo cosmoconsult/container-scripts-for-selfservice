@@ -24,6 +24,7 @@ Wait-NAVTenantReady -ServerInstance $ServerInstance -Tenant $tenantId -Retries 6
 
 foreach ($account in $accounts) {
     Write-Host "  Processing account: $account"
+    $BcUser = $null
     $shortenedAccount = $account.Split("@")[0]
     $userNameToSet = $account
     if ($navuserpasswordAuth) {
@@ -83,5 +84,14 @@ foreach ($account in $accounts) {
             -PermissionSetId $PermissionSet
 
         '  Added permission set {0} on user {1} in Business Central.' -f $PermissionSet, $userNameToSet | Write-Host
+    }
+    if (-not ([string]::IsNullOrEmpty($env:enablePremium) -or $($env:enablePremium).ToLower() -ne "true")) {
+        '  Assign Premium plan for {0}' -f $userNameToSet | Write-Host
+        if(-not $BcUser){
+            $BcUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenantId | Where-Object { $_.UserName -ieq $shortenedAccount -or $_.UserName -like "$($shortenedAccount)@*" }
+        }
+        $UserId = $BcUser.UserSecurityId
+        Invoke-Sqlcmd -ErrorAction Ignore -ServerInstance 'localhost\SQLEXPRESS' -Query "USE [$tenantId]
+        INSERT INTO [dbo].[User Plan`$63ca2fa4-4f03-4f2b-a480-172fef340d3f] ([Plan ID],[User Security ID]) VALUES ('{8e9002c0-a1d8-4465-b952-817d2948e6e2}','$UserId')"
     }
 }
