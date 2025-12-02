@@ -85,7 +85,7 @@ foreach ($account in $accounts) {
 
         '  Added permission set {0} on user {1} in Business Central.' -f $PermissionSet, $userNameToSet | Write-Host
     }
-    if (-not ([string]::IsNullOrEmpty($env:enablePremium) -or $($env:enablePremium).ToLower() -ne "true")) {
+    if (-not [string]::IsNullOrEmpty($env:enablePremium) -and $($env:enablePremium).ToLower() -eq "true") {
         '  Assign Premium plan for {0}' -f $userNameToSet | Write-Host
         if(-not $BcUser){
             $BcUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenantId | Where-Object { $_.UserName -ieq $shortenedAccount -or $_.UserName -like "$($shortenedAccount)@*" }
