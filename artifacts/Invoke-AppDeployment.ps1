@@ -223,7 +223,7 @@ public static class Dummy {
             else {
                 $prefix = ''
             }
-            $devServerUrl = "https://$($prefix)alpaca.westeurope.cloudapp.azure.com/$($ContainerId)4ps/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+            $devServerUrl = "https://$($prefix)alpaca.westeurope.cloudapp.azure.com/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
         }
 
         $appName = [System.IO.Path]::GetFileName($Path)      
