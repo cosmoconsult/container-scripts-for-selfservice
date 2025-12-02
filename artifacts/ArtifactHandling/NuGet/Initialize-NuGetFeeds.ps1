@@ -19,7 +19,7 @@
                     ForEach-Object {
                         $url = $_.feedUrl
                         Write-Host "- Adding NuGet feed: $url"
-                        $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat -TokenGitHubSecret $_.patGitHubSecret
+                        $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat
                     }
             }
         } else {
@@ -44,7 +44,7 @@
                             Write-Host "- NuGet feed already added: $url - Skipping"
                         } else {
                             Write-Host "- Adding NuGet feed: $url"
-                            $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat -TokenGitHubSecret $_.patGitHubSecret
+                            $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat
                         }
                     }
             }
@@ -65,7 +65,7 @@
                     Write-Host "- NuGet feed already added: $url - Skipping"
                 } else {
                     Write-Host "- Adding NuGet feed: $url"
-                    $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat -TokenGitHubSecret $_.patGitHubSecret
+                    $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat
                 }
             }
     }
@@ -88,8 +88,6 @@ function Initialize-NuGetFeed {
         [Parameter(Mandatory = $false)]
         [string]$Token = "",
         [Parameter(Mandatory = $false)]
-        [string]$TokenGitHubSecret = $null,
-        [Parameter(Mandatory = $false)]
         [string[]]$Patterns = @('*'),
         [Parameter(Mandatory = $false)]
         [string[]]$Fingerprints = @()
@@ -100,15 +98,6 @@ function Initialize-NuGetFeed {
         Token        = $Token
         Patterns     = $Patterns
         Fingerprints = $Fingerprints
-    }
-
-    if ($TokenGitHubSecret) {
-        # TODO: Get github secret
-        if ($githubToken) {
-            $feed.Token = $githubToken
-        } else {
-            Write-Host "Warning: Could not retrieve GitHub secret '$TokenGitHubSecret' for NuGet feed '$Url'"
-        }
     }
 
     return [PSCustomObject]$feed
