@@ -9,12 +9,12 @@
     }
 
     process {
-        if ($global:extendedEnv.PSObject.Properties.Name -contains "TrustedNugetFeeds") {
+        if ($global:extendedEnv.PSObject.Properties.Name -contains "TrustedNuGetFeeds") {
             Write-Host "Collecting trusted nuget feeds"
-            if ($global:extendedEnv.TrustedNugetFeeds) {
-                $trustedNugetFeedsBase64 = $global:extendedEnv.TrustedNugetFeeds
-                $trustedNugetFeedsJson = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($trustedNugetFeedsBase64))
-                ($trustedNugetFeedsJson | ConvertFrom-Json) |
+            if ($global:extendedEnv.TrustedNuGetFeeds) {
+                $trustedNuGetFeedsBase64 = $global:extendedEnv.TrustedNuGetFeeds
+                $trustedNuGetFeedsJson = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($trustedNuGetFeedsBase64))
+                ($trustedNuGetFeedsJson | ConvertFrom-Json) |
                     Where-Object { $_ } |
                     ForEach-Object {
                         $url = $_.feedUrl
