@@ -10,6 +10,8 @@ if ($env:owner -eq $null -or $env:owner -eq "") {
     return
 }
 
+Import-Module "C:\run\my\AssignPremiumPlanToUser.psm1"
+
 $navuserpasswordAuth = $true
 if ($env:auth -ieq "aad") {
     $navuserpasswordAuth = $false
@@ -86,12 +88,9 @@ foreach ($account in $accounts) {
         '  Added permission set {0} on user {1} in Business Central.' -f $PermissionSet, $userNameToSet | Write-Host
     }
     if (-not [string]::IsNullOrEmpty($env:enablePremium) -and $($env:enablePremium).ToLower() -eq "true") {
-        '  Assign Premium plan for {0}' -f $userNameToSet | Write-Host
         if(-not $BcUser){
             $BcUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenantId | Where-Object { $_.UserName -ieq $shortenedAccount -or $_.UserName -like "$($shortenedAccount)@*" }
         }
-        $UserId = $BcUser.UserSecurityId
-        Invoke-Sqlcmd -ErrorAction Ignore -ServerInstance 'localhost\SQLEXPRESS' -Query "USE [$tenantId]
-        INSERT INTO [dbo].[User Plan`$63ca2fa4-4f03-4f2b-a480-172fef340d3f] ([Plan ID],[User Security ID]) VALUES ('{8e9002c0-a1d8-4465-b952-817d2948e6e2}','$UserId')"
+        Invoke-AssignPremiumPlanToUser -Tenant $tenantId -BcUser $BcUser
     }
 }
