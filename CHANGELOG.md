@@ -38,3 +38,4 @@
 - Fixed wrong missing PAT warning
 - Fixed issue with multiple custom nuget feeds
 - Stabilize SSH download and go to latest beta release of OpenSSH
+- Add support for managing all nuget feeds by backend (and keep it backward compatible)
