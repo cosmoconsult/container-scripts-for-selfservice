@@ -55,9 +55,6 @@ function Invoke-NuGetPackageDownload() {
             
             if ($Version) {
                 if ($Version -match $versionPattern) {
-                    # Convert NuGet version to a range (from version, to excl. version + 1)
-                    $fromVersion  = '{0}{1}' -f $matches.version, $matches.prerelease
-                    
                     # Normalize version parts to ensure at least major.minor format
                     $versionParts = $matches.version.Split('.')
                     if ($versionParts.Count -eq 1) {
@@ -66,6 +63,8 @@ function Invoke-NuGetPackageDownload() {
                         $normalizedVersion = $matches.version
                     }
 
+                    # Convert NuGet version to a range (from version, to excl. version + 1)
+                    $fromVersion  = '{0}{1}' -f $normalizedVersion, $matches.prerelease
                     $toVersion    = '{0}{1}' -f ( $normalizedVersion -replace '\d+$', ( [int]$normalizedVersion.Split('.')[-1] + 1 ) ), $matches.prerelease
                     $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
                     Write-Host "Converted version '$Version' to NuGet version range '$versionRange'"
