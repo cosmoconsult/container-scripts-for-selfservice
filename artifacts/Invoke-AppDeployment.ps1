@@ -217,13 +217,9 @@ public static class Dummy {
         $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
         $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
         if ($devServerUrl -eq "") {
-            if ($env:mode -eq "4ps") {
-                $prefix = 'fps-'
-            }
-            else {
-                $prefix = ''
-            }
-            $devServerUrl = "https://$($prefix)alpaca.westeurope.cloudapp.azure.com/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+            # When no dev url is given, pull it from service tier.
+            $webBaseUrl = Get-NAVServerConfiguration -ServerInstance BC -KeyName PublicWebBaseUrl
+            $devServerUrl = "$($webBaseUrl)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
         }
 
         $appName = [System.IO.Path]::GetFileName($Path)      
