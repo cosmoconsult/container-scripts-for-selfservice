@@ -124,7 +124,7 @@ function Import-AppArtifact {
                     c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -devserverUrl $devServerUrl
                 }
                 catch {
-                    Add-ArtifactsLog -kind App -message "Import App $($app.Name) $($app.Publisher) $($app.Version) failed" -data $app -severity Error -success fail
+                    Add-ArtifactsLog -kind App -message "[ERROR] Import App $($app.Name) $($app.Publisher) $($app.Version) failed" -data $app -severity Error -success fail
                 }
                 return
             }
