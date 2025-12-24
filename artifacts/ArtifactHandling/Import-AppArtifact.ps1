@@ -120,7 +120,13 @@ function Import-AppArtifact {
                 $HttpPrefix = $publicWebBaseUrl.split("://")[0]
                 $devPort = Get-NAVServerConfiguration -ServerInstance BC -KeyName DeveloperServicesPort
                 $devServerUrl = "$HttpPrefix`://localhost`:$devPort/$ServerInstance/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
-                c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -devserverUrl $devServerUrl
+                try {
+                    c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $Path -Scope $Scope -Username $Username -Password $unsecurepassword -devserverUrl $devServerUrl
+                }
+                catch {
+                    Write-Host "[ERROR] Import App $($app.Name) $($app.Publisher) $($app.Version) failed: $($_.Exception.Message)" -ForegroundColor Red
+                    Add-ArtifactsLog -kind App -message "[ERROR] Import App $($app.Name) $($app.Publisher) $($app.Version) failed" -data $app -severity Error -success fail
+                }
                 return
             }
 
