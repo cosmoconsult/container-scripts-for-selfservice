@@ -84,34 +84,24 @@ function Invoke-NuGetPackageDownload() {
             }
 
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
-                $installedAppsById = @{}
-                Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
+                $installedApps = Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
                     ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
                     ForEach-Object {
-                        $installedApp = [PSCustomObject]@{
+                        [PSCustomObject]@{
                             Package   = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
                             Name      = $_.Name
                             Publisher = $_.Publisher
                             Id        = $_.AppId
                             Version   = $_.Version
                         }
-
-                        # Check if app with same Id already exists
-                        if ($installedAppsById.ContainsKey($installedApp.Id)) {
-                            $existingApp = $installedAppsById[$installedApp.Id]
-                            # Keep the one with the highest version
-                            if ([Version]$installedApp.Version -gt [Version]$existingApp.Version) {
-                                Write-Host "Replacing app with higher version: $($installedApp.Package) (version: $($installedApp.Version) > $($existingApp.Version))"
-                                $installedAppsById[$installedApp.Id] = $installedApp
-                            } else {
-                                Write-Host "Skipping duplicate app with lower or equal version: $($installedApp.Package) (version: $($installedApp.Version) <= $($existingApp.Version))"
-                            }
-                        } else {
-                            Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
-                            $installedAppsById[$installedApp.Id] = $installedApp
-                        }
+                    } |
+                    Group-Object -Property Id |
+                    ForEach-Object {
+                        $highestVersion = $_.Group | Sort-Object -Property { [Version]$_.Version } -Descending | Select-Object -First 1
+                        Write-Host "Use app file as installed app: $($highestVersion.Package) (version: $($highestVersion.Version))"
+                        $highestVersion
                     }
-                $downloadParameters.installedApps = @($installedAppsById.Values)
+                $downloadParameters.installedApps = @($installedApps)
             }
 
             foreach ($predefinedPackage in $PredefinedPackages) {
