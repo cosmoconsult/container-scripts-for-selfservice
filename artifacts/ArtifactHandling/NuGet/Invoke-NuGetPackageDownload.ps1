@@ -84,7 +84,7 @@ function Invoke-NuGetPackageDownload() {
             }
 
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
-                $appsById = @{}
+                $installedAppsById = @{}
                 Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
                     ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
                     ForEach-Object {
@@ -97,21 +97,21 @@ function Invoke-NuGetPackageDownload() {
                         }
 
                         # Check if app with same Id already exists
-                        if ($appsById.ContainsKey($installedApp.Id)) {
-                            $existingApp = $appsById[$installedApp.Id]
+                        if ($installedAppsById.ContainsKey($installedApp.Id)) {
+                            $existingApp = $installedAppsById[$installedApp.Id]
                             # Keep the one with the highest version
                             if ([Version]$installedApp.Version -gt [Version]$existingApp.Version) {
                                 Write-Host "Replacing app with higher version: $($installedApp.Package) (version: $($installedApp.Version) > $($existingApp.Version))"
-                                $appsById[$installedApp.Id] = $installedApp
+                                $installedAppsById[$installedApp.Id] = $installedApp
                             } else {
                                 Write-Host "Skipping duplicate app with lower or equal version: $($installedApp.Package) (version: $($installedApp.Version) <= $($existingApp.Version))"
                             }
                         } else {
                             Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
-                            $appsById[$installedApp.Id] = $installedApp
+                            $installedAppsById[$installedApp.Id] = $installedApp
                         }
                     }
-                $downloadParameters.installedApps = @($appsById.Values)
+                $downloadParameters.installedApps = @($installedAppsById.Values)
             }
 
             foreach ($predefinedPackage in $PredefinedPackages) {
