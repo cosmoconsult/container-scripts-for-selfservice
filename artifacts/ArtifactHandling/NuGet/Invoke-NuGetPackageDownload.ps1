@@ -84,20 +84,24 @@ function Invoke-NuGetPackageDownload() {
             }
 
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
-                Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
+                $installedApps = Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
                     ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
                     ForEach-Object {
-                        $installedApp = [PSCustomObject]@{
+                        [PSCustomObject]@{
                             Package   = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
                             Name      = $_.Name
                             Publisher = $_.Publisher
                             Id        = $_.AppId
                             Version   = $_.Version
                         }
-
-                        Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
-                        $downloadParameters.installedApps += $installedApp
+                    } |
+                    Group-Object -Property Id |
+                    ForEach-Object {
+                        $highestVersion = $_.Group | Sort-Object -Property { [Version]$_.Version } -Descending | Select-Object -First 1
+                        Write-Host "Use app file as installed app: $($highestVersion.Package) (version: $($highestVersion.Version))"
+                        $highestVersion
                     }
+                $downloadParameters.installedApps = @($installedApps)
             }
 
             foreach ($predefinedPackage in $PredefinedPackages) {
