@@ -95,8 +95,21 @@ function Invoke-NuGetPackageDownload() {
                             Version   = $_.Version
                         }
 
-                        Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
-                        $downloadParameters.installedApps += $installedApp
+                        # Check if app with same Id already exists
+                        $existingApp = $downloadParameters.installedApps | Where-Object { $_.Id -eq $installedApp.Id }
+                        if ($existingApp) {
+                            # Keep the one with the highest version
+                            if ([Version]$installedApp.Version -gt [Version]$existingApp.Version) {
+                                Write-Host "Replacing app with higher version: $($installedApp.Package) (version: $($installedApp.Version) > $($existingApp.Version))"
+                                $downloadParameters.installedApps = @($downloadParameters.installedApps | Where-Object { $_.Id -ne $installedApp.Id })
+                                $downloadParameters.installedApps += $installedApp
+                            } else {
+                                Write-Host "Skipping duplicate app with lower or equal version: $($installedApp.Package) (version: $($installedApp.Version) <= $($existingApp.Version))"
+                            }
+                        } else {
+                            Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
+                            $downloadParameters.installedApps += $installedApp
+                        }
                     }
             }
 
