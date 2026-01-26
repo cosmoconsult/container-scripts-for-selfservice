@@ -103,7 +103,7 @@ try {
         Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Sorted.Count) manually sorted Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.Sorted += 
             $cosmoArtifacts.Artifacts.Sorted | 
-                Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Sorted -GroupByDependency -OneRunspace:$cosmoArtifacts.Download.NuGet @downloadParameters
+                Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Sorted -GroupByDependency @downloadParameters
 
         # Download unsorted Artifacts (Async) - Start
         Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Unsorted.Count) Artifacts (Async)"
@@ -112,7 +112,7 @@ try {
                 Group-Object -Property dependsOn | 
                 ForEach-Object {
                     # Download per dependency for separated indexes
-                    $_.Group | Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Unsorted -GroupByDependency -OneRunspace:$cosmoArtifacts.Download.NuGet @downloadParameters
+                    $_.Group | Invoke-DownloadArtifactAsync -Destination $cosmoArtifacts.Path.Unsorted -GroupByDependency @downloadParameters
                 }
 
         # Log
