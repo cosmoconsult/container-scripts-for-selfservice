@@ -250,7 +250,7 @@ try {
         -ExcludeApps     $ExcludeApps
 }
 catch {
-    Write-Host "Import Artifacts Error: $($_.Exception.Message)" -f Red
+    Add-ArtifactsLog -message "Import Artifacts Error: $($_.Exception.Message)" -severity Error
 }
 finally {
     Write-Host "Import Artifacts done."
