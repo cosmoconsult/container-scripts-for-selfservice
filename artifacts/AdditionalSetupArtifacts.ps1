@@ -435,9 +435,13 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     # special handling for modified base app
     if (![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)) {
-        Write-Host "Set application version to $($env:cosmoBaseAppVersion) as this is a modified base app"
-        Set-NAVApplication -ApplicationVersion "$($env:cosmoBaseAppVersion)" -ServerInstance BC -Force -ErrorAction Stop
-
+        if ($sysAppInfoFS.Version.Major -le 26) {
+            Write-Host "Set application version to $($env:cosmoBaseAppVersion) as this is a modified base app"
+            Set-NAVApplication -ApplicationVersion "$($env:cosmoBaseAppVersion)" -ServerInstance BC -Force -ErrorAction Stop
+        } else {
+            Write-Host "Not setting the application version as this is not support from version 27 on"
+        }
+        
         $collation = "Latin1_General_100_CI_AS"
         Write-Host "Change collation to $collation"
         $navDataFilePath = (Join-Path $volPath "export.navdata")
