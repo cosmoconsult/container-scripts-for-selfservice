@@ -13,3 +13,5 @@ foreach ($script in $scripts) {
         . ($script) -Silent:$silent
     }
 }
+
+Get-item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\" | Get-ChildItem -filter '*.dll' | ForEach-Object { Add-Type -Path $_.FullName -ErrorAction SilentlyContinue }
