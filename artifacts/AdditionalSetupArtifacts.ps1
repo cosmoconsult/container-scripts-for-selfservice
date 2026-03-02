@@ -102,8 +102,12 @@ if ($env:cosmoUpgradeSysApp) {
     Write-Host "  Install the new system application"
     Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Tenant $TenantId
 
-    Write-Host    "Set NAVApplication version '$($sysAppInfoFS.Version)' in Serverinstance 'BC'."
-    Set-NAVApplication -ApplicationVersion "$($sysAppInfoFS.Version)" -ServerInstance BC -Force -ErrorAction Stop
+    if ($sysAppInfoFS.Version.Major -le 26) {
+        Write-Host "Set NAVApplication version '$($sysAppInfoFS.Version)' in Serverinstance 'BC'."
+        Set-NAVApplication -ApplicationVersion "$($sysAppInfoFS.Version)" -ServerInstance BC -Force -ErrorAction Stop
+    } else {
+        Write-Host "Not setting the NAVApplication version as this is not support from version 27 on"
+    }
     Sync-NAVTenant -ServerInstance BC -Mode Sync -Force -ErrorAction Stop -Tenant $TenantId
     Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
     Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
