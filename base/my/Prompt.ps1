@@ -15,7 +15,15 @@ try {
         if (-not $silent) {
             Write-Host "Import Types"
         }
-        Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\" | Get-ChildItem -Filter '*.dll' | ForEach-Object { try { Add-Type -Path $_.FullName } catch {} }
+        $adminFolder = Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\"
+        $loadedAssemblyPaths = [System.AppDomain]::CurrentDomain.GetAssemblies() |
+            Where-Object { $_.Location } |
+            Select-Object -ExpandProperty Location
+        Get-ChildItem -Path $adminFolder.FullName -Filter '*.dll' |
+            Where-Object { $loadedAssemblyPaths -notcontains $_.FullName } |
+            ForEach-Object {
+                try { Add-Type -Path $_.FullName } catch {}
+            }
     }
 }
 catch {
