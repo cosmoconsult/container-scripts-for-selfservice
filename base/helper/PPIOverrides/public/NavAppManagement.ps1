@@ -22,6 +22,13 @@ if (! (Get-Module 'PPIPowershellCoreUtils')) {
     ) 
 
 if ($bcVersion.Major -ge 28) {
+    # Validate that PowerShell Core (pwsh) is available up front for the BC28+ path
+    try {
+        Get-Command pwsh -ErrorAction Stop | Out-Null
+    }
+    catch {
+        throw "PowerShell Core ('pwsh') is required but was not found. Ensure that PowerShell Core is installed and 'pwsh' is available on PATH."
+    }
     Invoke-PwshOverwriting -commandNames $commandNames
 }
 else {
