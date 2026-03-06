@@ -212,7 +212,7 @@ function Invoke-PwshOverwriting {
                 
                         Write-Verbose "[$cmdName] Reconstructed Parameters: $($ht | ConvertTo-Json -Compress)"
                 
-                        . c:\run\prompt.ps1
+                        . c:\run\prompt.ps1 -silent
                         & $cmdName @ht
                     } -args $paramsJson, $targetFunction
                 }
