@@ -226,6 +226,10 @@ function Invoke-PwshOverwriting {
             # Create the function in the script scope
             Set-Item -Path "function:script:$FunctionName" -Value $scriptBlock
         }
+
+        if (! (Get-Module 'Microsoft.Dynamics.Nav.Management')) {
+            gi "C:\Program Files\Microsoft Dynamics NAV\280\Service\Admin\NavAdminTool.ps1" | % { . $_ }
+        }
     }
     process {
         $functionNames = $commandNames
