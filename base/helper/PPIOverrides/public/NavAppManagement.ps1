@@ -9,23 +9,29 @@ if (! (Get-Module 'PPIPowershellCoreUtils')) {
     Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -Global -Force
 }
 
-# Create powershell core remote session (may enable remoting for powershell core)
-Get-PwshCoreSessionConfiguration | Out-Null
+ $commandNames = @(
+        'Get-NavAppRuntimePackage', 
+        'Install-NAVApp', 
+        'Invoke-InplacePublishing', 
+        'Publish-NAVApp', 
+        'Repair-NAVApp', 
+        'Start-NAVAppDataUpgrade', 
+        'Sync-NAVApp', 
+        'Uninstall-NAVApp', 
+        'Unpublish-NAVApp'
+    ) 
 
-$moduleName = 'Microsoft.BusinessCentral.Apps.Management'
-$moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
-$commandNames = @(
-    'Get-NavAppRuntimePackage', 
-    'Install-NAVApp', 
-    'Invoke-InplacePublishing', 
-    'Publish-NAVApp', 
-    'Repair-NAVApp', 
-    'Start-NAVAppDataUpgrade', 
-    'Sync-NAVApp', 
-    'Uninstall-NAVApp', 
-    'Unpublish-NAVApp'
-) 
+if ($bcVersion.Major -ge 28) {
+    Invoke-PwshOverwriting -commandNames $commandNames
+}
+else {
+    # Create powershell core remote session (may enable remoting for powershell core)
+    Get-PwshCoreSessionConfiguration | Out-Null
 
-$commandNames | ForEach-Object {
-    Export-PwshCoreOverride -CommandName $_ -ModuleName $moduleName -ModuleImportScriptBlock $moduleImportScriptBlock
+    $moduleName = 'Microsoft.BusinessCentral.Apps.Management'
+    $moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
+   
+    $commandNames | ForEach-Object {
+        Export-PwshCoreOverride -CommandName $_ -ModuleName $moduleName -ModuleImportScriptBlock $moduleImportScriptBlock
+    }
 }
