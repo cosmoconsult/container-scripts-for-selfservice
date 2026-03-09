@@ -99,8 +99,7 @@ function Invoke-PwshOverwriting {
         function New-PwshCoreWrapper {
             # Generic function factory
             param(
-                [string]$FunctionName,
-                [hashtable]$Parameters
+                [string]$FunctionName
             )
     
             $scriptBlock = {
@@ -240,7 +239,7 @@ function Invoke-PwshOverwriting {
         foreach ($functionName in $functionNames) {
             if ($functionParams[$functionName]) {
                 Write-Host "Creating wrapper for $functionName"
-                New-PwshCoreWrapper -FunctionName $functionName -Parameters $functionParams[$functionName]
+                New-PwshCoreWrapper -FunctionName $functionName
             }
         }
     }
