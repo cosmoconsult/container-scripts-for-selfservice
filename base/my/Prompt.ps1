@@ -8,33 +8,6 @@ $scripts = @(
     (Join-Path $PSScriptRoot "prompt.link.ps1")
 )
 
-try {
-    $ServerExe = Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Server.exe"
-    $serverVersion = [Version]$ServerExe.VersionInfo.FileVersion
-    if ($serverVersion.Major -ge 28 -and $PSSenderInfo) {
-        if (-not $silent) {
-            Write-Host "Import Types"
-        }
-        $adminFolder = Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\"
-        $loadedAssemblyPaths = [System.AppDomain]::CurrentDomain.GetAssemblies() |
-            Where-Object { $_.Location } |
-            Select-Object -ExpandProperty Location
-        Get-ChildItem -Path $adminFolder.FullName -Filter '*.dll' |
-            Where-Object { $loadedAssemblyPaths -notcontains $_.FullName } |
-            ForEach-Object {
-                try { Add-Type -Path $_.FullName } catch {}
-            }
-    }
-}
-catch {
-    if (-not $silent) {
-        Write-Warning "Unable to import types from NAV installation folder, some functionality may not work"
-        if ($_.Exception -and $_.Exception.Message) {
-            Write-Warning $_.Exception.Message
-        }
-    }
-}
-
 foreach ($script in $scripts) {
     if (Test-Path -Path $script) {
         . ($script) -Silent:$silent
