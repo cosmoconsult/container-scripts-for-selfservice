@@ -230,27 +230,11 @@ function Invoke-PwshOverwriting {
     process {
         $functionNames = $commandNames
         # Collect parameters for all functions we want to wrap
-        <#
-    $functionNames = @(
-        'Get-NavAppRuntimePackage', 
-        'Install-NAVApp', 
-        'Invoke-InplacePublishing', 
-        'Publish-NAVApp', 
-        'Repair-NAVApp', 
-        'Start-NAVAppDataUpgrade', 
-        'Sync-NAVApp', 
-        'Uninstall-NAVApp', 
-        'Unpublish-NAVApp'
-    )
-        #>
 
         $functionParams = @{}
         foreach ($functionName in $functionNames) {
             $functionParams[$functionName] = (Get-Command $functionName).Parameters
         }
-
-       
-   
 
         # Create wrapper functions for all target functions
         foreach ($functionName in $functionNames) {
