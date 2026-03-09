@@ -31,8 +31,7 @@ if ($bcVersion.Major -ge 28) {
     }
     Invoke-PwshOverwriting -commandNames $commandNames
     
-    Write-Host "Enabling PSRemoting for PowerShell Core (pwsh)"
-    pwsh -Command 'Enable-PSRemoting -wa SilentlyContinue'
+    Get-PwshCoreSessionConfiguration | Out-Null
 }
 else {
     # Create powershell core remote session (may enable remoting for powershell core)
