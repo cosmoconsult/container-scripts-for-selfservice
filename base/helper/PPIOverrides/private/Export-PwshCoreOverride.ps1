@@ -107,7 +107,7 @@ function Invoke-PwshOverwriting {
                 [CmdletBinding()]
                 param(
                     [Parameter(ValueFromRemainingArguments)]
-                    $RemainingArgs # Unused parameter to allow passing all args to pwsh without binding issues
+                    $RemainingArgs
                 )
         
                 dynamicparam {
@@ -119,7 +119,7 @@ function Invoke-PwshOverwriting {
             
                     # Build parameters from the stored function info
                     $commonParameters = [System.Management.Automation.PSCmdlet]::CommonParameters + [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
-                    $commandParams[$targetFunction].Values | Where-Object { $_.Name -notin $commonParameters } | ForEach-Object {
+                    $functionParams[$targetFunction].Values | Where-Object { $_.Name -notin $commonParameters } | ForEach-Object {
                         $paramInfo = $_
                 
                         $attributes = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
