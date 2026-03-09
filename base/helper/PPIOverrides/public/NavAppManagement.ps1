@@ -30,6 +30,9 @@ if ($bcVersion.Major -ge 28) {
         throw "PowerShell Core ('pwsh') is required but was not found. Ensure that PowerShell Core is installed and 'pwsh' is available on PATH."
     }
     Invoke-PwshOverwriting -commandNames $commandNames
+    
+    Write-Host "Enabling PSRemoting for PowerShell Core (pwsh)"
+    pwsh -Command 'Enable-PSRemoting -wa SilentlyContinue'
 }
 else {
     # Create powershell core remote session (may enable remoting for powershell core)
