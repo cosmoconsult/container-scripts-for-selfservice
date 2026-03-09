@@ -30,6 +30,8 @@ if ($bcVersion.Major -ge 28) {
         throw "PowerShell Core ('pwsh') is required but was not found. Ensure that PowerShell Core is installed and 'pwsh' is available on PATH."
     }
     Invoke-PwshOverwriting -commandNames $commandNames
+    
+    Get-PwshCoreSessionConfiguration | Out-Null
 }
 else {
     # Create powershell core remote session (may enable remoting for powershell core)
