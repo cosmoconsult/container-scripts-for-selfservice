@@ -56,8 +56,17 @@ function Invoke-NuGetPackageDownload() {
             if ($Version) {
                 if ($Version -match $versionPattern) {
                     # Convert NuGet version to a range (from version, to excl. version + 1)
-                    $fromVersion  = '{0}{1}' -f $matches.version, $matches.prerelease
-                    $toVersion    = '{0}{1}' -f ( $matches.version -replace '\d+$', ( [int]$matches.version.Split('.')[-1] + 1 ) ), $matches.prerelease
+                    # Increment the last version part to create upper bound
+                    $versionParts = $matches.version.Split('.')
+                    $toVersionParts = $versionParts.Clone()
+                    $toVersionParts[-1] = [string]([int]$toVersionParts[-1] + 1)
+                    
+                    # Normalize both from and to versions to ensure at least major.minor format for System.Version compatibility
+                    $fromVersionNormalized = if ($versionParts.Count -eq 1) { "{0}.0" -f $versionParts[0] } else { $matches.version }
+                    $toVersionNormalized = if ($toVersionParts.Count -eq 1) { "{0}.0" -f $toVersionParts[0] } else { $toVersionParts -join '.' }
+                    
+                    $fromVersion  = '{0}{1}' -f $fromVersionNormalized, $matches.prerelease
+                    $toVersion    = '{0}{1}' -f $toVersionNormalized, $matches.prerelease
                     $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
                     Write-Host "Converted version '$Version' to NuGet version range '$versionRange'"
                 } else {
@@ -75,20 +84,24 @@ function Invoke-NuGetPackageDownload() {
             }
 
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
-                Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
+                $installedApps = Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
                     ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
                     ForEach-Object {
-                        $installedApp = [PSCustomObject]@{
+                        [PSCustomObject]@{
                             Package   = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
                             Name      = $_.Name
                             Publisher = $_.Publisher
                             Id        = $_.AppId
                             Version   = $_.Version
                         }
-
-                        Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
-                        $downloadParameters.installedApps += $installedApp
+                    } |
+                    Group-Object -Property Id |
+                    ForEach-Object {
+                        $highestVersion = $_.Group | Sort-Object -Property { [Version]$_.Version } -Descending | Select-Object -First 1
+                        Write-Host "Use app file as installed app: $($highestVersion.Package) (version: $($highestVersion.Version))"
+                        $highestVersion
                     }
+                $downloadParameters.installedApps = @($installedApps)
             }
 
             foreach ($predefinedPackage in $PredefinedPackages) {
