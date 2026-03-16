@@ -18,6 +18,7 @@ if (! (Get-Module 'PPIPowershellCoreUtils')) {
         'Start-NAVAppDataUpgrade', 
         'Sync-NAVApp', 
         'Uninstall-NAVApp', 
+        'Mount-NAVTenant',
         'Unpublish-NAVApp'
     ) 
 
