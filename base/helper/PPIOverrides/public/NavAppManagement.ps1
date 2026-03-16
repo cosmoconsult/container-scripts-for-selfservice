@@ -18,7 +18,6 @@ if (! (Get-Module 'PPIPowershellCoreUtils')) {
         'Start-NAVAppDataUpgrade', 
         'Sync-NAVApp', 
         'Uninstall-NAVApp', 
-        'Mount-NAVTenant',
         'Unpublish-NAVApp'
     ) 
 
@@ -44,4 +43,6 @@ else {
     $commandNames | ForEach-Object {
         Export-PwshCoreOverride -CommandName $_ -ModuleName $moduleName -ModuleImportScriptBlock $moduleImportScriptBlock
     }
+
+    Export-PwshCoreOverride -CommandName 'Mount-NAVTenant' -ModuleName 'Microsoft.BusinessCentral.Management' -ModuleImportScriptBlock $moduleImportScriptBlock
 }
