@@ -10,7 +10,6 @@
 
 # Artifact Handling functions
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-AppFilesSortedByDependencies.ps1")
-. (Join-Path $PSScriptRoot "ArtifactHandling/Get-PackageVersion.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifact.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifactCore.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Resolve-DownloadArtifact.ps1")
