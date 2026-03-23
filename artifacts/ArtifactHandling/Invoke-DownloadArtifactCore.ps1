@@ -124,6 +124,7 @@ function Invoke-DownloadArtifactCore {
                             $invokeWebRequestSplat += @{
                                 Headers     = $headers
                                 Method      = 'Post'
+                                ContentType = 'application/json'
                                 Body        = ($artifactRequest | ConvertTo-Json -Compress)
                             }
                         }
