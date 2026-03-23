@@ -37,7 +37,7 @@ function Invoke-DownloadArtifactCore {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
 
-        $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
+        $headers = @{ "Authorization" = "Bearer $($accessToken)"; }
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
         $rootFolder = $destination
