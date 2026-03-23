@@ -37,7 +37,7 @@ function Invoke-DownloadArtifactCore {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
 
-        $headers = @{ "Authorization" = "Bearer $($accessToken)"; }
+        $headers = @{ "Authorization" = "Bearer $($accessToken)"; "Collection-URI" = "https://dev.azure.com/$($env:CcOrgName)/" }
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
         $rootFolder = $destination
@@ -121,7 +121,6 @@ function Invoke-DownloadArtifactCore {
                             UseBasicParsing = $true
                         }
                         if ("$sourceUri".StartsWith("$baseUrl")) {
-                            $Headers += @{ "Collection-URI" = "https://dev.azure.com/$($env:CcOrgName)/"}
                             $invokeWebRequestSplat += @{
                                 Headers     = $headers
                                 Method      = 'Post'
@@ -130,7 +129,7 @@ function Invoke-DownloadArtifactCore {
                         }
                         else {
                             $invokeWebRequestSplat += @{ Method = 'Get' }
-                            New-ArtifactsLogEntry -Message "External artifact URL detected, ignoring Authorization header" -Severity Debug
+                                New-ArtifactsLogEntry -Message "External artifact URL detected, ignoring Authorization header" -Severity Debug
                             }
                         $response = Invoke-WebRequest @invokeWebRequestSplat
 
