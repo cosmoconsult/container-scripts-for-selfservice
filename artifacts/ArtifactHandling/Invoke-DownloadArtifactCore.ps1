@@ -72,7 +72,6 @@ function Invoke-DownloadArtifactCore {
                 $pat = $accessToken
             }
             if (($type.ToLower() -eq "upack") -OR (!$type)) {
-                New-ArtifactsLogEntry -Message "Get Artifact $($name)..."
                 if ("$scope" -eq "") { $scope = "project" }
                 $artifactRequest = @{
                     scope        = $scope
@@ -99,17 +98,17 @@ function Invoke-DownloadArtifactCore {
             elseif ($isDownload) {
                 $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
                 if ($url_output.Length -gt 1) {
-                    Write-Host "##[section]Download Artifact from $($url_output[0])"
-                    New-ArtifactsLogEntry -Message "Download Artifact from $($url_output[0])&pat=***"
+                    Write-Host "##[section]Download Artifact $name from $($url_output[0])"
+                    New-ArtifactsLogEntry -Message "Download Artifact $name from $($url_output[0])&pat=***"
                 }
                 else {
-                    Write-Host "##[section]Download Artifact from $sourceUri"
-                    New-ArtifactsLogEntry -Message "Download Artifact from $($sourceUri)"
+                    Write-Host "##[section]Download Artifact $name from $sourceUri"
+                    New-ArtifactsLogEntry -Message "Download Artifact $name from $($sourceUri)"
                 }
             }
             else {
-                Write-Host "##[section]Copy Artifact from $sourceUri"
-                New-ArtifactsLogEntry -Message "Copy Artifact from $sourceUri"
+                Write-Host "##[section]Copy Artifact $name from $sourceUri"
+                New-ArtifactsLogEntry -Message "Copy Artifact $name from $sourceUri"
             }
 
             try {
