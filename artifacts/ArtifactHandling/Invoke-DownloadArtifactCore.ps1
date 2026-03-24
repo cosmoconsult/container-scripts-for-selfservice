@@ -225,6 +225,8 @@ function Invoke-DownloadArtifactCore {
                         }
                     }
 
+                    $versionStr = if ("$version" -ne "") { " v$version" } else { "" }
+
                     if ($isNuGet) {
                         $nuGetParameters = @{
                             Destination        = $folder
@@ -256,7 +258,7 @@ function Invoke-DownloadArtifactCore {
                                 }
                             }
                     } elseif ($isArchive) {
-                        New-ArtifactsLogEntry -Message "Extract Artifact $name v $version to $($folder)..."
+                        New-ArtifactsLogEntry -Message "Extract Artifact $name$versionStr to $($folder)..."
                         Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force 
                         if ($cosmoArtifactType.Count -gt 0) {
                             New-ArtifactsLogEntry -Message "Artifact has type selection: $([string]::Join(",", $cosmoArtifactType))"
@@ -270,7 +272,7 @@ function Invoke-DownloadArtifactCore {
                         }
                     }
                     else {
-                        New-ArtifactsLogEntry -Message "Copy Artifact '$sourceUri' ($name v $version) to $($folder)..."
+                        New-ArtifactsLogEntry -Message "Copy Artifact '$sourceUri' ($name$versionStr) to $($folder)..."
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force | Out-Null
                         Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
                     }
@@ -299,7 +301,7 @@ function Invoke-DownloadArtifactCore {
                     }
                     
                     New-ArtifactsLogEntry -Message "  Downloaded Files ($folder):"
-                    New-ArtifactsLogEntry -Message "$((Get-ChildItem $folder -Recurse) | 
+                    New-ArtifactsLogEntry -Message "$((Get-ChildItem $folder -Recurse -File) | 
                         Select-Object FullName, Length | 
                         Format-Table -AutoSize -Wrap:$false | 
                         Out-String -Width 1024)"
