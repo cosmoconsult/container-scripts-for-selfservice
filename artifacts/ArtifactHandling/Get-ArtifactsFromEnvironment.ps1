@@ -62,7 +62,7 @@ function Get-ArtifactsFromEnvironment {
                     $artifactJson = '{"artifacts":[]}'
                 }
 
-                Write-Host "Artifacts: $artifactJson"
+                Write-Host "Artifacts: $($artifactJson -replace '("pat": ")(.*)(")','$1***REDACTED***$3')" # hide pat in logs
                 $envArtifacts = ($artifactJson | ConvertFrom-Json -ErrorAction SilentlyContinue)
                 $artifacts = $envArtifacts.artifacts
                 if (! $artifacts) {
