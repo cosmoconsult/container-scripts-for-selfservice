@@ -36,6 +36,7 @@ function Invoke-DownloadArtifactCore {
         if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
+        $baseUrl = "https://ppi-demo.westeurope.cloudapp.azure.com" # TODO remove
 
         $headers = @{ "Authorization" = "Bearer $($accessToken)"; "Collection-URI" = "https://dev.azure.com/$($env:CcOrgName)/" }
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
