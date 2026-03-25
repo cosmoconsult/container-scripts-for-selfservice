@@ -91,20 +91,14 @@ function Invoke-DownloadArtifactCore {
         $isDownload = "$sourceUri".StartsWith("http")
         $isArchive = "$sourceUri".EndsWith(".zip")
         if ($sourceUri -or $isNuGet) {
+            $safeUri = "$sourceUri" -replace '([?&]pat=)[^&]*', '$1***REDACTED***' # hide pat in logs
             if ($isNuGet) {
                 Write-Host "##[section]Download Artifact from NuGet package $name"
                 New-ArtifactsLogEntry -Message "Download Artifact from NuGet package $name"
             }
             elseif ($isDownload) {
-                $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
-                if ($url_output.Length -gt 1) {
-                    Write-Host "##[section]Download Artifact $name from $($url_output[0])"
-                    New-ArtifactsLogEntry -Message "Download Artifact $name from $($url_output[0])&pat=***"
-                }
-                else {
-                    Write-Host "##[section]Download Artifact $name from $sourceUri"
-                    New-ArtifactsLogEntry -Message "Download Artifact $name from $($sourceUri)"
-                }
+                Write-Host "##[section]Download Artifact $name from $safeUri"
+                New-ArtifactsLogEntry -Message "Download Artifact $name from $safeUri"
             }
             else {
                 Write-Host "##[section]Copy Artifact $name from $sourceUri"
@@ -312,7 +306,7 @@ function Invoke-DownloadArtifactCore {
                     $success = $false
                 }
 
-                $properties = @{"organization" = $organization; "project" = $project; "feed" = $feed; "name" = $name; "scope" = $scope; "view" = $view; "protocolType" = $type; "url" = $url_output }
+                $properties = @{"organization" = $organization; "project" = $project; "feed" = $feed; "name" = $name; "scope" = $scope; "view" = $view; "protocolType" = $type; "url" = $safeUri }
                 New-RequestTelemetry -Name "Download Artifact" -Success $success -StartTime $startTime -Properties $properties
             }
             catch { 
