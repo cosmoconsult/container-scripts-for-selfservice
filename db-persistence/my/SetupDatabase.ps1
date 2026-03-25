@@ -87,6 +87,40 @@ elseif (($volPath -ne "") -and (Test-Path $volPath)) {
     }
     else {
         $databases = (Get-ChildItem $volPath -Directory -Exclude ALAssemblies).BaseName
+        $appDatabaseName = Get-AppDatabaseName
+
+        # In multitenant mode the app database is expected to be 'default'.
+        # Some historical setups persist only CRONUS in volPath on first boot,
+        # so we reconstruct the missing default folder before attaching.
+        if (($appDatabaseName -eq 'default') -and ($databases -notcontains 'default')) {
+            $rebuildSource = $null
+            if ($databases -contains 'tenant') {
+                $rebuildSource = 'tenant'
+            }
+            elseif ($databases -contains 'CRONUS') {
+                $rebuildSource = 'CRONUS'
+            }
+
+            if (! $rebuildSource) {
+                throw "Expected app database folder 'default' is missing in '$volPath' and no source (tenant/CRONUS) is available to rebuild it."
+            }
+
+            $sourcePath = Join-Path $volPath $rebuildSource
+            $defaultPath = Join-Path $volPath 'default'
+            Write-Warning "App database folder 'default' is missing in '$volPath'. Rebuilding from '$rebuildSource'."
+            New-Item -Path $defaultPath -ItemType Directory -Force | Out-Null
+            Copy-Item -Path (Join-Path $sourcePath '*') -Destination $defaultPath -Recurse -Force
+
+            # Avoid attaching CRONUS when default was reconstructed from CRONUS,
+            # because both copies may contain identical metadata/logical file names.
+            if ($rebuildSource -eq 'CRONUS') {
+                $databases = @($databases | Where-Object { $_ -ne 'CRONUS' })
+            }
+
+            $databases = (Get-ChildItem $volPath -Directory -Exclude ALAssemblies).BaseName
+        }
+
+        Write-Host ("Databases discovered in volume: {0}" -f ($databases -join ', '))
 
         foreach ($database in $databases) {
             # folder is not empty, attach the database
@@ -102,7 +136,11 @@ elseif (($volPath -ne "") -and (Test-Path $volPath)) {
             & sqlcmd -Q $sqlcmd -S "$DatabaseServer\$DatabaseInstance"
         }
 
-        $appDatabaseName = Get-AppDatabaseName
+        Write-Host "Expected app database from configuration: $appDatabaseName"
+
+        if ($databases -notcontains $appDatabaseName) {
+            throw "Expected app database '$appDatabaseName' is not attached. Attached databases: $($databases -join ', ')."
+        }
 
         Write-Host "Check database $appDatabaseName and container version to identify need for upgrade"
         $sysAppPath = 'C:\Applications\system application\source\Microsoft_System Application.app'
@@ -121,7 +159,7 @@ elseif (($volPath -ne "") -and (Test-Path $volPath)) {
                 $sysAppInfoFS
                 Write-Host "  Found in DB:"
                 $sysAppInfoDB
-                Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
+                Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$appDatabaseName" -Force
                 $env:cosmoUpgradeSysApp = $true
             }
             else {
@@ -135,7 +173,7 @@ elseif (($volPath -ne "") -and (Test-Path $volPath)) {
                 }
                 elseif ($sysAppVersionFS_NoRev -gt $sysAppVersionDB_NoRev) {
                     Write-Host "  Container version is newer than database version, trying to convert"
-                    Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
+                    Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$appDatabaseName" -Force
                     $env:cosmoUpgradeSysApp = $true
                 }
                 else {
