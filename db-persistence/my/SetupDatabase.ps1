@@ -32,7 +32,7 @@ elseif (($volPath -ne "") -and (Test-Path $volPath)) {
         $smo = new-object Microsoft.SqlServer.Management.SMO.Server($sqlConn)
         
         $smo.Databases | ForEach-Object {
-            if ($_.Name -ne 'master' -and $_.Name -ne 'model' -and $_.Name -ne 'msdb' -and $_.Name -ne 'tempdb' -and $_.Name -ne 'tenant') {
+            if ($_.Name -ne 'master' -and $_.Name -ne 'model' -and $_.Name -ne 'msdb' -and $_.Name -ne 'tempdb') {
                 if (($bakfile -ne "") -and $_.Name -eq 'CRONUS') {
                     return; # don't restore CRONUS if we have provided our own bak
                 }
@@ -90,32 +90,18 @@ elseif (($volPath -ne "") -and (Test-Path $volPath)) {
         $appDatabaseName = Get-AppDatabaseName
 
         # In multitenant mode the app database is expected to be 'default'.
-        # Some historical setups persist only CRONUS in volPath on first boot,
-        # so we reconstruct the missing default folder before attaching.
+        # 'default' is not persisted directly; instead 'tenant' is persisted and used to
+        # reconstruct 'default' on restart (mirroring what standard BC navstart does on first start).
         if (($appDatabaseName -eq 'default') -and ($databases -notcontains 'default')) {
-            $rebuildSource = $null
-            if ($databases -contains 'tenant') {
-                $rebuildSource = 'tenant'
-            }
-            elseif ($databases -contains 'CRONUS') {
-                $rebuildSource = 'CRONUS'
+            if ($databases -notcontains 'tenant') {
+                throw "App database 'default' is missing in '$volPath' and 'tenant' is not available as a rebuild source. The database volume may be incomplete."
             }
 
-            if (! $rebuildSource) {
-                throw "Expected app database folder 'default' is missing in '$volPath' and no source (tenant/CRONUS) is available to rebuild it."
-            }
-
-            $sourcePath = Join-Path $volPath $rebuildSource
+            $sourcePath = Join-Path $volPath 'tenant'
             $defaultPath = Join-Path $volPath 'default'
-            Write-Warning "App database folder 'default' is missing in '$volPath'. Rebuilding from '$rebuildSource'."
+            Write-Host "App database 'default' not found in volume; reconstructing from 'tenant'."
             New-Item -Path $defaultPath -ItemType Directory -Force | Out-Null
             Copy-Item -Path (Join-Path $sourcePath '*') -Destination $defaultPath -Recurse -Force
-
-            # Avoid attaching CRONUS when default was reconstructed from CRONUS,
-            # because both copies may contain identical metadata/logical file names.
-            if ($rebuildSource -eq 'CRONUS') {
-                $databases = @($databases | Where-Object { $_ -ne 'CRONUS' })
-            }
 
             $databases = (Get-ChildItem $volPath -Directory -Exclude ALAssemblies).BaseName
         }
