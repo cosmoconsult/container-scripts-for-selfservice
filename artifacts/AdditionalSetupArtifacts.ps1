@@ -192,8 +192,14 @@ if ($env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     }
     $files = Get-DemoDataFiles
     foreach ($demoDataFile in $files) {
-        $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
-        "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
+        $useResolvedDemoData = ($demoDataFile.PSObject.Properties.Name -contains 'AssetName') -and ($demoDataFile.FullName -like 'resolved://*')
+        $demoDataFileName = if ($useResolvedDemoData) { $demoDataFile.AssetName } else { $demoDataFile.Name }
+        if ($useResolvedDemoData) {
+            "  Using resolved demo data resource {0}" -f $demoDataFile.AssetName | Write-Host
+        }
+        else {
+            "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host
+        }
         if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
             $companyName = $Matches[1]
             Write-Host "  Create company $companyName"

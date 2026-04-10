@@ -99,6 +99,8 @@ function Invoke-4PSArtifactHandling {
                 $files = Get-DemoDataFiles
                 foreach ($demoDataFile in $files) {
                     $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
+                    $useResolvedDemoData = ($demoDataFile.PSObject.Properties.Name -contains 'AssetName') -and ($demoDataFile.FullName -like 'resolved://*')
+                    $demoDataArgument = if ($useResolvedDemoData) { $demoDataFile.AssetName } else { $demoDataFile.Name }
                     "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
                     if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
                         $companyName = $Matches[1]
@@ -112,13 +114,24 @@ function Invoke-4PSArtifactHandling {
                             -TimeZone ServicesDefaultTimeZone `
                             -ErrorAction SilentlyContinue 
                         
-                        Write-Host "    Import setup data from XML file"
-                        Invoke-NavCodeunit `
-                            -ServerInstance BC `
-                            -CompanyName $companyName `
-                            -CodeunitId 11012251 `
-                            -MethodName ImportDemoData `
-                            -Argument "$($demoDataFile.FullName)"
+                        if ($useResolvedDemoData) {
+                            Write-Host "    Import setup data from resolved demo data resource"
+                            Invoke-NavCodeunit `
+                                -ServerInstance BC `
+                                -CompanyName $companyName `
+                                -CodeunitId 50189 `
+                                -MethodName ImportDemoDataFromResource `
+                                -Argument "$demoDataArgument"
+                        }
+                        else {
+                            Write-Host "    Import setup data from XML file"
+                            Invoke-NavCodeunit `
+                                -ServerInstance BC `
+                                -CompanyName $companyName `
+                                -CodeunitId 11012251 `
+                                -MethodName ImportDemoData `
+                                -Argument "$($demoDataFile.FullName)"
+                        }
                         
                         if ($use4PSContainerInitializer) {
                             if ($sysAppInfoFS.Version.Major -le 20) {
