@@ -21,10 +21,10 @@ function Get-DemoDataFiles {
         }
 
         Write-Host "found Cosmoartifacts variable: $($global:cosmoArtifacts -ne $null)"
-        $global:cosmoArtifacts.Artifacts.All | ForEach-Object { Write-Host " Artifact: $_" }
+        $global:cosmoArtifacts.Artifacts.demodata | ForEach-Object { Write-Host " Artifact: $_" }
         $resolvedArtifacts = @()
-        if ($global:cosmoArtifacts -and $global:cosmoArtifacts.Artifacts -and $global:cosmoArtifacts.Artifacts.All) {
-            $resolvedArtifacts = @($global:cosmoArtifacts.Artifacts.All | Where-Object { $_.target -eq 'demodata' })
+        if ($global:cosmoArtifacts -and $global:cosmoArtifacts.Artifacts -and $global:cosmoArtifacts.Artifacts.demodata) {
+            $resolvedArtifacts = @($global:cosmoArtifacts.Artifacts.demodata | Where-Object { $_.target -eq 'demodata' })
         }
 
         Write-Host "Found $($resolvedArtifacts.Count) demo data artifacts from artifact resolution"
