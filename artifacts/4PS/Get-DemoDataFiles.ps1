@@ -24,6 +24,9 @@ function Get-DemoDataFiles {
         if ($global:cosmoArtifacts -and $global:cosmoArtifacts.Artifacts -and $global:cosmoArtifacts.Artifacts.All) {
             $resolvedArtifacts = @($global:cosmoArtifacts.Artifacts.All | Where-Object { $_.target -eq 'demodata' })
         }
+
+        Write-Host "Found $($resolvedArtifacts.Count) demo data artifacts from artifact resolution"
+        $resolvedArtifacts | ForEach-Object { Write-Host " $_" }
         
         $files = $resolvedArtifacts |
             ForEach-Object {
