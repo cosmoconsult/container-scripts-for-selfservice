@@ -23,7 +23,7 @@ function Get-AzureDevOpsAccessToken {
             $accessToken64 = @($env:AZURE_DEVOPS_TOKEN64, $env:AZURE_DEVOPS_EXT_PAT64, $env:AZP_TOKEN64, $env:AZURE_DEVOPS_PAT64) | 
                 Where-Object { $_ } | 
                 Select-Object -First 1
-            if (! $accessToken64) {
+            if ($accessToken64) {
                 try {
                     $AccessToken = [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String("$accessToken64"))
                 }
