@@ -20,6 +20,8 @@ function Get-DemoDataFiles {
             return $files
         }
 
+        Write-Host "found Cosmoartifacts variable: $($global:cosmoArtifacts -ne $null)"
+        $global:cosmoArtifacts.Artifacts.All
         $resolvedArtifacts = @()
         if ($global:cosmoArtifacts -and $global:cosmoArtifacts.Artifacts -and $global:cosmoArtifacts.Artifacts.All) {
             $resolvedArtifacts = @($global:cosmoArtifacts.Artifacts.All | Where-Object { $_.target -eq 'demodata' })
