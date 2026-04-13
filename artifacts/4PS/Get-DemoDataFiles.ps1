@@ -62,7 +62,7 @@ function Get-DemoDataFiles {
                 return @()
             }
 
-            $configObject = $response.Content | ConvertFrom-Json -Depth 50
+            $configObject = $response.Content | ConvertFrom-Json
             $demoDataItems = @()
 
             # Look for demo data in bcArtifacts.current.ipArtifacts
