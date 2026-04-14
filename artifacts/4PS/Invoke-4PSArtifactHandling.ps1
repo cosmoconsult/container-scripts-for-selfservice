@@ -80,7 +80,8 @@ function Invoke-4PSArtifactHandling {
                         Write-Error "Container seems to have a version where we don't have a matching initializer app: $($sysAppInfoFS.Version.Major).$($sysAppInfoFS.Version.Minor)"
                     }
 
-                    $initializerPath = "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app"
+                    $initializerPath = "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_Test.app"
+                    #$initializerPath = "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app"
                     if (-not (Test-Path $initializerPath)) {
                         Write-Error "Couldn't find the expected initializer app at $initializerPath"
                     }
