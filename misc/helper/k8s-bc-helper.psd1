@@ -28,7 +28,8 @@
     NestedModules     = @('Backup-Databases.psm1',
         'Copy-EventLog.psm1',
         'Install-Prerequisites.psm1',
-        'Get-ExtendedErrorMessage.psm1')
+        'Get-ExtendedErrorMessage.psm1',
+        'Get-AppInfo.psm1')
 
     # Functions to export from this module
     FunctionsToExport = '*'

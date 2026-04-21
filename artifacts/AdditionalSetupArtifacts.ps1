@@ -102,8 +102,12 @@ if ($env:cosmoUpgradeSysApp) {
     Write-Host "  Install the new system application"
     Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Tenant $TenantId
 
-    Write-Host    "Set NAVApplication version '$($sysAppInfoFS.Version)' in Serverinstance 'BC'."
-    Set-NAVApplication -ApplicationVersion "$($sysAppInfoFS.Version)" -ServerInstance BC -Force -ErrorAction Stop
+    if ($sysAppInfoFS.Version.Major -le 26) {
+        Write-Host "Set NAVApplication version '$($sysAppInfoFS.Version)' in Serverinstance 'BC'."
+        Set-NAVApplication -ApplicationVersion "$($sysAppInfoFS.Version)" -ServerInstance BC -Force -ErrorAction Stop
+    } else {
+        Write-Host "Not setting the NAVApplication version as this is not supported from version 27 onward"
+    }
     Sync-NAVTenant -ServerInstance BC -Mode Sync -Force -ErrorAction Stop -Tenant $TenantId
     Start-NAVDataUpgrade -SkipUserSessionCheck -FunctionExecutionMode Serial -ServerInstance BC -SkipAppVersionCheck -Force -ErrorAction Stop -Tenant $TenantId
     Wait-DataUpgradeToFinish -ServerInstance BC -ErrorAction Stop -Tenant $TenantId
@@ -250,7 +254,7 @@ try {
         -ExcludeApps     $ExcludeApps
 }
 catch {
-    Write-Host "Import Artifacts Error: $($_.Exception.Message)" -f Red
+    Add-ArtifactsLog -message "Import Artifacts Error: $($_.Exception.Message)" -severity Error
 }
 finally {
     Write-Host "Import Artifacts done."
@@ -431,10 +435,14 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     # special handling for modified base app
     if (![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)) {
+        if ($sysAppInfoFS.Version.Major -le 26) {
         Write-Host "Set application version to $($env:cosmoBaseAppVersion) as this is a modified base app"
         Set-NAVApplication -ApplicationVersion "$($env:cosmoBaseAppVersion)" -ServerInstance BC -Force -ErrorAction Stop
-
-        $collation = "Latin1_General_100_CI_AS"
+    } else {
+        Write-Host "Not setting the application version as this is not supported from version 27 onward"
+    }
+        
+    $collation = "Latin1_General_100_CI_AS"
         Write-Host "Change collation to $collation"
         $navDataFilePath = (Join-Path $volPath "export.navdata")
         Write-Host "Export NAVData"
