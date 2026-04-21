@@ -184,6 +184,14 @@ $invokeWebRequestSplat = @{
                                 $fileType = 'zip'
                                 break
                             }
+                            { $contentDisposition -and $contentDisposition.EndsWith(".rapidstart") } {
+                                $fileType = 'file'
+                                break
+                            }
+                            { "$sourceUri".Split('?')[0].EndsWith(".rapidstart") } {
+                                $fileType = 'file'
+                                break
+                            }
                             Default {
                                 New-ArtifactsLogEntry -Message "Unknown file type detected" -Severity Warn
                                 $fileType = 'unknown'
@@ -192,6 +200,11 @@ $invokeWebRequestSplat = @{
                         switch ($fileType) {
                             'app' {
                                 $destinationPath = $tempApp
+                                $isArchive = $false
+                            }
+                            'file' {
+                                $extension = [System.IO.Path]::GetExtension("$sourceUri".Split('?')[0])
+                                $destinationPath = "$([System.IO.Path]::GetTempFileName())$extension"
                                 $isArchive = $false
                             }
                             Default {
