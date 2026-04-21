@@ -7,7 +7,7 @@ function HandleIssue {
     }
     else {
         Invoke-LogEvent -name "SetupLicense, BC Service is not running, but this is NOT a OnPrem 26.2 W1 container" -telemetryClient $telemetryClient
-        Write-Error "BC Service is not running, but this is NOT a OnPrem 26.2 W1 container. Doing nothing and hoping for the best."
+        Write-Error "BC Service is not running, but this is NOT a OnPrem 26.2 W1 container. Proceeding with default license setup and hoping for the best."
     }
 }
 
