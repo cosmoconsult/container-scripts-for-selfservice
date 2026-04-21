@@ -235,11 +235,12 @@ $invokeWebRequestSplat = @{
                     }
 
                     switch ("$target".ToLower()) {
-                        "dll"      { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
-                        "add-ins"  { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
-                        "font"     { $folder = "c:/fonts" }
-                        "fonts"    { $folder = "c:/fonts" }
-                        "demodata" { $folder = "c:/demodata" }
+                        "dll"         { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
+                        "add-ins"     { $folder = "$serviceTierFolder/Add-Ins/$folderSuffix" }
+                        "font"        { $folder = "c:/fonts" }
+                        "fonts"       { $folder = "c:/fonts" }
+                        "demodata"    { $folder = "c:/demodata" }
+                        "rapidstart"  { $folder = Join-Path ([System.IO.Path]::GetTempPath()) "rapidstart/$folderSuffix" }
                         default    {
                             if (! $groupByDependency) {
                                 $folder = Join-Path $rootFolder "/$folderSuffix"

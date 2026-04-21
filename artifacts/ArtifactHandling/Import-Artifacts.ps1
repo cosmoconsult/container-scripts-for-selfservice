@@ -150,9 +150,13 @@ function Import-Artifacts {
         }
 
         # Import RapidStart packages
+        $rapidStartPath = Join-Path ([System.IO.Path]::GetTempPath()) "rapidstart"
         $items = @()
+        if (Test-Path -LiteralPath $rapidStartPath) {
+            $items += @(Get-ChildItem -LiteralPath $rapidStartPath -Depth $maxDepth -Filter "*.rapidstart" -Recurse -ErrorAction SilentlyContinue)
+        }
         if (Test-Path -LiteralPath "$Path") {
-            $items = @() + (Get-ChildItem -LiteralPath "$Path" -Depth $maxDepth -Filter "*.rapidstart" -Recurse -ErrorAction SilentlyContinue)
+            $items += @(Get-ChildItem -LiteralPath "$Path" -Depth $maxDepth -Filter "*.rapidstart" -Recurse -ErrorAction SilentlyContinue)
         }
         if ($items) {
             try {

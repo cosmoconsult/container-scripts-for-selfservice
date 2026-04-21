@@ -16,13 +16,14 @@ try {
             Sorted   = "C:\run\my\manuallysorted-apps";
         };
         Artifacts = @{
-            All      = @();
-            Unsorted = @();
-            Sorted   = @();
-            Backup   = @();
-            Font     = @();
-            AddIn    = @();
-            Demodata = @();
+            All        = @();
+            Unsorted   = @();
+            Sorted     = @();
+            Backup     = @();
+            Font       = @();
+            AddIn      = @();
+            Demodata   = @();
+            RapidStart = @();
         };
     }
 
@@ -39,8 +40,9 @@ try {
             if     ( $_.target -in @( "bak", "saasbak" ) )          { $cosmoArtifacts.Artifacts.Backup   += $_ }
             elseif ( $_.target -in @( "fonts", "font" ) )           { $cosmoArtifacts.Artifacts.Font     += $_ }
             elseif ( $_.target -in @( "add-ins", "dll" ) )          { $cosmoArtifacts.Artifacts.AddIn    += $_ }
-            elseif ( $_.target -in @( "demodata" ) )                { $cosmoArtifacts.Artifacts.Demodata += $_ }
-            elseif ( $_.name -and $_.name.StartsWith("sortorder") ) { $cosmoArtifacts.Artifacts.Sorted   += $_ }
+            elseif ( $_.target -in @( "demodata" ) )                { $cosmoArtifacts.Artifacts.Demodata   += $_ }
+            elseif ( $_.target -in @( "rapidstart" ) )             { $cosmoArtifacts.Artifacts.RapidStart += $_ }
+            elseif ( $_.name -and $_.name.StartsWith("sortorder") ) { $cosmoArtifacts.Artifacts.Sorted      += $_ }
             else                                                    { $cosmoArtifacts.Artifacts.Unsorted += $_ }
 
             if ($_.type -eq "nuget") {
@@ -77,12 +79,13 @@ try {
 
         # Add Runspaces to Cosmo Artifacts object
         $cosmoArtifacts.Download.Runspaces = @{
-            Unsorted = @();
-            Sorted   = @();
-            Backup   = @();
-            Font     = @();
-            AddIn    = @();
-            Demodata = @();
+            Unsorted   = @();
+            Sorted     = @();
+            Backup     = @();
+            Font       = @();
+            AddIn      = @();
+            Demodata   = @();
+            RapidStart = @();
         }
 
         # Download Add-In, Font and Demodata Artifacts (Async) - Start
@@ -97,6 +100,10 @@ try {
         Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Demodata.Count) Demodata Artifacts (Async)"
         $cosmoArtifacts.Download.Runspaces.Demodata += 
             $cosmoArtifacts.Artifacts.Demodata |
+                Invoke-DownloadArtifactAsync -OneRunspace @downloadParameters
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.RapidStart.Count) RapidStart Artifacts (Async)"
+        $cosmoArtifacts.Download.Runspaces.RapidStart += 
+            $cosmoArtifacts.Artifacts.RapidStart |
                 Invoke-DownloadArtifactAsync -OneRunspace @downloadParameters
 
         # Download sorted Artifacts (Async) - Start
@@ -126,11 +133,12 @@ try {
             ErrorAction     = "SilentlyContinue"
         }
 
-        # Download Add-In, Font and Demodata Artifacts
+        # Download Add-In, Font, Demodata and RapidStart Artifacts
         Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.AddIn.Count) Add-In Artifacts"
         Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Font.Count) Font Artifacts"
         Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.Demodata.Count) Demodata Artifacts"
-        $( $cosmoArtifacts.Artifacts.AddIn; $cosmoArtifacts.Artifacts.Font; $cosmoArtifacts.Artifacts.Demodata ) | 
+        Add-ArtifactsLog -message "Download $($cosmoArtifacts.Artifacts.RapidStart.Count) RapidStart Artifacts"
+        $( $cosmoArtifacts.Artifacts.AddIn; $cosmoArtifacts.Artifacts.Font; $cosmoArtifacts.Artifacts.Demodata; $cosmoArtifacts.Artifacts.RapidStart ) | 
             Invoke-DownloadArtifact @downloadParameters
 
         # Download sorted Artifacts
