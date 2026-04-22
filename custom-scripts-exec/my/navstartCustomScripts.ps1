@@ -24,8 +24,10 @@ if (Test-Path $downloadCustomScriptsScript) {
 
 if (Test-Path "C:\licenses\licenseUrl") {
   $customLicenseUrl = Get-Content "C:\licenses\licenseUrl"
-  Write-Host "Downloading license"
-  (New-Object System.Net.WebClient).DownloadFile($customLicenseUrl, $env:licensefile)
+  if ($customLicenseUrl) {
+    Write-Host "Downloading license"
+    (New-Object System.Net.WebClient).DownloadFile($customLicenseUrl, $env:licensefile)
+  }
 }
 
 
