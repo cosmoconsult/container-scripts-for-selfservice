@@ -41,15 +41,23 @@ function Wait-Async {
                 foreach($output in $outputs) {
                     try {
                         $scriptBlock = $null
+                        # switch($output.GetType()) {
+                        #     ( [System.Management.Automation.ErrorRecord] )       { $scriptBlock = $ErrorScriptBlock }
+                        #     ( [System.Management.Automation.WarningRecord] )     { $scriptBlock = $WarningScriptBlock }
+                        #     ( [System.Management.Automation.VerboseRecord] )     { $scriptBlock = $VerboseScriptBlock }
+                        #     ( [System.Management.Automation.DebugRecord] )       { $scriptBlock = $DebugScriptBlock }
+                        #     ( [System.Management.Automation.InformationRecord] ) { $scriptBlock = $InformationScriptBlock }
+                        #     default                                              { $scriptBlock = $OutputScriptBlock }
+                        # }
+                        # $scriptBlock.Invoke($output)
                         switch($output.GetType()) {
-                            ( [System.Management.Automation.ErrorRecord] )       { $scriptBlock = $ErrorScriptBlock }
-                            ( [System.Management.Automation.WarningRecord] )     { $scriptBlock = $WarningScriptBlock }
-                            ( [System.Management.Automation.VerboseRecord] )     { $scriptBlock = $VerboseScriptBlock }
-                            ( [System.Management.Automation.DebugRecord] )       { $scriptBlock = $DebugScriptBlock }
-                            ( [System.Management.Automation.InformationRecord] ) { $scriptBlock = $InformationScriptBlock }
-                            default                                              { $scriptBlock = $OutputScriptBlock }
+                            ( [System.Management.Automation.ErrorRecord] )       { throw $output }
+                            ( [System.Management.Automation.WarningRecord] )     { Write-Warning $output }
+                            ( [System.Management.Automation.VerboseRecord] )     { Write-Verbose $output }
+                            ( [System.Management.Automation.DebugRecord] )       { Write-Debug $output }
+                            ( [System.Management.Automation.InformationRecord] ) { Write-Host $output }
+                            default                                              { $output }
                         }
-                        $scriptBlock.Invoke($output)
                     } catch {
                         # Catch thrown errors to prevent the function from stopping
                         $message = Out-String -InputObject $_
@@ -68,6 +76,7 @@ function Wait-Async {
                     Write-Warning "Stopping Runspace - Timeout of ${TimeoutSeconds} seconds reached"
                     $RunspaceInfo.Runspace.Stop()
                 } else {
+                    Write-Host "Waiting for new output from Runspace..."
                     Start-Sleep -Milliseconds 250
                 }
             }
