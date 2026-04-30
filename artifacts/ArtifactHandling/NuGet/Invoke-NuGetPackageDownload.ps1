@@ -52,7 +52,7 @@ function Invoke-NuGetPackageDownload() {
                 select               = 'LatestMatching'
                 downloadDependencies = 'allButMicrosoft'
             }
-            
+
             if ($Version) {
                 if ($Version -match $versionPattern) {
                     # Convert NuGet version to a range (from version, to excl. version + 1)
@@ -60,11 +60,11 @@ function Invoke-NuGetPackageDownload() {
                     $versionParts = $matches.version.Split('.')
                     $toVersionParts = $versionParts.Clone()
                     $toVersionParts[-1] = [string]([int]$toVersionParts[-1] + 1)
-                    
+
                     # Normalize both from and to versions to ensure at least major.minor format for System.Version compatibility
                     $fromVersionNormalized = if ($versionParts.Count -eq 1) { "{0}.0" -f $versionParts[0] } else { $matches.version }
                     $toVersionNormalized = if ($toVersionParts.Count -eq 1) { "{0}.0" -f $toVersionParts[0] } else { $toVersionParts -join '.' }
-                    
+
                     $fromVersion  = '{0}{1}' -f $fromVersionNormalized, $matches.prerelease
                     $toVersion    = '{0}{1}' -f $toVersionNormalized, $matches.prerelease
                     $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
@@ -84,7 +84,11 @@ function Invoke-NuGetPackageDownload() {
             }
 
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
-                $installedApps = Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse |
+                Write-Host "Collecting installed app files from '$InstalledAppsPath'"
+                $installedAppFiles = Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse }
+                Write-Host "Found $($installedAppFiles.Count) app files in '$InstalledAppsPath'"
+                Write-Host "Collecting installed app info from app files"
+                $installedAppInfos = $installedAppFiles |
                     ForEach-Object { Get-NavAppInfo -Path $_.FullName } |
                     ForEach-Object {
                         [PSCustomObject]@{
@@ -94,13 +98,17 @@ function Invoke-NuGetPackageDownload() {
                             Id        = $_.AppId
                             Version   = $_.Version
                         }
-                    } |
+                    }
+                Write-Host "Found $($installedAppInfos.Count) installed apps from app files in '$InstalledAppsPath'"
+                Write-Host "Collecting highest version of installed apps by id"
+                $installedApps = $installedAppInfos |
                     Group-Object -Property Id |
                     ForEach-Object {
                         $highestVersion = $_.Group | Sort-Object -Property { [Version]$_.Version } -Descending | Select-Object -First 1
                         Write-Host "Use app file as installed app: $($highestVersion.Package) (version: $($highestVersion.Version))"
                         $highestVersion
                     }
+                Write-Host "Found $($installedApps.Count) installed apps with highest versions from app files in '$InstalledAppsPath'"
                 $downloadParameters.installedApps = @($installedApps)
             }
 
