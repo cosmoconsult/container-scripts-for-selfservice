@@ -23,6 +23,8 @@ function Invoke-NuGetPackageDownload() {
 
         $versionPattern       = '^\s*(?<version>{0})(?<prerelease>{1})(?<metadata>{2})\s*$' -f $versionStablePattern, $versionPrereleasePattern, $versionMetadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata>]
         $versionRangePattern  = '^\s*[\[\(]?\s*({0}{1})(,{0}{1})?\s*[\]\)]?\s*$' -f $versionStablePattern, $versionPrereleasePattern # [[(] <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] [, <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] [)]]
+
+        $appInfosCacheFileName = ".nuget.apps.cache.json"
     }
 
     process {
@@ -84,56 +86,58 @@ function Invoke-NuGetPackageDownload() {
             }
 
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
-                Write-Host "Collecting installed app files from '$InstalledAppsPath'"
+                Write-Host "Collecting app files from '$InstalledAppsPath'"
                 $installedAppFiles = Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse
                 Write-Host "Found $($installedAppFiles.Count) app files in '$InstalledAppsPath'"
 
-                $appInfosCachePath = Join-Path $InstalledAppsPath "appInfos.json"
-                Write-Host "Loading cached app infos from '$appInfosCachePath'"
-                $appInfosCache = @{}
-                $appInfosCacheUpdated = $false
-                if (Test-Path $appInfosCachePath) {
-                    $appInfosCacheObj = Get-Content $appInfosCachePath -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
-                    $appInfosCacheObj.PSObject.Properties | ForEach-Object { $appInfosCache[$_.Name] = $_.Value }
-                }
-
-                Write-Host "Collecting installed apps from app files"
-                $installedAppsHash = @{}
-                foreach ($installedAppFile in $installedAppFiles) {
-                    $appFilePath = $installedAppFile.FullName
-                    if ($appInfosCache.ContainsKey($appFilePath)) {
-                        $appInfo = $appInfosCache[$appFilePath]
-                    } else {
-                        $appInfoObj = Get-NavAppInfo -Path $installedAppFile.FullName
-                        $appInfo = [PSCustomObject]@{
-                            Package   = '{0}.{1}.{2}' -f $appInfoObj.Publisher, $appInfoObj.Name, $appInfoObj.Id -replace ' '
-                            Name      = $appInfoObj.Name
-                            Publisher = $appInfoObj.Publisher
-                            Id        = $appInfoObj.AppId
-                            Version   = $appInfoObj.Version
-                        }
-                        $appInfosCache[$appFilePath] = $appInfo
-                        $appInfosCacheUpdated = $true
+                if ($installedAppFiles) {
+                    $appInfosCache = @{}
+                    $appInfosCacheUpdated = $false
+                    $appInfosCachePath = Join-Path $InstalledAppsPath $appInfosCacheFileName
+                    if (Test-Path $appInfosCachePath) {
+                        Write-Host "Loading cached app infos from '$appInfosCachePath'"
+                        $appInfosCacheObj = Get-Content $appInfosCachePath -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
+                        $appInfosCacheObj.PSObject.Properties | ForEach-Object { $appInfosCache[$_.Name] = $_.Value }
                     }
-                    if ($installedAppsHash.ContainsKey($appInfo.Id)) {
-                        if ([Version]$appInfo.Version -gt [Version]$installedAppsHash[$appInfo.Id].Version) {
+
+                    Write-Host "Collecting apps infos from app files (only highest version per app id)"
+                    $installedAppsHash = @{}
+                    foreach ($installedAppFile in $installedAppFiles) {
+                        $appInfosCacheKey = $installedAppFile.FullName
+                        if ($appInfosCache.ContainsKey($appInfosCacheKey)) {
+                            $appInfo = $appInfosCache[$appInfosCacheKey]
+                        } else {
+                            $appInfoObj = Get-NavAppInfo -Path $installedAppFile.FullName
+                            $appInfo = [PSCustomObject]@{
+                                Package   = '{0}.{1}.{2}' -f $appInfoObj.Publisher, $appInfoObj.Name, $appInfoObj.Id -replace ' '
+                                Name      = $appInfoObj.Name
+                                Publisher = $appInfoObj.Publisher
+                                Id        = $appInfoObj.AppId
+                                Version   = $appInfoObj.Version
+                            }
+                            $appInfosCache[$appInfosCacheKey] = $appInfo
+                            $appInfosCacheUpdated = $true
+                        }
+                        if ($installedAppsHash.ContainsKey($appInfo.Id)) {
+                            if ([Version]$appInfo.Version -gt [Version]$installedAppsHash[$appInfo.Id].Version) {
+                                $installedAppsHash[$appInfo.Id] = $appInfo
+                            }
+                        } else {
                             $installedAppsHash[$appInfo.Id] = $appInfo
                         }
-                    } else {
-                        $installedAppsHash[$appInfo.Id] = $appInfo
                     }
-                }
-                $installedApps = $installedAppsHash.Values
+                    $installedApps = $installedAppsHash.Values
 
-                if ($appInfosCacheUpdated) {
-                    Write-Host "Caching app infos to '$appInfosCachePath'"
-                    $appInfosCache | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $appInfosCachePath
-                }
+                    if ($appInfosCacheUpdated) {
+                        Write-Host "Caching app infos to '$appInfosCachePath'"
+                        $appInfosCache | ConvertTo-Json -Depth 10 -Compress | Set-Content -Path $appInfosCachePath
+                    }
 
-                foreach ($installedApp in $installedApps) {
-                    Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
+                    foreach ($installedApp in $installedApps) {
+                        Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
+                    }
+                    $downloadParameters.installedApps = @($installedApps)
                 }
-                $downloadParameters.installedApps = @($installedApps)
             }
 
             foreach ($predefinedPackage in $PredefinedPackages) {
