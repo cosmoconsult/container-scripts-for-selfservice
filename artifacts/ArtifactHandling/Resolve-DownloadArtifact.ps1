@@ -43,11 +43,7 @@ function Resolve-DownloadArtifact {
     }
 
     end {
-        try {
-            & $flushLog
-        } catch {
-            Write-Warning "Resolve-DownloadArtifact: Failed to flush remaining entries: $_"
-        }
+        & $flushLog
     }
 }
 Export-ModuleMember -Function Resolve-DownloadArtifact
