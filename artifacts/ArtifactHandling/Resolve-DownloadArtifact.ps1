@@ -11,19 +11,12 @@ function Resolve-DownloadArtifact {
         if (! $TelemetryClient) {
             $TelemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
-        $logBatch       = [System.Collections.Generic.List[ArtifactsLogEntry]]::new()
-        $telemetryBatch = [System.Collections.Generic.List[Microsoft.ApplicationInsights.Channel.ITelemetry]]::new()
+        $logBatch = [System.Collections.Generic.List[ArtifactsLogEntry]]::new()
 
         $flushLog = {
             if ($logBatch.Count) {
                 $logBatch | Add-ArtifactsLog -Quiet
                 $logBatch.Clear()
-            }
-        }
-        $flushTelemetry = {
-            if ($telemetryBatch.Count) {
-                $telemetryBatch | ForEach-Object { Push-Telemetry -Operation "Download Artifact" -Telemetry $_ -TelemetryClient $TelemetryClient }
-                $telemetryBatch.Clear()
             }
         }
     }
@@ -36,24 +29,25 @@ function Resolve-DownloadArtifact {
         switch ($true) {
             ($Object.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
                 & $flushLog
-                $telemetryBatch.Add($Object)
+                Push-Telemetry -Operation "Download Artifact" -Telemetry $Object -TelemetryClient $TelemetryClient
             }
             ($Object.GetType() -eq [ArtifactsLogEntry]) {
-                & $flushTelemetry
                 $Object | Write-ArtifactsLog
                 $logBatch.Add($Object)
             }
             default {
                 & $flushLog
-                & $flushTelemetry
                 $Object
             }
         }
     }
 
     end {
-        & $flushLog
-        & $flushTelemetry
+        try {
+            & $flushLog
+        } catch {
+            Write-Warning "Resolve-DownloadArtifact: Failed to flush remaining entries: $_"
+        }
     }
 }
 Export-ModuleMember -Function Resolve-DownloadArtifact
