@@ -276,8 +276,7 @@ $invokeWebRequestSplat = @{
                                             Where-Object { $_.ToString() -notmatch "^Search package using " } |
                                             Where-Object { $_.ToString() -notmatch "^0 matching packages found" } |
                                             ForEach-Object {
-                                                # New-ArtifactsLogEntry -Message $_.ToString() -Severity Info
-                                                Write-Host $_
+                                                New-ArtifactsLogEntry -Message $_.ToString() -Severity Info
                                             }
                                     }
                                 }
