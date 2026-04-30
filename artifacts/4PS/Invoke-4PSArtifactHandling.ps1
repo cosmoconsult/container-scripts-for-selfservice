@@ -112,8 +112,8 @@ function Invoke-4PSArtifactHandling {
                             -TimeZone ServicesDefaultTimeZone `
                             -ErrorAction SilentlyContinue 
                         
-                        Write-Host "    Import setup data from XML file"
                         if ($sysAppInfoFS.Version.Major -lt 28) {
+                            Write-Host "    Import setup data from XML file"
                             Invoke-NavCodeunit `
                                 -ServerInstance BC `
                                 -CompanyName $companyName `
