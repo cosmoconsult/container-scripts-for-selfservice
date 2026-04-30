@@ -31,15 +31,15 @@ function Invoke-DownloadArtifactCore {
         [string]  $serviceTierFolder,
         [int]     $folderIdx
     )
-    
-    begin {        
+
+    begin {
         if ("$baseUrl" -eq "https://" -or "$baseUrl".ToLower() -contains "localhost") {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
 
         $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
         # Ensure TSL12
-        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12                
+        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12
 
         $rootFolder = $destination
         $tempArchive = "$([System.IO.Path]::GetTempFileName()).zip"
@@ -49,7 +49,7 @@ function Invoke-DownloadArtifactCore {
 
         $platformVersion = [Version](Get-Item (Join-Path $serviceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
 
-        $predefinedNuGetPackages = @( $allArtifacts | 
+        $predefinedNuGetPackages = @( $allArtifacts |
             Where-Object { $_.Type -eq 'nuget' } |
             ForEach-Object {
                 [PSCustomObject]@{
@@ -59,9 +59,9 @@ function Invoke-DownloadArtifactCore {
             }
         )
     }
-    
+
     process {
-        
+
         # check restart
         if (($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
             New-ArtifactsLogEntry -Message "Skipping $target download because this seems to be a service restart" -Success Skip
@@ -146,7 +146,7 @@ function Invoke-DownloadArtifactCore {
             try {
                 $startTime = Get-Date
                 if (! $isNuget) {
-                    if ($isDownload) { 
+                    if ($isDownload) {
 $invokeWebRequestSplat = @{
                             Uri             = $sourceUri
                             Method          = 'Get'
@@ -200,7 +200,7 @@ $invokeWebRequestSplat = @{
                                 $isArchive = $true
                             }
                         }
-                      
+
                         [System.IO.File]::WriteAllBytes($destinationPath, $response.Content)
                         $sourceUri = $destinationPath
                     }
@@ -210,7 +210,7 @@ $invokeWebRequestSplat = @{
                         }
                         else {
                             New-ArtifactsLogEntry -Message "No Artifact found at $sourceUri"
-                        }                    
+                        }
                     }
 
                     if ($isArchive) {
@@ -261,7 +261,7 @@ $invokeWebRequestSplat = @{
                             PlatformVersion    = $platformVersion
                             PredefinedPackages = $predefinedNuGetPackages
                         }
-                        Invoke-NuGetPackageDownload @nuGetParameters *>&1 | 
+                        Invoke-NuGetPackageDownload @nuGetParameters *>&1 |
                             Where-Object { $_ -ne $null } |
                             ForEach-Object {
                                 $output = $_
@@ -270,20 +270,21 @@ $invokeWebRequestSplat = @{
                                     ( [System.Management.Automation.WarningRecord] )     { New-ArtifactsLogEntry -Message $output.ToString() -Severity Warn }
                                     ( [System.Management.Automation.VerboseRecord] )     { Write-Verbose $output }
                                     ( [System.Management.Automation.DebugRecord] )       { New-ArtifactsLogEntry -Message $output.ToString() -Severity Debug }
-                                    ( [System.Management.Automation.InformationRecord] ) { 
-                                        $output | 
+                                    ( [System.Management.Automation.InformationRecord] ) {
+                                        $output |
                                             Where-Object { $_.ToString() -notmatch "^Search NuGetFeed " } |
                                             Where-Object { $_.ToString() -notmatch "^Search package using " } |
                                             Where-Object { $_.ToString() -notmatch "^0 matching packages found" } |
-                                            ForEach-Object { 
-                                                New-ArtifactsLogEntry -Message $_.ToString() -Severity Info
+                                            ForEach-Object {
+                                                # New-ArtifactsLogEntry -Message $_.ToString() -Severity Info
+                                                Write-Host $_
                                             }
                                     }
                                 }
                             }
                     } elseif ($isArchive) {
                         New-ArtifactsLogEntry -Message "Extract Artifact $name v $artifactVersion to $($folder)..."
-                        Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force 
+                        Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force
                         if ($cosmoArtifactType.Count -gt 0) {
                             New-ArtifactsLogEntry -Message "Artifact has type selection: $([string]::Join(",", $cosmoArtifactType))"
                             $subfolders = Get-ChildItem -Path "$folder" -Directory
@@ -303,31 +304,31 @@ $invokeWebRequestSplat = @{
 
                     if ($appImportScope -or $appImportSyncMode) {
                         # Store the Artifact Specific Import Scope Information
-                        $artifactJson = Get-ChildItem -LiteralPath "$folder" -Filter "artifact.json" -Recurse -ErrorAction SilentlyContinue | 
-                            Select-Object -First 1 | 
-                            Get-Content -ErrorAction SilentlyContinue | 
+                        $artifactJson = Get-ChildItem -LiteralPath "$folder" -Filter "artifact.json" -Recurse -ErrorAction SilentlyContinue |
+                            Select-Object -First 1 |
+                            Get-Content -ErrorAction SilentlyContinue |
                             ConvertFrom-Json -ErrorAction SilentlyContinue
                         if (! $artifactJson) { $artifactJson = ConvertFrom-Json "{}" }
-                        
+
                         if($appImportSyncMode) {
-                            $artifactJson | 
+                            $artifactJson |
                                 add-member -Name "appImportSyncMode" -value "$appImportSyncMode" -MemberType NoteProperty -ErrorAction Ignore
                             $artifactJson.appImportSyncMode = $appImportSyncMode
                         }
                         if($appImportScope) {
-                            $artifactJson  | 
+                            $artifactJson  |
                                 add-member -Name "appImportScope" -value "$appImportScope" -MemberType NoteProperty -ErrorAction Ignore
                             $artifactJson.appImportScope = $appImportScope
                         }
-                        $artifactJson | 
-                            ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue | 
+                        $artifactJson |
+                            ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue |
                             Set-Content -LiteralPath "$folder/artifact.json" -ErrorAction SilentlyContinue
                     }
-                    
+
                     New-ArtifactsLogEntry -Message "  Downloaded Files ($folder):"
-                    New-ArtifactsLogEntry -Message "$((Get-ChildItem $folder -Recurse) | 
-                        Select-Object FullName, Length | 
-                        Format-Table -AutoSize -Wrap:$false | 
+                    New-ArtifactsLogEntry -Message "$((Get-ChildItem $folder -Recurse) |
+                        Select-Object FullName, Length |
+                        Format-Table -AutoSize -Wrap:$false |
                         Out-String -Width 1024)"
 
                     $success = $true
@@ -340,7 +341,7 @@ $invokeWebRequestSplat = @{
                 $properties = @{"organization" = $organization; "project" = $project; "feed" = $feed; "name" = $name; "scope" = $scope; "view" = $view; "protocolType" = $type; "url" = $url_output }
                 New-RequestTelemetry -Name "Download Artifact" -Success $success -StartTime $startTime -Properties $properties
             }
-            catch { 
+            catch {
                 $errorMessage = $_.ToString()
                 # Try to parse the JSON object from the error message and extract the details
                 if ($errorMessage -match '{.*}') {
@@ -367,7 +368,7 @@ $invokeWebRequestSplat = @{
             New-ArtifactsLogEntry -Message "Artifact $name skipped - no Url found." -Severity Warn -Success Skip
         }
     }
-    
+
     end {
         $artifactVersion = ""
     }
