@@ -15,17 +15,18 @@ function Wait-DownloadArtifactAsync {
             throw "PPI Async Utils not loaded"
         }
     }
-    
+
     process {
         Wait-Async -RunspaceInfo $RunspaceInfo -TimeoutSeconds 3600 |
             Resolve-DownloadArtifact -TelemetryClient $TelementryClient |
-            ForEach-Object {    
+            ForEach-Object {
                 if ($_ -is [DateTime]) {
+                    Write-Host "Runspace completed at $_"
                     if ($End -and $_ -gt $End.Value) {
                         $End.Value = $_
                     }
                 }
-            } 
+            }
     }
 }
 Export-ModuleMember -Function Wait-DownloadArtifactAsync
