@@ -113,20 +113,26 @@ function Invoke-4PSArtifactHandling {
                             -ErrorAction SilentlyContinue 
                         
                         Write-Host "    Import setup data from XML file"
-                        if ($sysAppInfoFS.Version.Major -ge 28) {
-                            $ImportDemoDataCode = 50188
+                        if ($sysAppInfoFS.Version.Major -lt 28) {
+                            Invoke-NavCodeunit `
+                                -ServerInstance BC `
+                                -CompanyName $companyName `
+                                -CodeunitId 11012251 `
+                                -MethodName ImportDemoData `
+                                -Argument "$($demoDataFile.FullName)"
                         }
-                        else {
-                            $ImportDemoDataCode = 11012251
-                        }
-                        Invoke-NavCodeunit `
-                            -ServerInstance BC `
-                            -CompanyName $companyName `
-                            -CodeunitId $ImportDemoDataCode `
-                            -MethodName ImportDemoData `
-                            -Argument "$($demoDataFile.FullName)"
                         
                         if ($use4PSContainerInitializer) {
+                            if ($sysAppInfoFS.Version.Major -ge 28) {
+                                Write-Host "    Import setup data from XML file using container initializer app"
+                                Invoke-NavCodeunit `
+                                    -ServerInstance BC `
+                                    -CompanyName $companyName `
+                                    -CodeunitId 50188 `
+                                    -MethodName ImportDemoDataFromFile `
+                                    -Argument "$($demoDataFile.FullName)"
+                            }
+
                             if ($sysAppInfoFS.Version.Major -le 20) {
                                 # Only required on 20 and older
                                 Write-Host "    Run manual data upgrade 4PS"
