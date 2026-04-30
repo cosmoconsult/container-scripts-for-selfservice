@@ -85,7 +85,7 @@ function Invoke-NuGetPackageDownload() {
 
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
                 Write-Host "Collecting installed app files from '$InstalledAppsPath'"
-                $installedAppFiles = Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse }
+                $installedAppFiles = Get-ChildItem -Path $InstalledAppsPath -Filter '*.app' -Recurse
                 Write-Host "Found $($installedAppFiles.Count) app files in '$InstalledAppsPath'"
                 Write-Host "Collecting installed app info from app files"
                 $installedAppInfos = $installedAppFiles |
