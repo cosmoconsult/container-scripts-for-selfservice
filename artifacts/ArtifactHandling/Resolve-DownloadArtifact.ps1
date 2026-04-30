@@ -16,7 +16,7 @@ function Resolve-DownloadArtifact {
 
         $flushLog = {
             if ($logBatch.Count) {
-                $logBatch | Push-ArtifactsLogEntry
+                $logBatch | Add-ArtifactsLog -Quiet
                 $logBatch.Clear()
             }
         }
@@ -40,6 +40,7 @@ function Resolve-DownloadArtifact {
             }
             ($Object.GetType() -eq [ArtifactsLogEntry]) {
                 & $flushTelemetry
+                $Object | Write-ArtifactsLog
                 $logBatch.Add($Object)
             }
             default {

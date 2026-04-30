@@ -21,7 +21,6 @@ function Wait-DownloadArtifactAsync {
             Resolve-DownloadArtifact -TelemetryClient $TelementryClient |
             ForEach-Object {
                 if ($_ -is [DateTime]) {
-                    Write-Host "Runspace completed at $_"
                     if ($End -and $_ -gt $End.Value) {
                         $End.Value = $_
                     }
