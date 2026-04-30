@@ -113,10 +113,16 @@ function Invoke-4PSArtifactHandling {
                             -ErrorAction SilentlyContinue 
                         
                         Write-Host "    Import setup data from XML file"
+                        if ($sysAppInfoFS.Version.Major -ge 28) {
+                            $ImportDemoDataCode = 50188
+                        }
+                        else {
+                            $ImportDemoDataCode = 11012251
+                        }
                         Invoke-NavCodeunit `
                             -ServerInstance BC `
                             -CompanyName $companyName `
-                            -CodeunitId 11012251 `
+                            -CodeunitId $ImportDemoDataCode `
                             -MethodName ImportDemoData `
                             -Argument "$($demoDataFile.FullName)"
                         
