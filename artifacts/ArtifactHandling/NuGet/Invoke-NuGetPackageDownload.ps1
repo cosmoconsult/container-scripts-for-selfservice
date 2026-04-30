@@ -98,7 +98,7 @@ function Invoke-NuGetPackageDownload() {
                 }
 
                 Write-Host "Collecting installed apps from app files"
-                $installedAppsHash = @()
+                $installedAppsHash = @{}
                 foreach ($installedAppFile in $installedAppFiles) {
                     $appFilePath = $installedAppFile.FullName
                     if ($appInfosCache.ContainsKey($appFilePath)) {
