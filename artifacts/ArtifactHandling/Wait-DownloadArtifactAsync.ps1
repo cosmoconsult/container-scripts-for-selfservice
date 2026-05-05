@@ -18,7 +18,7 @@ function Wait-DownloadArtifactAsync {
 
     process {
         Wait-Async -RunspaceInfo $RunspaceInfo -TimeoutSeconds 3600 |
-            Resolve-DownloadArtifact -TelemetryClient $TelementryClient |
+            Resolve-DownloadArtifact -TelemetryClient $TelemetryClient |
             ForEach-Object {
                 if ($_ -is [DateTime]) {
                     if ($End -and $_ -gt $End.Value) {

@@ -97,7 +97,9 @@ function Invoke-NuGetPackageDownload() {
                     if (Test-Path $appInfosCachePath) {
                         Write-Host "Loading cached app infos from '$appInfosCachePath'"
                         $appInfosCacheObj = Get-Content $appInfosCachePath -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
-                        $appInfosCacheObj.PSObject.Properties | ForEach-Object { $appInfosCache[$_.Name] = $_.Value }
+                        if ($appInfosCahceObj) {
+                            $appInfosCacheObj.PSObject.Properties | ForEach-Object { $appInfosCache[$_.Name] = $_.Value }
+                        }
                     }
 
                     Write-Host "Collecting apps infos from app files (only highest version per app id)"
@@ -109,7 +111,7 @@ function Invoke-NuGetPackageDownload() {
                         } else {
                             $appInfoObj = Get-NavAppInfo -Path $installedAppFile.FullName
                             $appInfo = [PSCustomObject]@{
-                                Package   = '{0}.{1}.{2}' -f $appInfoObj.Publisher, $appInfoObj.Name, $appInfoObj.Id -replace ' '
+                                Package   = '{0}.{1}.{2}' -f $appInfoObj.Publisher, $appInfoObj.Name, $appInfoObj.AppId -replace ' '
                                 Name      = $appInfoObj.Name
                                 Publisher = $appInfoObj.Publisher
                                 Id        = $appInfoObj.AppId

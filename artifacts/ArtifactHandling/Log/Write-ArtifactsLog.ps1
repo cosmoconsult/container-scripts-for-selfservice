@@ -20,11 +20,18 @@ function Write-ArtifactsLog {
 
         switch ($severity) {
             "Warn" {
-                if (($suppressedWarnings) -and ($message -match [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($suppressedWarnings)))) {
-                    $severity = "Info"                }
+                if (-not $suppressedWarningsPattern) {
+                    $suppressedWarningsPattern = Get-DecodedSuppressionPattern -encodedPattern $suppressedWarnings
+                }
+                if (($suppressedWarningsPattern) -and ($message -match $suppressedWarningsPattern)) {
+                    $severity = "Info"
+                }
             }
             "Error" {
-                if (($suppressedErrors) -and ($message -match [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($suppressedErrors)))) {
+                if (-not $suppressedErrorsPattern) {
+                    $suppressedErrorsPattern = Get-DecodedSuppressionPattern -encodedPattern $suppressedErrors
+                }
+                if (($suppressedErrorsPattern) -and ($message -match $suppressedErrorsPattern)) {
                     $severity = "Info"
                 }
             }
@@ -42,3 +49,18 @@ function Write-ArtifactsLog {
     }
 }
 Export-ModuleMember -Function Write-ArtifactsLog
+
+function Get-DecodedSuppressionPattern {
+    param (
+        [string]$encodedPattern
+    )
+    if (-not $encodedPattern) {
+        return $null
+    }
+    try {
+        return [System.Text.Encoding]::ASCII.GetString([System.Convert]::FromBase64String($encodedPattern))
+    }
+    catch {
+        return $null
+    }
+}
