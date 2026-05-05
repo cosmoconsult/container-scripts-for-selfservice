@@ -49,7 +49,7 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/Write-ArtifactsLog.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/ArtifactsLogEntry.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/New-ArtifactsLogEntry.ps1")
-. (Join-Path $PSScriptRoot "ArtifactHandling/Log/Push-ArtifactsLogEntry.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/Log/ArtifactsLogBatch.ps1")
 
 # 4PS
 . (Join-Path $PSScriptRoot "4PS/Wait-DataUpgradeToFinish.ps1")

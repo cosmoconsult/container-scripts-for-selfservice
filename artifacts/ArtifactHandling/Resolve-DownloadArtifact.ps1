@@ -11,14 +11,6 @@ function Resolve-DownloadArtifact {
         if (! $TelemetryClient) {
             $TelemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
-        $logBatch = [System.Collections.Generic.List[ArtifactsLogEntry]]::new()
-
-        $flushLog = {
-            if ($logBatch.Count) {
-                $logBatch | Add-ArtifactsLog -Quiet
-                $logBatch.Clear()
-            }
-        }
     }
 
     process {
@@ -28,22 +20,22 @@ function Resolve-DownloadArtifact {
 
         switch ($true) {
             ($Object.GetType() -in @([Microsoft.ApplicationInsights.DataContracts.EventTelemetry], [Microsoft.ApplicationInsights.DataContracts.RequestTelemetry], [Microsoft.ApplicationInsights.DataContracts.ExceptionTelemetry])) {
-                & $flushLog
+                Write-ArtifactsLogBatch
                 Push-Telemetry -Operation "Download Artifact" -Telemetry $Object -TelemetryClient $TelemetryClient
             }
             ($Object.GetType() -eq [ArtifactsLogEntry]) {
                 $Object | Write-ArtifactsLog
-                $logBatch.Add($Object)
+                Push-ArtifactsLogBatch $Object
             }
             default {
-                & $flushLog
+                Write-ArtifactsLogBatch
                 $Object
             }
         }
     }
 
     end {
-        & $flushLog
+        Write-ArtifactsLogBatch
     }
 }
 Export-ModuleMember -Function Resolve-DownloadArtifact
