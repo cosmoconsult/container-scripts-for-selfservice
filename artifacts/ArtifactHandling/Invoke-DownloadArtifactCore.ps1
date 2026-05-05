@@ -37,18 +37,14 @@ function Invoke-DownloadArtifactCore {
             $baseUrl = "https://cosmo-alpaca-enterprise.westeurope.cloudapp.azure.com"
         }
 
-        $headers = @{ "Authorization" = "Basic $([System.Convert]::ToBase64String([System.Text.Encoding]::ASCII.GetBytes(":$($accessToken)")))"; }
-        # Ensure TSL12
-        [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12                
+        $headers = @{ "Authorization" = "Bearer $($accessToken)"; "Collection-URI" = "https://dev.azure.com/$($env:CcOrgName)/" }
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
         $rootFolder = $destination
         $tempArchive = "$([System.IO.Path]::GetTempFileName()).zip"
         $tempApp = "$([System.IO.Path]::GetTempFileName()).app"
 
-        $getVersionFromAPI = $apiFeatures -contains "GetArtifactLatest"
-
         $platformVersion = [Version](Get-Item (Join-Path $serviceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
-
         $predefinedNuGetPackages = @( $allArtifacts | 
             Where-Object { $_.Type -eq 'nuget' } |
             ForEach-Object {
@@ -61,7 +57,6 @@ function Invoke-DownloadArtifactCore {
     }
     
     process {
-        
         # check restart
         if (($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
             New-ArtifactsLogEntry -Message "Skipping $target download because this seems to be a service restart" -Success Skip
@@ -76,87 +71,59 @@ function Invoke-DownloadArtifactCore {
             if ("$pat" -eq "") {
                 $pat = $accessToken
             }
-            if (($type -eq "upack") -OR (!$type)) {
-                $artifactVersion = $version
-                if (!$getVersionFromAPI) {
-                    if ("$artifactVersion" -ne "") {
-                        New-ArtifactsLogEntry -Message "Get Artifact Version for $($name)... skipped, because version is set to v $($artifactVersion)" -Success Skip
-                    }
-                    else {
-                        New-ArtifactsLogEntry -Message "Get Artifact Version for $($name)..."
-                        $artifactVersion = Get-PackageVersion `
-                            -organization    $organization `
-                            -project         $project `
-                            -feed            $feed `
-                            -name            $name `
-                            -scope           $scope `
-                            -view            $view `
-                            -protocolType    $type `
-                            -accessToken     $pat `
-                            -artifactVersion $artifactVersion
-                    }
+            if (($type.ToLower() -eq "upack") -OR (!$type)) {
+                if ("$scope" -eq "") { $scope = "project" }
+                $artifactRequest = @{
+                    scope        = $scope
+                    organization = $organization
+                    project      = $project
+                    feed         = $feed
+                    name         = $name
+                    version      = $version
+                    view         = $view
+                    pat          = $pat
                 }
-                else {
-                    New-ArtifactsLogEntry -Message "Get Artifact $($name)..."
-                }
-
-                if ("$artifactVersion" -eq "" -and !$getVersionFromAPI) {
-                    New-ArtifactsLogEntry -Message "Artifact $name (View: '$view') skipped (no version / release found)" -Severity Warn -Success Skip
-                    New-EventTelemetry -Name "Download Artifact - no Artifact found" -Properties $properties
-                    $url = ""
-                }
-                else {
-                    if (!$getVersionFromAPI) {
-                        New-ArtifactsLogEntry -Message "`Artifact $name (View: '$view') has Version v $artifactVersion"
-                    }
-
-                    $scope = $scope
-                    if ("$scope" -eq "") { $scope = "project" }
-                    $project = $project
-                    if ("$scope" -ne "project" -and "" -eq "$project") { $project = "dummy" }
-                    $sourceUri = "$baseUrl/api/automation/release/Artifact/$($organization)/$($project)/$($feed)/$($name)/$($artifactVersion)?PATValidationProject=$($env:CcOrgName)&scope=$($scope)&view=$($view)&pat=$($pat)"
-                }
+                $sourceUri = "$baseUrl/api/alpaca/release/AzureDevOps/Artifact"
             }
         }
 
-        $isNuGet = $type -eq "nuget"
+        $isNuGet = $type.ToLower() -eq "nuget"
         $isDownload = "$sourceUri".StartsWith("http")
         $isArchive = "$sourceUri".EndsWith(".zip")
         if ($sourceUri -or $isNuGet) {
-            if ($isNuget) {
+            $safeUri = "$sourceUri" -replace '([?&]pat=)[^&]*', '$1***REDACTED***' # hide pat in logs
+            if ($isNuGet) {
                 Write-Host "##[section]Download Artifact from NuGet package $name"
                 New-ArtifactsLogEntry -Message "Download Artifact from NuGet package $name"
             }
             elseif ($isDownload) {
-                $url_output = "$sourceUri".replace('&pat=', "$([System.Environment]::NewLine)").split("$([System.Environment]::NewLine)")
-                if ($url_output.Length -gt 1) {
-                    Write-Host "##[section]Download Artifact from $($url_output[0])"
-                    New-ArtifactsLogEntry -Message "Download Artifact from $($url_output[0])&pat=***"
-                }
-                else {
-                    Write-Host "##[section]Download Artifact from $sourceUri"
-                    New-ArtifactsLogEntry -Message "Download Artifact from $($sourceUri)"
-                }
+                Write-Host "##[section]Download Artifact $name from $safeUri"
+                New-ArtifactsLogEntry -Message "Download Artifact $name from $safeUri"
             }
             else {
-                Write-Host "##[section]Copy Artifact from $sourceUri"
-                New-ArtifactsLogEntry -Message "Copy Artifact from $sourceUri"
+                Write-Host "##[section]Copy Artifact $name from $sourceUri"
+                New-ArtifactsLogEntry -Message "Copy Artifact $name from $sourceUri"
             }
 
             try {
                 $startTime = Get-Date
-                if (! $isNuget) {
+                if (! $isNuGet) {
                     if ($isDownload) { 
-$invokeWebRequestSplat = @{
+                        $invokeWebRequestSplat = @{
                             Uri             = $sourceUri
-                            Method          = 'Get'
                             UseBasicParsing = $true
                         }
                         if ("$sourceUri".StartsWith("$baseUrl")) {
-                            $invokeWebRequestSplat += @{Headers = $headers }
+                            $invokeWebRequestSplat += @{
+                                Headers     = $headers
+                                Method      = 'Post'
+                                ContentType = 'application/json'
+                                Body        = ($artifactRequest | ConvertTo-Json -Compress)
+                            }
                         }
                         else {
-                            New-ArtifactsLogEntry -Message "External artifact URL detected, ignoring Authorization header" -Severity Debug
+                            $invokeWebRequestSplat += @{ Method = 'Get' }
+                                New-ArtifactsLogEntry -Message "External artifact URL detected, ignoring Authorization header" -Severity Debug
                             }
                         $response = Invoke-WebRequest @invokeWebRequestSplat
 
@@ -221,7 +188,7 @@ $invokeWebRequestSplat = @{
                     }
                 }
 
-                if (($isNuget) -or ($archive -and (Test-Path $archive)) -or ($sourceUri -and (Test-Path $sourceUri))) {
+                if (($isNuGet) -or ($archive -and (Test-Path $archive)) -or ($sourceUri -and (Test-Path $sourceUri))) {
                     # Setup correct folder
                     $folderSuffix = $targetFolder
                     if (! $folderSuffix) {
@@ -250,6 +217,8 @@ $invokeWebRequestSplat = @{
                             }
                         }
                     }
+
+                    $versionStr = if ("$version" -ne "") { " v$version" } else { "" }
 
                     if ($isNuGet) {
                         $nuGetParameters = @{
@@ -282,7 +251,7 @@ $invokeWebRequestSplat = @{
                                 }
                             }
                     } elseif ($isArchive) {
-                        New-ArtifactsLogEntry -Message "Extract Artifact $name v $artifactVersion to $($folder)..."
+                        New-ArtifactsLogEntry -Message "Extract Artifact $name$versionStr to $($folder)..."
                         Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force 
                         if ($cosmoArtifactType.Count -gt 0) {
                             New-ArtifactsLogEntry -Message "Artifact has type selection: $([string]::Join(",", $cosmoArtifactType))"
@@ -296,7 +265,7 @@ $invokeWebRequestSplat = @{
                         }
                     }
                     else {
-                        New-ArtifactsLogEntry -Message "Copy Artifact '$sourceUri' ($name v $artifactVersion) to $($folder)..."
+                        New-ArtifactsLogEntry -Message "Copy Artifact '$sourceUri' ($name$versionStr) to $($folder)..."
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force | Out-Null
                         Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
                     }
@@ -325,7 +294,7 @@ $invokeWebRequestSplat = @{
                     }
                     
                     New-ArtifactsLogEntry -Message "  Downloaded Files ($folder):"
-                    New-ArtifactsLogEntry -Message "$((Get-ChildItem $folder -Recurse) | 
+                    New-ArtifactsLogEntry -Message "$((Get-ChildItem $folder -Recurse -File) | 
                         Select-Object FullName, Length | 
                         Format-Table -AutoSize -Wrap:$false | 
                         Out-String -Width 1024)"
@@ -337,7 +306,7 @@ $invokeWebRequestSplat = @{
                     $success = $false
                 }
 
-                $properties = @{"organization" = $organization; "project" = $project; "feed" = $feed; "name" = $name; "scope" = $scope; "view" = $view; "protocolType" = $type; "url" = $url_output }
+                $properties = @{"organization" = $organization; "project" = $project; "feed" = $feed; "name" = $name; "scope" = $scope; "view" = $view; "protocolType" = $type; "url" = $safeUri }
                 New-RequestTelemetry -Name "Download Artifact" -Success $success -StartTime $startTime -Properties $properties
             }
             catch { 
@@ -366,9 +335,5 @@ $invokeWebRequestSplat = @{
         else {
             New-ArtifactsLogEntry -Message "Artifact $name skipped - no Url found." -Severity Warn -Success Skip
         }
-    }
-    
-    end {
-        $artifactVersion = ""
     }
 }
