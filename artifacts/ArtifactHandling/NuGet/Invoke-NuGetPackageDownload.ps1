@@ -97,7 +97,7 @@ function Invoke-NuGetPackageDownload() {
                     if (Test-Path $appInfosCachePath) {
                         Write-Host "Loading cached app infos from '$appInfosCachePath'"
                         $appInfosCacheObj = Get-Content $appInfosCachePath -Raw | ConvertFrom-Json -ErrorAction SilentlyContinue
-                        if ($appInfosCahceObj) {
+                        if ($appInfosCacheObj) {
                             $appInfosCacheObj.PSObject.Properties | ForEach-Object { $appInfosCache[$_.Name] = $_.Value }
                         }
                     }
@@ -105,9 +105,9 @@ function Invoke-NuGetPackageDownload() {
                     Write-Host "Collecting apps infos from app files (only highest version per app id)"
                     $installedAppsHash = @{}
                     foreach ($installedAppFile in $installedAppFiles) {
-                        $appInfosCacheKey = $installedAppFile.FullName
-                        if ($appInfosCache.ContainsKey($appInfosCacheKey)) {
-                            $appInfo = $appInfosCache[$appInfosCacheKey]
+                        $appInfoCacheKey = $installedAppFile.FullName
+                        if ($appInfosCache.ContainsKey($appInfoCacheKey)) {
+                            $appInfo = $appInfosCache[$appInfoCacheKey]
                         } else {
                             $appInfoObj = Get-NavAppInfo -Path $installedAppFile.FullName
                             $appInfo = [PSCustomObject]@{
@@ -117,7 +117,7 @@ function Invoke-NuGetPackageDownload() {
                                 Id        = $appInfoObj.AppId
                                 Version   = $appInfoObj.Version
                             }
-                            $appInfosCache[$appInfosCacheKey] = $appInfo
+                            $appInfosCache[$appInfoCacheKey] = $appInfo
                             $appInfosCacheUpdated = $true
                         }
                         if ($installedAppsHash.ContainsKey($appInfo.Id)) {
