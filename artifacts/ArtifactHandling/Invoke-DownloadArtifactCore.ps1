@@ -66,6 +66,7 @@ function Invoke-DownloadArtifactCore {
         # Download from given URL
         if (Test-Path "$tempArchive" -ErrorAction SilentlyContinue) { Remove-Item "$tempArchive" -Force -ErrorAction SilentlyContinue }
 
+        $artifactRequest = $null
         $sourceUri = $url
         if ("$sourceUri" -eq "") {
             if ("$pat" -eq "") {
@@ -113,7 +114,7 @@ function Invoke-DownloadArtifactCore {
                             Uri             = $sourceUri
                             UseBasicParsing = $true
                         }
-                        if ("$sourceUri".StartsWith("$baseUrl")) {
+                        if ($artifactRequest) {
                             $invokeWebRequestSplat += @{
                                 Headers     = $headers
                                 Method      = 'Post'
@@ -123,8 +124,8 @@ function Invoke-DownloadArtifactCore {
                         }
                         else {
                             $invokeWebRequestSplat += @{ Method = 'Get' }
-                                New-ArtifactsLogEntry -Message "External artifact URL detected, ignoring Authorization header" -Severity Debug
-                            }
+                            New-ArtifactsLogEntry -Message "External artifact URL detected, ignoring Authorization header" -Severity Debug
+                        }
                         $response = Invoke-WebRequest @invokeWebRequestSplat
 
                         # Determine file type based on Content-Disposition header or content signature
