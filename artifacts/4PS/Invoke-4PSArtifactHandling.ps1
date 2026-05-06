@@ -268,6 +268,21 @@ function Invoke-4PSArtifactHandling {
                 $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
                 Write-Host "  4PS initialization took $timespent4PS seconds"
             }
+
+            if (-not ($env:IsBuildContainer -eq "true")) {
+                Write-Host "Move all published apps to dev scope for database '$appDatabaseName'"
+                $databaseName = "mydatabase"
+                $DatabaseServer = "localhost"
+                $DatabaseInstance = "SQLExpress"
+
+                $sqlParams = @{
+                    ServerInstance = "$DatabaseServer\$DatabaseInstance"
+                    ErrorAction    = "Stop"
+                }
+
+                Write-Host " - Moving all published apps to dev scope"
+                Invoke-Sqlcmd @sqlParams -Query "UPDATE [$databaseName].[dbo].[Published Application] SET [Published As] = 2, [Tenant ID] = 'default'" | Out-Null
+            }
         }
     }
 }
