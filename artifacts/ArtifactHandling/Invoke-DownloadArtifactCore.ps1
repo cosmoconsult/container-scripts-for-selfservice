@@ -66,6 +66,7 @@ function Invoke-DownloadArtifactCore {
         # Download from given URL
         if (Test-Path "$tempArchive" -ErrorAction SilentlyContinue) { Remove-Item "$tempArchive" -Force -ErrorAction SilentlyContinue }
 
+        $artifactRequest = $null
         $sourceUri = $url
         if ("$sourceUri" -eq "") {
             if ("$pat" -eq "") {
