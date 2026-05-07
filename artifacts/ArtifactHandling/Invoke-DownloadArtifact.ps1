@@ -11,7 +11,7 @@ function Invoke-DownloadArtifact {
         [Parameter(ValueFromPipelineByPropertyName)][string]  $Version           = "",
         [Parameter(ValueFromPipelineByPropertyName)][string]  $Scope             = "project",
         [Parameter(ValueFromPipelineByPropertyName)][string]  $Url               = "",
-        [Parameter(ValueFromPipelineByPropertyName)][string]  $Target            = "",        
+        [Parameter(ValueFromPipelineByPropertyName)][string]  $Target            = "",
         [Parameter(ValueFromPipelineByPropertyName)][string]  $TargetFolder      = "",
         [Parameter(ValueFromPipelineByPropertyName)][string]  $AppImportScope    = "",
         [Parameter(ValueFromPipelineByPropertyName)][string]  $AppImportSyncMode = "",
@@ -35,7 +35,7 @@ function Invoke-DownloadArtifact {
         [switch]$PassThru,
         [System.Object]$TelemetryClient = $null
     )
-    
+
     begin {
         $artifacts = @()
 
@@ -45,7 +45,7 @@ function Invoke-DownloadArtifact {
             }
         }
     }
-    
+
     process {
         # Collect given artifacts
         $artifacts += [pscustomobject]@{
@@ -67,12 +67,12 @@ function Invoke-DownloadArtifact {
             DependsOn = $DependsOn
         }
     }
-    
+
     end {
         if (! $artifacts) {
             return
         }
-        
+
         if (! $PSBoundParameters.ContainsKey("ServiceTierFolder")) {
             $ServiceTierFolder = Get-NAVServiceTierFolder
         }
@@ -97,7 +97,11 @@ function Invoke-DownloadArtifact {
         }
 
         if (! $PassThru) {
-            $artifacts | Invoke-DownloadArtifactCore @parameters | Resolve-DownloadArtifact -TelemetryClient $TelemetryClient | Out-Null
+            try {
+                $artifacts | Invoke-DownloadArtifactCore @parameters | Resolve-DownloadArtifact -TelemetryClient $TelemetryClient | Out-Null
+            } finally {
+                Write-ArtifactsLogBatch
+            }
         } else {
             $artifacts | Invoke-DownloadArtifactCore @parameters
         }
