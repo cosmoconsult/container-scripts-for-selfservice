@@ -1,3 +1,50 @@
+function Invoke-4PSMoveExtensionToDevScope {
+    [cmdletbinding()]
+    PARAM
+    (
+        [parameter(Mandatory = $false)]
+        [string]$databaseName,
+        [parameter(Mandatory = $false)]
+        [string]$databaseServer,
+        [parameter(Mandatory = $false)]
+        [string]$databaseInstance
+    )
+    PROCESS {
+        try {
+            $needsServerConfig = [string]::IsNullOrWhiteSpace($databaseName) -or [string]::IsNullOrWhiteSpace($databaseServer) -or [string]::IsNullOrWhiteSpace($databaseInstance)
+
+            if ($needsServerConfig) {
+                $serverTierSettings = Get-NAVServerConfiguration -ServerInstance BC -ErrorAction SilentlyContinue
+
+                if ([string]::IsNullOrWhiteSpace($databaseName)) {
+                    $databaseName = ($serverTierSettings | Where-Object { $_.key -eq "DatabaseName" }).value
+                }
+                if ([string]::IsNullOrWhiteSpace($databaseServer)) {
+                    $databaseServer = ($serverTierSettings | Where-Object { $_.key -eq "DatabaseServer" }).value
+                }
+                if ([string]::IsNullOrWhiteSpace($databaseInstance)) {
+                    $databaseInstance = ($serverTierSettings | Where-Object { $_.key -eq "DatabaseInstance" }).value
+                }
+            }
+
+            if ([string]::IsNullOrWhiteSpace($databaseName) -or [string]::IsNullOrWhiteSpace($databaseServer) -or [string]::IsNullOrWhiteSpace($databaseInstance)) {
+                Write-Warning "Skipping move to dev scope: database settings are Empty. DatabaseName='$databaseName', DatabaseServer='$databaseServer', DatabaseInstance='$databaseInstance'"
+                return
+            }
+
+            Write-Host "Move all published apps to dev scope - Using SQL target $databaseServer\$databaseInstance / database '$databaseName'"
+            $sqlParams = @{
+                ServerInstance = "$databaseServer\$databaseInstance"
+                ErrorAction    = "Stop"
+            }
+            Invoke-Sqlcmd @sqlParams -Query "UPDATE [$databaseName].[dbo].[Published Application] SET [Published As] = 2, [Tenant ID] = 'default'" | Out-Null
+        }
+        catch {
+            Write-Warning "Failed to move published apps to dev scope: $_. Continuing with current scope."
+        }
+    }
+}
+
 function Invoke-4PSArtifactHandling {
     [cmdletbinding()]
     PARAM
@@ -18,14 +65,14 @@ function Invoke-4PSArtifactHandling {
             Write-Host "  app database name is: $appDatabaseName"
             $isModifiedBaseAppInstalled = ![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)
             $isSaaSBak = ![string]::IsNullOrEmpty($env:saasbakfile)
-            if($isModifiedBaseAppInstalled -and !$isSaaSBak) {
+            if ($isModifiedBaseAppInstalled -and !$isSaaSBak) {
                 Write-Host "  modified base app was installed, therefore this is not a microsoft standard database"
             }
 
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
             }
-            elseif($isSaaSBak) {
+            elseif ($isSaaSBak) {
                 Write-Host "4PS initialization skipped as this seems to be a SaaS backup restore"
             }
             elseif (("CRONUS" -eq $appDatabaseName) -or ("default" -eq $appDatabaseName) -and !$isModifiedBaseAppInstalled) {
@@ -270,18 +317,10 @@ function Invoke-4PSArtifactHandling {
             }
 
             if (-not ($env:IsBuildContainer -eq "true")) {
-                Write-Host "Move all published apps to dev scope for database '$appDatabaseName'"
-                $databaseName = "mydatabase"
-                $DatabaseServer = "localhost"
-                $DatabaseInstance = "SQLExpress"
-
-                $sqlParams = @{
-                    ServerInstance = "$DatabaseServer\$DatabaseInstance"
-                    ErrorAction    = "Stop"
-                }
-
-                Write-Host " - Moving all published apps to dev scope"
-                Invoke-Sqlcmd @sqlParams -Query "UPDATE [$databaseName].[dbo].[Published Application] SET [Published As] = 2, [Tenant ID] = 'default'" | Out-Null
+                Invoke-4PSMoveExtensionToDevScope `
+                    -databaseName $DatabaseName `
+                    -databaseServer $DatabaseServer `
+                    -databaseInstance $DatabaseInstance
             }
         }
     }
