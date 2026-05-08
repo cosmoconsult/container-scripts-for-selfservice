@@ -1,6 +1,6 @@
 function Invoke-4PSMoveExtensionToDevScope {
     [cmdletbinding()]
-    PARAM
+    param
     (
         [parameter(Mandatory = $false)]
         [string]$databaseName,
@@ -9,7 +9,7 @@ function Invoke-4PSMoveExtensionToDevScope {
         [parameter(Mandatory = $false)]
         [string]$databaseInstance
     )
-    PROCESS {
+    process {
         try {
             $needsServerConfig = [string]::IsNullOrWhiteSpace($databaseName) -or [string]::IsNullOrWhiteSpace($databaseServer) -or [string]::IsNullOrWhiteSpace($databaseInstance)
 
@@ -314,13 +314,14 @@ function Invoke-4PSArtifactHandling {
                 
                 $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
                 Write-Host "  4PS initialization took $timespent4PS seconds"
-            }
 
-            if (-not ($env:IsBuildContainer -eq "true")) {
-                Invoke-4PSMoveExtensionToDevScope `
-                    -databaseName $DatabaseName `
-                    -databaseServer $DatabaseServer `
-                    -databaseInstance $DatabaseInstance
+                
+                if ($env:IsBuildContainer -eq "false") {
+                    Invoke-4PSMoveExtensionToDevScope `
+                        -databaseName $DatabaseName `
+                        -databaseServer $DatabaseServer `
+                        -databaseInstance $DatabaseInstance
+                }
             }
         }
     }
