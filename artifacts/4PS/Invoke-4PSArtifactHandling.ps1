@@ -318,7 +318,7 @@ function Invoke-4PSArtifactHandling {
 
                 
                 if ($env:IsBuildContainer -eq "false") {
-                    if ($env:AZURE_DEVOPS_PROJECT -eq '4PS_NL') {
+                    if ($env:movetodevscope -eq "true") {
                         Invoke-4PSMoveExtensionToDevScope `
                             -databaseName $DatabaseName `
                             -databaseServer $DatabaseServer `
