@@ -37,7 +37,8 @@ function Invoke-4PSMoveExtensionToDevScope {
                 ServerInstance = "$databaseServer\$databaseInstance"
                 ErrorAction    = "Stop"
             }
-            Invoke-Sqlcmd @sqlParams -Query "UPDATE [$databaseName].[dbo].[Published Application] SET [Published As] = 2, [Tenant ID] = 'default'" | Out-Null
+            $safeDb = $databaseName.Replace(']', ']]')
+            Invoke-Sqlcmd @sqlParams -Query "UPDATE [$safeDb].[dbo].[Published Application] SET [Published As] = 2, [Tenant ID] = 'default'" | Out-Null
         }
         catch {
             Write-Warning "Failed to move published apps to dev scope: $_. Continuing with current scope."
@@ -317,10 +318,12 @@ function Invoke-4PSArtifactHandling {
 
                 
                 if ($env:IsBuildContainer -eq "false") {
-                    Invoke-4PSMoveExtensionToDevScope `
-                        -databaseName $DatabaseName `
-                        -databaseServer $DatabaseServer `
-                        -databaseInstance $DatabaseInstance
+                    if ($env:AZURE_DEVOPS_PROJECT -eq '4PS_NL') {
+                        Invoke-4PSMoveExtensionToDevScope `
+                            -databaseName $DatabaseName `
+                            -databaseServer $DatabaseServer `
+                            -databaseInstance $DatabaseInstance   
+                    }
                 }
             }
         }
