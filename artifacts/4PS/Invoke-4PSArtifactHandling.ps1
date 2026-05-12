@@ -313,21 +313,19 @@ function Invoke-4PSArtifactHandling {
                 New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.WelcomeWizard' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\WelcomeWizard\Microsoft.Dynamics.Nav.Client.WelcomeWizard.zip" -ErrorAction SilentlyContinue
                 Restart-NAVServerInstance BC
                 
-                $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
-                Write-Host "  4PS initialization took $timespent4PS seconds"
-
                 Write-Host "Moving all published apps to dev scope when possible"
                 if (-not $env:IsBuildContainer) {
-                    $ConstructNLFound = Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL'
-                    Write-Host "ConstructNL app found: $($ConstructNLFound -ne $null)"
-                    $ConstructNLFound
-                    if ($null -ne (Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL')) {
+                    if ($env:AZURE_DEVOPS_PROJECT -eq '4PS_NL') {
                         Invoke-4PSMoveExtensionToDevScope `
                             -databaseName $DatabaseName `
                             -databaseServer $DatabaseServer `
                             -databaseInstance $DatabaseInstance   
                     }
                 }
+
+                $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
+                Write-Host "  4PS initialization took $timespent4PS seconds"
+
             }
         }
     }
