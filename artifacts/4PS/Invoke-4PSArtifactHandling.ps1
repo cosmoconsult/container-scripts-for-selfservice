@@ -316,10 +316,10 @@ function Invoke-4PSArtifactHandling {
                 $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
                 Write-Host "  4PS initialization took $timespent4PS seconds"
 
-                
+                Write-Host "Moving all published apps to dev scope when possible"
                 if (-not $env:IsBuildContainer) {
                     $ConstructNLFound = Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL'
-                    Write-Host "ConstructnL app found: $($ConstructNLFound -ne $null)"
+                    Write-Host "ConstructNL app found: $($ConstructNLFound -ne $null)"
                     $ConstructNLFound
                     if ($null -ne (Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL')) {
                         Invoke-4PSMoveExtensionToDevScope `
