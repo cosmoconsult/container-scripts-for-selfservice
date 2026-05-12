@@ -318,6 +318,7 @@ function Invoke-4PSArtifactHandling {
 
                 
                 if ($env:IsBuildContainer -eq "false") {
+                    Write-Host "Variable movetodevscope is set to '$($env:movetodevscope)', will move extensions to dev scope if it's set to 'true'"
                     if ($env:movetodevscope -eq "true") {
                         Invoke-4PSMoveExtensionToDevScope `
                             -databaseName $DatabaseName `
