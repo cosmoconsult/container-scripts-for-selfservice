@@ -317,7 +317,7 @@ function Invoke-4PSArtifactHandling {
                 Write-Host "  4PS initialization took $timespent4PS seconds"
 
                 
-                if ($env:IsBuildContainer -eq "false") {
+                if (-not $env:IsBuildContainer) {
                     $ConstructNLFound = Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL'
                     Write-Host "ConstructnL app found: $($ConstructNLFound -ne $null)"
                     $ConstructNLFound
