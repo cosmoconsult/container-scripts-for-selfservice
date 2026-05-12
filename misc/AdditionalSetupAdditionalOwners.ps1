@@ -28,6 +28,10 @@ Wait-NAVTenantReady -ServerInstance $ServerInstance -Tenant $tenantId -Retries 6
 
 
 foreach ($account in $accounts) {
+    if (-not $navuserpasswordAuth -and $account -notlike "*@*") {
+        Write-Host "  Skipping account '$account': does not contain '@', not valid for AAD auth."
+        continue
+    }
     Write-Host "  Processing account: $account"
     $BcUser = $null
     $shortenedAccount = $account.Split("@")[0]
