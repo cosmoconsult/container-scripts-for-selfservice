@@ -318,7 +318,10 @@ function Invoke-4PSArtifactHandling {
 
                 
                 if ($env:IsBuildContainer -eq "false") {
-                   if ($null -ne (Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL')) {
+                    $ConstructNLFound = Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL'
+                    Write-Host "ConstructnL app found: $($ConstructNLFound -ne $null)"
+                    $ConstructNLFound
+                    if ($null -ne (Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL')) {
                         Invoke-4PSMoveExtensionToDevScope `
                             -databaseName $DatabaseName `
                             -databaseServer $DatabaseServer `
