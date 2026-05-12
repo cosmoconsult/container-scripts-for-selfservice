@@ -20,6 +20,12 @@ if ($env:auth -ieq "aad") {
 $PermissionSet = "SUPER"
 
 $accounts = @($env:owner.Split(","))
+if (-not [string]::IsNullOrEmpty($env:username)) {
+    $alreadyIncluded = $accounts | Where-Object { $_ -ieq $env:username }
+    if (-not $alreadyIncluded) {
+        $accounts += $env:username
+    }
+}
 
 Wait-NAVTenantReady -ServerInstance $ServerInstance -Tenant $tenantId -Retries 60 -OutputPrefix "  "
 
