@@ -20,7 +20,7 @@ if ($env:auth -ieq "aad") {
 $PermissionSet = "SUPER"
 
 $accounts = @($env:owner.Split(","))
-if (-not [string]::IsNullOrEmpty($env:username) -and $env:username -inotin $accounts) {
+if (-not [string]::IsNullOrEmpty($env:username) -and $env:username -notin $accounts) {
     $accounts += $env:username
 }
 
