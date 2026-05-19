@@ -5,7 +5,7 @@ function Wait-Async {
         [RunspaceInfo]$RunspaceInfo,
 
         [int]$TimeoutSeconds = 0,
-        
+
         [scriptblock]$ErrorScriptBlock       = { throw $_ },
         [scriptblock]$WarningScriptBlock     = { Write-Warning $_ },
         [scriptblock]$VerboseScriptBlock     = { Write-Verbose $_ },
@@ -32,10 +32,10 @@ function Wait-Async {
         }
 
         $startTime = Get-Date
-        
+
         Write-Host "Waiting for Runspace"
 
-        while (! $RunspaceInfo.Handled) {        
+        while (! $RunspaceInfo.Handled) {
             while ($RunspaceInfo.Output.Count -gt 0) {
                 $outputs = $RunspaceInfo.Output.ReadAll()
                 foreach($output in $outputs) {
@@ -52,7 +52,7 @@ function Wait-Async {
                         $output | ForEach-Object $scriptBlock
                     } catch {
                         # Catch thrown errors to prevent the function from stopping
-                        $message = $_ | Out-String
+                        $message = Out-String -InputObject $_
                         Write-Host $message -ForegroundColor Red
                         $exceptions += $_
                     }
@@ -63,14 +63,13 @@ function Wait-Async {
                 Write-Host "Runspace is completed with status: $($RunspaceInfo.Runspace.InvocationStateInfo.State)"
                 $RunspaceInfo.Handled = $true
                 $RunspaceInfo.Runspace.EndInvoke($RunspaceInfo.Handle) | Out-Null
-            } elseif ($TimeoutSeconds -gt 0) { 
-                $runtimeSeconds = (New-TimeSpan -Start $startTime).TotalSeconds
-                if ($runtimeSeconds -gt $TimeoutSeconds) {
-                    Write-Warning "Stopping Runspace - Timeout of ${TimeoutSeconds} seconds reached after ${runtimeSeconds} seconds"
-                    $RunspaceInfo.Runspace.Stop()
-                }
             } else {
-                Start-Sleep -Milliseconds 250
+                if ($TimeoutSeconds -gt 0 -and $TimeoutSeconds -lt (New-TimeSpan -Start $startTime).TotalSeconds) {
+                    Write-Warning "Stopping Runspace - Timeout of ${TimeoutSeconds} seconds reached"
+                    $RunspaceInfo.Runspace.Stop()
+                } else {
+                    Start-Sleep -Milliseconds 250
+                }
             }
         }
 
@@ -82,7 +81,7 @@ function Wait-Async {
     end {
         if ($exceptions) {
             Write-Warning "Runspaces completed with $($exceptions.Count) exceptions"
-            $message = $exceptions | 
+            $message = $exceptions |
                 ForEach-Object -Begin { $index = 0 } -Process { $index ++; "Exception #${index}:"; $_ } |
                 Out-String
             $errorRecord = New-Object System.Management.Automation.ErrorRecord( $message, "Wait-Async Exceptions", "InvalidResult", $null )
