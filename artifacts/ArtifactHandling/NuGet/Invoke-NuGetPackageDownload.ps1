@@ -112,10 +112,10 @@ function Invoke-NuGetPackageDownload() {
                             $appInfoObj = Get-NavAppInfo -Path $installedAppFile.FullName
                             $appInfo = [PSCustomObject]@{
                                 Package   = '{0}.{1}.{2}' -f $appInfoObj.Publisher, $appInfoObj.Name, $appInfoObj.AppId -replace ' '
-                                Name      = $appInfoObj.Name
-                                Publisher = $appInfoObj.Publisher
-                                Id        = $appInfoObj.AppId
-                                Version   = $appInfoObj.Version
+                                Name      = [string] $appInfoObj.Name
+                                Publisher = [string] $appInfoObj.Publisher
+                                Id        = [string] $appInfoObj.AppId
+                                Version   = [string] $appInfoObj.Version
                             }
                             $appInfosCache[$appInfoCacheKey] = $appInfo
                             $appInfosCacheUpdated = $true
