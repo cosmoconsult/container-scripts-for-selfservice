@@ -30,6 +30,7 @@ function Invoke-DownloadArtifactCore {
         [string[]]$apiFeatures,
         [string]  $serviceTierFolder,
         [int]     $folderIdx,
+        [ValidateRange(0, [int]::MaxValue)]
         [int]     $retries
     )
 
@@ -133,6 +134,7 @@ function Invoke-DownloadArtifactCore {
                             try {
                                 New-ArtifactsLogEntry -Message "Download artifact (attempt $attempt of $maxAttempts)"
                                 $response = Invoke-WebRequest @invokeWebRequestSplat
+                                break
                             } catch {
                                 if ($attempt -ge $maxAttempts) {
                                     throw

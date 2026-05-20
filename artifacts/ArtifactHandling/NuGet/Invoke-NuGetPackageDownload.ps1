@@ -12,6 +12,7 @@ function Invoke-NuGetPackageDownload() {
         [string]$ServiceTierFolder,
         [Version]$PlatformVersion,
         [PSCustomObject[]]$PredefinedPackages = @(),
+        [ValidateRange(0, [int]::MaxValue)]
         [int]$Retries = 0
     )
 
@@ -202,6 +203,7 @@ function Invoke-NuGetPackageDownload() {
                 try {
                     Write-Verbose -Message "Download NuGet package $Package (attempt $attempt of $maxAttempts)"
                     Download-BcNuGetPackageToFolder @downloadParameters
+                    break
                 } catch {
                     if ($attempt -ge $maxAttempts) {
                         throw
