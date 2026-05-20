@@ -29,7 +29,8 @@ function Invoke-DownloadArtifactCore {
         [string]  $accessToken,
         [string[]]$apiFeatures,
         [string]  $serviceTierFolder,
-        [int]     $folderIdx
+        [int]     $folderIdx,
+        [int]     $retries
     )
 
     begin {
@@ -54,6 +55,8 @@ function Invoke-DownloadArtifactCore {
                 }
             }
         )
+
+        $maxAttempts = $retries + 1
     }
 
     process {
@@ -126,7 +129,21 @@ function Invoke-DownloadArtifactCore {
                             $invokeWebRequestSplat += @{ Method = 'Get' }
                             New-ArtifactsLogEntry -Message "External artifact URL detected, ignoring Authorization header" -Severity Debug
                         }
-                        $response = Invoke-WebRequest @invokeWebRequestSplat
+                        foreach ($attempt in 1..$maxAttempts) {
+                            try {
+                                New-ArtifactsLogEntry -Message "Download artifact (attempt $attempt of $maxAttempts)"
+                                $response = Invoke-WebRequest @invokeWebRequestSplat
+                            } catch {
+                                if ($attempt -ge $maxAttempts) {
+                                    throw
+                                }
+
+                                New-ArtifactsLogEntry -Message "Download artifact failed (attempt $attempt of $maxAttempts): $($_.Exception.Message)" -Severity Warn
+                                $waitSeconds = [Math]::Pow(2, $attempt - 1)
+                                Write-Host "Retrying after $waitSeconds second(s)..."
+                                Start-Sleep -Seconds $waitSeconds
+                            }
+                        }
 
                         # Determine file type based on Content-Disposition header or content signature
                         $fileType = ''
@@ -230,6 +247,7 @@ function Invoke-DownloadArtifactCore {
                             ServiceTierFolder  = $serviceTierFolder
                             PlatformVersion    = $platformVersion
                             PredefinedPackages = $predefinedNuGetPackages
+                            Retries            = $retries
                         }
                         Invoke-NuGetPackageDownload @nuGetParameters *>&1 |
                             Where-Object { $_ -ne $null } |
@@ -240,14 +258,14 @@ function Invoke-DownloadArtifactCore {
                                     ( [System.Management.Automation.WarningRecord] )     { New-ArtifactsLogEntry -Message $output.ToString() -Severity Warn }
                                     ( [System.Management.Automation.VerboseRecord] )     { Write-Verbose $output }
                                     ( [System.Management.Automation.DebugRecord] )       { New-ArtifactsLogEntry -Message $output.ToString() -Severity Debug }
-                                    ( [System.Management.Automation.InformationRecord] ) {
-                                        $output |
-                                            Where-Object { $_.ToString() -notmatch "^Search NuGetFeed " } |
-                                            Where-Object { $_.ToString() -notmatch "^Search package using " } |
-                                            Where-Object { $_.ToString() -notmatch "^0 matching packages found" } |
-                                            ForEach-Object {
-                                                New-ArtifactsLogEntry -Message $_.ToString() -Severity Info
-                                            }
+                                    ( [System.Management.Automation.InformationRecord] ) { New-ArtifactsLogEntry -Message $output.ToString() -Severity Info
+                                        # $output |
+                                        #     Where-Object { $_.ToString() -notmatch "^Search NuGetFeed " } |
+                                        #     Where-Object { $_.ToString() -notmatch "^Search package using " } |
+                                        #     Where-Object { $_.ToString() -notmatch "^0 matching packages found" } |
+                                        #     ForEach-Object {
+                                        #         New-ArtifactsLogEntry -Message $_.ToString() -Severity Info
+                                        #     }
                                     }
                                 }
                             }

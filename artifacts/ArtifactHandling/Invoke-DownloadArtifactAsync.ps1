@@ -16,13 +16,14 @@ function Invoke-DownloadArtifactAsync {
         [string[]]$ApiFeatures,
         [string]  $ServiceTierFolder,
         [int]     $FolderIdx         = 0,
+        [int]     $Retries           = 3,
 
         # Async Parameters
         [Parameter(Mandatory)]
         [System.Management.Automation.Runspaces.RunspacePool]$RunspacePool,
         [switch]$OneRunspace
     )
-    
+
     begin {
         $artifacts = @()
 
@@ -43,7 +44,7 @@ function Invoke-DownloadArtifactAsync {
 
         $scriptBlock = {
             param(
-                [object[]]$Artifacts, 
+                [object[]]$Artifacts,
                 [hashtable]$Parameters
             )
             try {
@@ -55,17 +56,17 @@ function Invoke-DownloadArtifactAsync {
             }
         }
     }
-    
+
     process {
         # Collect given artifacts
         $artifacts += $Artifact
     }
-    
+
     end {
         if (! $artifacts) {
             return
         }
-        
+
         if (! $PSBoundParameters.ContainsKey("ServiceTierFolder")) {
             $ServiceTierFolder = Get-NAVServiceTierFolder
         }
@@ -92,6 +93,7 @@ function Invoke-DownloadArtifactAsync {
                         ApiFeatures = $ApiFeatures
                         ServiceTierFolder = $ServiceTierFolder
                         FolderIdx = $FolderIdx
+                        Retries = $Retries
                     }
                 }
 
