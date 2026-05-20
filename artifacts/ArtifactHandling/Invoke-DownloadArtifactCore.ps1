@@ -133,6 +133,7 @@ function Invoke-DownloadArtifactCore {
                             try {
                                 New-ArtifactsLogEntry -Message "Download artifact (attempt $attempt of $maxAttempts)"
                                 $response = Invoke-WebRequest @invokeWebRequestSplat
+                                break
                             } catch {
                                 if ($attempt -ge $maxAttempts) {
                                     throw
