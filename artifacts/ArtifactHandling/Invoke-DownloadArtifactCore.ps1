@@ -140,7 +140,7 @@ function Invoke-DownloadArtifactCore {
 
                                 New-ArtifactsLogEntry -Message "Download artifact failed (attempt $attempt of $maxAttempts): $($_.Exception.Message)" -Severity Warn
                                 $waitSeconds = [Math]::Pow(2, $attempt - 1)
-                                Write-Host "Retrying after $waitSeconds second(s)..."
+                                New-ArtifactsLogEntry -Message "Retrying after $waitSeconds second(s)..."
                                 Start-Sleep -Seconds $waitSeconds
                             }
                         }
