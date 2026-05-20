@@ -202,6 +202,7 @@ function Invoke-NuGetPackageDownload() {
                 try {
                     Write-Verbose -Message "Download NuGet package $Package (attempt $attempt of $maxAttempts)"
                     Download-BcNuGetPackageToFolder @downloadParameters
+                    break
                 } catch {
                     if ($attempt -ge $maxAttempts) {
                         throw
