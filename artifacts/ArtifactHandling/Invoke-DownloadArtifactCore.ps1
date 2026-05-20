@@ -30,6 +30,7 @@ function Invoke-DownloadArtifactCore {
         [string[]]$apiFeatures,
         [string]  $serviceTierFolder,
         [int]     $folderIdx,
+        [ValidateRange(0, [int]::MaxValue)]
         [int]     $retries
     )
 
