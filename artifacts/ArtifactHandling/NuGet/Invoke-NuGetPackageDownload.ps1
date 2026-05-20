@@ -12,6 +12,7 @@ function Invoke-NuGetPackageDownload() {
         [string]$ServiceTierFolder,
         [Version]$PlatformVersion,
         [PSCustomObject[]]$PredefinedPackages = @(),
+        [ValidateRange(0, [int]::MaxValue)]
         [int]$Retries = 0
     )
 
