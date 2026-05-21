@@ -11,7 +11,9 @@ function Invoke-NuGetPackageDownload() {
         [string]$InstalledAppsPath,
         [string]$ServiceTierFolder,
         [Version]$PlatformVersion,
-        [PSCustomObject[]]$PredefinedPackages = @()
+        [PSCustomObject[]]$PredefinedPackages = @(),
+        [ValidateRange(0, [int]::MaxValue)]
+        [int]$Retries = 0
     )
 
     begin {
@@ -25,6 +27,8 @@ function Invoke-NuGetPackageDownload() {
         $versionRangePattern  = '^\s*[\[\(]?\s*({0}{1})(,{0}{1})?\s*[\]\)]?\s*$' -f $versionStablePattern, $versionPrereleasePattern # [[(] <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] [, <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] [)]]
 
         $appInfosCacheFileName = ".nuget.apps.cache.json"
+
+        $maxAttempts = $Retries + 1
     }
 
     process {
@@ -195,7 +199,22 @@ function Invoke-NuGetPackageDownload() {
             }
 
             New-Item -ItemType Directory -Path $Destination -ErrorAction SilentlyContinue -Force | Out-Null
-            Download-BcNuGetPackageToFolder @downloadParameters
+            foreach($attempt in 1..$maxAttempts) {
+                try {
+                    Write-Verbose -Message "Download NuGet package $Package (attempt $attempt of $maxAttempts)"
+                    Download-BcNuGetPackageToFolder @downloadParameters
+                    break
+                } catch {
+                    if ($attempt -ge $maxAttempts) {
+                        throw
+                    }
+
+                    Write-Warning "Download NuGet package $Package failed (attempt $attempt of $maxAttempts): $($_.Exception.Message)"
+                    $waitSeconds = [Math]::Pow(2, $attempt - 1)
+                    Write-Host "Retrying after $waitSeconds second(s)..."
+                    Start-Sleep -Seconds $waitSeconds
+                }
+            }
         } finally {
             if ($nuGetPackageDownloadLockFileStream) {
                 $nuGetPackageDownloadLockFileStream.Close()

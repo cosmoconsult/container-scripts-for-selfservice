@@ -30,6 +30,7 @@ function Invoke-DownloadArtifact {
         [string[]]$ApiFeatures,
         [string]  $ServiceTierFolder,
         [int]     $FolderIdx         = 0,
+        [int]     $Retries           = 3,
 
         # Control Parameters
         [switch]$PassThru,
@@ -94,6 +95,7 @@ function Invoke-DownloadArtifact {
             ApiFeatures = $ApiFeatures
             ServiceTierFolder = $ServiceTierFolder
             FolderIdx = $FolderIdx
+            Retries = $Retries
         }
 
         if (! $PassThru) {
