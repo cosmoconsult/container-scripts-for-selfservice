@@ -10,7 +10,6 @@
 
 # Artifact Handling functions
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-AppFilesSortedByDependencies.ps1")
-. (Join-Path $PSScriptRoot "ArtifactHandling/Get-PackageVersion.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifact.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifactCore.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Resolve-DownloadArtifact.ps1")
@@ -47,9 +46,10 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/Get-ArtifactsLog.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/Set-ArtifactsLog.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/Add-ArtifactsLog.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/Log/Write-ArtifactsLog.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/ArtifactsLogEntry.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Log/New-ArtifactsLogEntry.ps1")
-. (Join-Path $PSScriptRoot "ArtifactHandling/Log/Push-ArtifactsLogEntry.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/Log/ArtifactsLogBatch.ps1")
 
 # 4PS
 . (Join-Path $PSScriptRoot "4PS/Wait-DataUpgradeToFinish.ps1")

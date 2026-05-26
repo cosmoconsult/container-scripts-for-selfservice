@@ -9,45 +9,49 @@
     }
 
     process {
-        Write-Host "Collecting Microsoft NuGet feeds"
-        @( 
-            "https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/index.json"
-        ) | 
-            ForEach-Object {
-                Write-Host "Adding NuGet feed: $_"
-                $feeds += [PSCustomObject]@{ 
-                    Url          = $_
-                    Token        = ""
-                    Patterns     = @('*')
-                    Fingerprints = @() 
-                }
+        if ($global:extendedEnv.PSObject.Properties.Name -contains "TrustedNuGetFeeds") {
+            Write-Host "Collecting trusted nuget feeds"
+            if ($global:extendedEnv.TrustedNuGetFeeds) {
+                $trustedNuGetFeedsBase64 = $global:extendedEnv.TrustedNuGetFeeds
+                $trustedNuGetFeedsJson = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($trustedNuGetFeedsBase64))
+                ($trustedNuGetFeedsJson | ConvertFrom-Json) |
+                    Where-Object { $_ } |
+                    ForEach-Object {
+                        $url = $_.feedUrl
+                        Write-Host "- Adding NuGet feed: $url"
+                        $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat
+                    }
             }
-
-        if ($global:extendedEnv.CustomNugetFeeds) {            
-            Write-Host "Collecting custom nuget feeds"
-            $customNugetFeedsBase64 = $global:extendedEnv.CustomNugetFeeds
-            $customNugetFeedsJson = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($customNugetFeedsBase64))
-            ($customNugetFeedsJson | ConvertFrom-Json) |
-                Where-Object { $_ } |
+        } else {
+            Write-Host "Collecting Microsoft NuGet feeds"
+            @( 
+                "https://dynamicssmb2.pkgs.visualstudio.com/DynamicsBCPublicFeeds/_packaging/MSApps/nuget/v3/index.json"
+            ) | 
                 ForEach-Object {
-                    $url = $_.feedUrl
-                    if ($url -in @( $feeds.Url )) {
-                        Write-Host "NuGet feed already added: $url - Skipping"
-                    } else {
-                        Write-Host "Adding NuGet feed: $url"
-                        $feeds += [PSCustomObject]@{ 
-                            Url          = $url
-                            Token        = $_.pat
-                            Patterns     = @('*')
-                            Fingerprints = @()
+                    Write-Host "- Adding NuGet feed: $_"
+                    $feeds += Initialize-NuGetFeed -Url $_
+                }
+
+            if ($global:extendedEnv.CustomNugetFeeds) {            
+                Write-Host "Collecting custom nuget feeds"
+                $customNugetFeedsBase64 = $global:extendedEnv.CustomNugetFeeds
+                $customNugetFeedsJson = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($customNugetFeedsBase64))
+                ($customNugetFeedsJson | ConvertFrom-Json) |
+                    Where-Object { $_ } |
+                    ForEach-Object {
+                        $url = $_.feedUrl
+                        if ($url -in @( $feeds.Url )) {
+                            Write-Host "- NuGet feed already added: $url - Skipping"
+                        } else {
+                            Write-Host "- Adding NuGet feed: $url"
+                            $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat
                         }
                     }
-                }
+            }
         }
 
         @(
-            "C:\Run\my\trusted-nuget-feeds\trustedFeeds.json", 
-            "C:\Run\my\trusted-nuget-feeds\customTrustedFeeds.json"
+            "C:\Run\my\trusted-nuget-feeds\trustedFeeds.json"
         ) |
             Where-Object { Test-Path $_ -PathType Leaf } |
             ForEach-Object {
@@ -58,15 +62,10 @@
             ForEach-Object {
                 $url = $_.url
                 if ($url -in @( $feeds.Url )) {
-                    Write-Host "NuGet feed already added: $url - Skipping"
+                    Write-Host "- NuGet feed already added: $url - Skipping"
                 } else {
-                    Write-Host "Adding NuGet feed: $url"
-                    $feeds += [PSCustomObject]@{ 
-                        Url          = $url
-                        Token        = $_.pat
-                        Patterns     = @('*')
-                        Fingerprints = @()
-                    }
+                    Write-Host "- Adding NuGet feed: $url"
+                    $feeds += Initialize-NuGetFeed -Url $url -Token $_.pat
                 }
             }
     }
@@ -80,3 +79,26 @@
     }
 }
 Export-ModuleMember -Function Initialize-NuGetFeeds
+
+function Initialize-NuGetFeed {
+    [cmdletbinding()]
+    Param(
+        [Parameter(Mandatory = $true)]
+        [string]$Url,
+        [Parameter(Mandatory = $false)]
+        [string]$Token = "",
+        [Parameter(Mandatory = $false)]
+        [string[]]$Patterns = @('*'),
+        [Parameter(Mandatory = $false)]
+        [string[]]$Fingerprints = @()
+    )
+
+    $feed = @{
+        Url          = $Url
+        Token        = $Token
+        Patterns     = $Patterns
+        Fingerprints = $Fingerprints
+    }
+
+    return [PSCustomObject]$feed
+}

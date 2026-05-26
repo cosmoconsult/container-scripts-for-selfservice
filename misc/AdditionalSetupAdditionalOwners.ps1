@@ -10,6 +10,8 @@ if ($env:owner -eq $null -or $env:owner -eq "") {
     return
 }
 
+Import-Module "C:\run\my\AssignPremiumPlanToUser.psm1"
+
 $navuserpasswordAuth = $true
 if ($env:auth -ieq "aad") {
     $navuserpasswordAuth = $false
@@ -18,12 +20,20 @@ if ($env:auth -ieq "aad") {
 $PermissionSet = "SUPER"
 
 $accounts = @($env:owner.Split(","))
+if (-not [string]::IsNullOrEmpty($env:username) -and $env:username -notin $accounts) {
+    $accounts += $env:username
+}
 
 Wait-NAVTenantReady -ServerInstance $ServerInstance -Tenant $tenantId -Retries 60 -OutputPrefix "  "
 
 
 foreach ($account in $accounts) {
+    if (-not $navuserpasswordAuth -and $account -notlike "*@*") {
+        Write-Host "  Skipping account '$account', not valid for AAD auth."
+        continue
+    }
     Write-Host "  Processing account: $account"
+    $BcUser = $null
     $shortenedAccount = $account.Split("@")[0]
     $userNameToSet = $account
     if ($navuserpasswordAuth) {
@@ -83,5 +93,11 @@ foreach ($account in $accounts) {
             -PermissionSetId $PermissionSet
 
         '  Added permission set {0} on user {1} in Business Central.' -f $PermissionSet, $userNameToSet | Write-Host
+    }
+    if (-not [string]::IsNullOrEmpty($env:enablePremium) -and $($env:enablePremium).ToLower() -eq "true") {
+        if(-not $BcUser){
+            $BcUser = Get-NAVServerUser -ServerInstance $ServerInstance -tenant $tenantId | Where-Object { $_.UserName -ieq $shortenedAccount -or $_.UserName -like "$($shortenedAccount)@*" }
+        }
+        Invoke-AssignPremiumPlanToUser -Tenant $tenantId -BcUser $BcUser
     }
 }

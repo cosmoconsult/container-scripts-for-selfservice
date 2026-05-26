@@ -126,10 +126,14 @@ elseif (($volPath -ne "") -and (Test-Path $volPath)) {
             }
             else {
                 Write-Host "  Found version $sysAppVersionFS for the container and $sysAppVersionDB for the database"
-                if ($sysAppVersionDB -gt $sysAppVersionFS) {
+                Write-Host "  As we see issues with revision changes on BC 26.2, we ignore the revision for now"
+                $sysAppVersionFS_NoRev = [Version]::new($sysAppVersionFS.Major, $sysAppVersionFS.Minor, $sysAppVersionFS.Build)
+                $sysAppVersionDB_NoRev = [Version]::new($sysAppVersionDB.Major, $sysAppVersionDB.Minor, $sysAppVersionDB.Build)
+                Write-Host "  We now compare $sysAppVersionFS_NoRev for the container and $sysAppVersionDB_NoRev for the database"
+                if ($sysAppVersionDB_NoRev -gt $sysAppVersionFS_NoRev) {
                     Write-Error "  Database version is newer than container version, this probably won't work"
                 }
-                elseif ($sysAppVersionFS -gt $sysAppVersionDB) {
+                elseif ($sysAppVersionFS_NoRev -gt $sysAppVersionDB_NoRev) {
                     Write-Host "  Container version is newer than database version, trying to convert"
                     Invoke-NAVApplicationDatabaseConversion -databaseServer "$DatabaseServer\$DatabaseInstance" -DatabaseName "$databaseName" -Force
                     $env:cosmoUpgradeSysApp = $true

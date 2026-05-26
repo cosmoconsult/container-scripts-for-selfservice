@@ -1,3 +1,51 @@
+function Invoke-4PSMoveExtensionToDevScope {
+    [cmdletbinding()]
+    param
+    (
+        [parameter(Mandatory = $false)]
+        [string]$databaseName,
+        [parameter(Mandatory = $false)]
+        [string]$databaseServer,
+        [parameter(Mandatory = $false)]
+        [string]$databaseInstance
+    )
+    process {
+        try {
+            $needsServerConfig = [string]::IsNullOrWhiteSpace($databaseName) -or [string]::IsNullOrWhiteSpace($databaseServer) -or [string]::IsNullOrWhiteSpace($databaseInstance)
+
+            if ($needsServerConfig) {
+                $serverTierSettings = Get-NAVServerConfiguration -ServerInstance BC -ErrorAction SilentlyContinue
+
+                if ([string]::IsNullOrWhiteSpace($databaseName)) {
+                    $databaseName = ($serverTierSettings | Where-Object { $_.key -eq "DatabaseName" }).value
+                }
+                if ([string]::IsNullOrWhiteSpace($databaseServer)) {
+                    $databaseServer = ($serverTierSettings | Where-Object { $_.key -eq "DatabaseServer" }).value
+                }
+                if ([string]::IsNullOrWhiteSpace($databaseInstance)) {
+                    $databaseInstance = ($serverTierSettings | Where-Object { $_.key -eq "DatabaseInstance" }).value
+                }
+            }
+
+            if ([string]::IsNullOrWhiteSpace($databaseName) -or [string]::IsNullOrWhiteSpace($databaseServer) -or [string]::IsNullOrWhiteSpace($databaseInstance)) {
+                Write-Warning "Skipping move to dev scope: database settings are Empty. DatabaseName='$databaseName', DatabaseServer='$databaseServer', DatabaseInstance='$databaseInstance'"
+                return
+            }
+
+            Write-Host "Move all published apps to dev scope - Using SQL target $databaseServer\$databaseInstance / database '$databaseName'"
+            $sqlParams = @{
+                ServerInstance = "$databaseServer\$databaseInstance"
+                ErrorAction    = "Stop"
+            }
+            $safeDb = $databaseName.Replace(']', ']]')
+            Invoke-Sqlcmd @sqlParams -Query "UPDATE [$safeDb].[dbo].[Published Application] SET [Published As] = 2, [Tenant ID] = 'default'" | Out-Null
+        }
+        catch {
+            Write-Warning "Failed to move published apps to dev scope: $_. Continuing with current scope."
+        }
+    }
+}
+
 function Invoke-4PSArtifactHandling {
     [cmdletbinding()]
     PARAM
@@ -18,14 +66,14 @@ function Invoke-4PSArtifactHandling {
             Write-Host "  app database name is: $appDatabaseName"
             $isModifiedBaseAppInstalled = ![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)
             $isSaaSBak = ![string]::IsNullOrEmpty($env:saasbakfile)
-            if($isModifiedBaseAppInstalled -and !$isSaaSBak) {
+            if ($isModifiedBaseAppInstalled -and !$isSaaSBak) {
                 Write-Host "  modified base app was installed, therefore this is not a microsoft standard database"
             }
 
             if ($env:cosmoServiceRestart -eq $true) {
                 Write-Host "4PS initialization skipped as this seems to be a service restart"
             }
-            elseif($isSaaSBak) {
+            elseif ($isSaaSBak) {
                 Write-Host "4PS initialization skipped as this seems to be a SaaS backup restore"
             }
             elseif (("CRONUS" -eq $appDatabaseName) -or ("default" -eq $appDatabaseName) -and !$isModifiedBaseAppInstalled) {
@@ -112,15 +160,27 @@ function Invoke-4PSArtifactHandling {
                             -TimeZone ServicesDefaultTimeZone `
                             -ErrorAction SilentlyContinue 
                         
-                        Write-Host "    Import setup data from XML file"
-                        Invoke-NavCodeunit `
-                            -ServerInstance BC `
-                            -CompanyName $companyName `
-                            -CodeunitId 11012251 `
-                            -MethodName ImportDemoData `
-                            -Argument "$($demoDataFile.FullName)"
+                        if ($sysAppInfoFS.Version.Major -lt 28) {
+                            Write-Host "    Import setup data from XML file"
+                            Invoke-NavCodeunit `
+                                -ServerInstance BC `
+                                -CompanyName $companyName `
+                                -CodeunitId 11012251 `
+                                -MethodName ImportDemoData `
+                                -Argument "$($demoDataFile.FullName)"
+                        }
                         
                         if ($use4PSContainerInitializer) {
+                            if ($sysAppInfoFS.Version.Major -ge 28) {
+                                Write-Host "    Import setup data from XML file using container initializer app"
+                                Invoke-NavCodeunit `
+                                    -ServerInstance BC `
+                                    -CompanyName $companyName `
+                                    -CodeunitId 50188 `
+                                    -MethodName ImportDemoDataFromFile `
+                                    -Argument "$($demoDataFile.FullName)"
+                            }
+
                             if ($sysAppInfoFS.Version.Major -le 20) {
                                 # Only required on 20 and older
                                 Write-Host "    Run manual data upgrade 4PS"
@@ -265,8 +325,19 @@ function Invoke-4PSArtifactHandling {
                 New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.WelcomeWizard' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\WelcomeWizard\Microsoft.Dynamics.Nav.Client.WelcomeWizard.zip" -ErrorAction SilentlyContinue
                 Restart-NAVServerInstance BC
                 
+                Write-Host "Moving all published apps to dev scope when possible"
+                if (-not $env:IsBuildContainer) {
+                    if ($null -ne (Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL')) {
+                        Invoke-4PSMoveExtensionToDevScope `
+                            -databaseName $DatabaseName `
+                            -databaseServer $DatabaseServer `
+                            -databaseInstance $DatabaseInstance   
+                    }
+                }
+
                 $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
                 Write-Host "  4PS initialization took $timespent4PS seconds"
+
             }
         }
     }
