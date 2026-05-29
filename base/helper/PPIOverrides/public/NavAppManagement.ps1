@@ -10,22 +10,34 @@ if (! (Get-Module 'PPIPowershellCoreUtils')) {
 }
 
 $commandNamesForAppManagement = @(
-    'Get-NavAppRuntimePackage', 
-    'Install-NAVApp', 
-    'Invoke-InplacePublishing', 
-    'Publish-NAVApp', 
-    'Repair-NAVApp', 
-    'Start-NAVAppDataUpgrade', 
-    'Sync-NAVApp', 
-    'Uninstall-NAVApp', 
+    'Get-NavAppRuntimePackage',
+    'Install-NAVApp',
+    'Invoke-InplacePublishing',
+    'Publish-NAVApp',
+    'Repair-NAVApp',
+    'Start-NAVAppDataUpgrade',
+    'Sync-NAVApp',
+    'Uninstall-NAVApp',
     'Unpublish-NAVApp'
-) 
+)
 
 $commandNamesForManagement = @(
     'Mount-NAVTenant'
-) 
+)
+if ($bcVersion.Major -ge 29) {
+    # Validate that PowerShell Core (pwsh) is available up front for the BC29+ path
+    try {
+        Get-Command pwsh -ErrorAction Stop | Out-Null
+    }
+    catch {
+        throw "PowerShell Core ('pwsh') is required but was not found. Ensure that PowerShell Core is installed and 'pwsh' is available on PATH."
+    }
+    Import-Module "C:\Program Files\Microsoft Dynamics NAV\290\Service\Admin\Microsoft.BusinessCentral.Apps.Management.psd1" -Global
+    Invoke-PwshOverwriting -commandNames ($commandNamesForManagement)
 
-if ($bcVersion.Major -ge 28) {
+    Get-PwshCoreSessionConfiguration | Out-Null
+}
+elseif ($bcVersion.Major -eq 28) {
     # Validate that PowerShell Core (pwsh) is available up front for the BC28+ path
     try {
         Get-Command pwsh -ErrorAction Stop | Out-Null
@@ -34,7 +46,7 @@ if ($bcVersion.Major -ge 28) {
         throw "PowerShell Core ('pwsh') is required but was not found. Ensure that PowerShell Core is installed and 'pwsh' is available on PATH."
     }
     Invoke-PwshOverwriting -commandNames ($commandNamesForAppManagement + $commandNamesForManagement)
-    
+
     Get-PwshCoreSessionConfiguration | Out-Null
 }
 else {
@@ -42,7 +54,7 @@ else {
     Get-PwshCoreSessionConfiguration | Out-Null
 
     $moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
-   
+
     $commandNamesForAppManagement | ForEach-Object {
         Export-PwshCoreOverride -CommandName $_ -ModuleName 'Microsoft.BusinessCentral.Apps.Management' -ModuleImportScriptBlock $moduleImportScriptBlock
     }
