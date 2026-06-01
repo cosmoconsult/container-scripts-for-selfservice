@@ -32,7 +32,7 @@ if ($bcVersion.Major -ge 29) {
     catch {
         throw "PowerShell Core ('pwsh') is required but was not found. Ensure that PowerShell Core is installed and 'pwsh' is available on PATH."
     }
-    Import-Module "C:\Program Files\Microsoft Dynamics NAV\290\Service\Admin\Microsoft.BusinessCentral.Apps.Management.psd1" -Global
+    Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Admin\Microsoft.BusinessCentral.Apps.Management.psd1" | ForEach-Object { Write-Host "Importing module: $_";Import-Module $_ -Global}
     Invoke-PwshOverwriting -commandNames ($commandNamesForManagement)
 
     Get-PwshCoreSessionConfiguration | Out-Null
