@@ -223,7 +223,7 @@ function Invoke-PwshOverwriting {
 
         # Ensure the module containing the target commands is loaded in the current session to retrieve parameter metadata
         if (! (Get-Module 'Microsoft.Dynamics.Nav.Management')) {
-            Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Management.psm1" | ForEach-Object { . $_ }
+            Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Management.psm1" | ForEach-Object { Import-Module $_ }
         }
     }
     process {
