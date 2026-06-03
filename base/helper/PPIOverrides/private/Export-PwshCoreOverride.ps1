@@ -105,7 +105,7 @@ function Invoke-PwshOverwriting {
             $scriptBlock = {
                 [CmdletBinding()]
                 param(
-                    [Parameter(ValueFromRemainingArguments)]
+                    [Parameter(Mandatory = $false,ValueFromRemainingArguments)]
                     $RemainingArgs # Unused parameter to allow passing all args to pwsh without binding issues
                 )
 
