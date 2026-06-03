@@ -22,7 +22,7 @@ function Export-PwshCoreOverride() {
         $scriptBlock = {
             [CmdletBinding()]
             param()
-    
+
             dynamicparam {
                 $override = $script:PwshCoreOverrides[$MyInvocation.MyCommand.Name]
                 $pwshCoreSession = Request-PwshCoreSession
@@ -44,13 +44,13 @@ function Export-PwshCoreOverride() {
                 } | Out-Null
                 ConvertTo-DynamicParameters -CommandName $override.CommandName -Parameters $overwrittenParameters
             }
-    
+
             begin {
                 $MyInvocation.MyCommand.Parameters.Values | Where-Object { ! $_.IsDynamic } | ForEach-Object {
                     $PSBoundParameters.Remove($_.Name) | Out-Null
                 }
             }
-            
+
             process {
                 $override = $script:PwshCoreOverrides[$MyInvocation.MyCommand.Name]
                 $pwshCoreSession = Request-PwshCoreSession
@@ -67,8 +67,8 @@ function Export-PwshCoreOverride() {
 
                     # Convert deserialized parameters to string
                     $parameters = $using:PSBoundParameters
-                    @( $parameters.GetEnumerator() ) | 
-                    Where-Object { $_.Value -is [PSObject] } | 
+                    @( $parameters.GetEnumerator() ) |
+                    Where-Object { $_.Value -is [PSObject] } |
                     Where-Object { $_.Value.PSObject.TypeNames -match '^Deserialized\.' } |
                     ForEach-Object { $parameters[$_.Name] = $_.Value.ToString() }
 
@@ -79,7 +79,7 @@ function Export-PwshCoreOverride() {
     }
 
     process {
-        $script:PwshCoreOverrides[$CommandName] = @{ 
+        $script:PwshCoreOverrides[$CommandName] = @{
             ModuleName              = $ModuleName
             ModuleImportPath        = $ModuleImportPath
             ModuleImportScriptBlock = $ModuleImportScriptBlock
@@ -101,31 +101,31 @@ function Invoke-PwshOverwriting {
             param(
                 [string]$FunctionName
             )
-    
+
             $scriptBlock = {
                 [CmdletBinding()]
                 param(
                     [Parameter(ValueFromRemainingArguments)]
                     $RemainingArgs # Unused parameter to allow passing all args to pwsh without binding issues
                 )
-        
+
                 dynamicparam {
                     # Get the function name from the enclosing scope
                     $targetFunction = $MyInvocation.MyCommand.Name
-            
+
                     # Create a dynamic parameter dictionary
                     $paramDict = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-            
+
                     # Build parameters from the stored function info
                     $commonParameters = [System.Management.Automation.PSCmdlet]::CommonParameters + [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
-                    $functionParams[$targetFunction].Values | Where-Object { $_.Name -notin $commonParameters } | ForEach-Object {
+                    $global:functionParams[$targetFunction].Values | Where-Object { $_.Name -notin $commonParameters } | ForEach-Object {
                         $paramInfo = $_
-                
+
                         $attributes = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
-                
+
                         # Get all ParameterAttribute instances to support multiple parameter sets
                         $paramAttributes = $paramInfo.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
-                
+
                         if ($paramAttributes) {
                             # Add each parameter set definition
                             foreach ($paramAttr in $paramAttributes) {
@@ -144,26 +144,28 @@ function Invoke-PwshOverwriting {
                             $paramAttr = New-Object System.Management.Automation.ParameterAttribute
                             $attributes.Add($paramAttr)
                         }
-                
+
                         # Add other attributes (ValidateSet, ValidateRange, etc.)
                         $paramInfo.Attributes | Where-Object { $_ -isnot [System.Management.Automation.ParameterAttribute] } | ForEach-Object {
                             $attributes.Add($_)
                         }
-                
+
+                        $paramType = try { [Type]($paramInfo.ParameterType) } catch { [Type]::GetType('System.String') }
+
                         $runtimeParam = New-Object System.Management.Automation.RuntimeDefinedParameter(
-                            $paramInfo.Name, 
-                            $paramInfo.ParameterType, 
+                            $paramInfo.Name,
+                            $paramType,
                             $attributes
                         )
                         $paramDict.Add($paramInfo.Name, $runtimeParam)
                     }
-            
+
                     return $paramDict
                 }
-        
+
                 process {
                     $targetFunction = $MyInvocation.MyCommand.Name
-            
+
                     # Convert Version parameters to strings before serialization
                     $paramsToSerialize = @{}
                     foreach ($key in $PSBoundParameters.Keys) {
@@ -176,26 +178,26 @@ function Invoke-PwshOverwriting {
                             $paramsToSerialize[$key] = $value
                         }
                     }
-            
+
                     Write-Verbose "[$targetFunction] Captured Parameters: $($paramsToSerialize | ConvertTo-Json -Compress)"
-            
+
                     # Serialize parameters to JSON for passing to pwsh
                     $paramsJson = $paramsToSerialize | ConvertTo-Json -Compress -Depth 10
-            
+
                     pwsh -NoProfile -c {
                         param([string]$jsonParams, [string]$cmdName)
-                
+
                         Write-Verbose "[$cmdName] Received JSON: $jsonParams"
                         $params = $jsonParams | ConvertFrom-Json
-                
+
                         # Convert JSON object to hashtable for splatting
                         $ht = @{}
                         $params.PSObject.Properties | ForEach-Object {
                             $name = $_.Name
                             $value = $_.Value
-                    
+
                             Write-Verbose "[$cmdName] Processing param: $name = $value (Type: $($value.GetType().FullName))"
-                    
+
                             # Automatically detect switch parameters by checking for IsPresent property
                             if ($value -is [PSCustomObject] -and $value.PSObject.Properties['IsPresent']) {
                                 if ($value.IsPresent -eq $true) {
@@ -208,38 +210,52 @@ function Invoke-PwshOverwriting {
                                 $ht[$name] = $value
                             }
                         }
-                
+
                         Write-Verbose "[$cmdName] Reconstructed Parameters: $($ht | ConvertTo-Json -Compress)"
-                
+
                         . c:\run\prompt.ps1 -silent
                         & $cmdName @ht
                     } -args $paramsJson, $targetFunction
                 }
             }.GetNewClosure()
-    
-            # Create the function in the script scope
-            Set-Item -Path "function:script:$FunctionName" -Value $scriptBlock
+
+            # Create the function in the global scope
+            Set-Item -Path "function:global:$FunctionName" -Value $scriptBlock
         }
 
-        # Ensure the module containing the target commands is loaded in the current session to retrieve parameter metadata
-        if (! (Get-Module 'Microsoft.Dynamics.Nav.Management')) {
-            Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service\Microsoft.Dynamics.Nav.Management.psm1" | ForEach-Object { Write-Host "Importing module: $_";Import-Module $_ }
-        } else {
-            Write-Host "Module 'Microsoft.Dynamics.Nav.Management' is already loaded."
+        function Get-FunctionSignatures {
+            param(
+                [String[]]$functionNames
+            )
+            $xmlPath = "C:\run\my\functionSignatures.xml"
+            if (-not (Test-Path $xmlPath)) {
+                pwsh -NoProfile -c {
+                    param([string]$xmlPath, [string[]]$functionNames)
+                    C:\run\prompt.ps1 -silent
+                    $functionNames | Get-Command | Export-Clixml -Path $xmlPath
+                } -args $xmlPath, $functionNames
+            }
+            $Signatures = Import-Clixml -Path $xmlPath
+            if ( $Signatures.Count -eq 0) {
+                throw "Failed to retrieve function signatures for $($functionNames -join ', '). Ensure that the target functions exist and are accessible in the PowerShell Core session."
+            }
+            return $Signatures
         }
     }
     process {
         $functionNames = $commandNames
         # Collect parameters for all functions we want to wrap
 
-        $functionParams = @{}
+        $global:functionParams = @{}
+        $Signatures = Get-FunctionSignatures -functionNames $functionNames
+        Write-Host "Retrieved function signatures for: $($Signatures.Name -join ', ')"
         foreach ($functionName in $functionNames) {
-            $functionParams[$functionName] = (Get-Command $functionName).Parameters
+            $global:functionParams[$functionName] = $Signatures | Where-Object { $_.Name -eq $functionName } | Select-Object -ExpandProperty Parameters
         }
 
         # Create wrapper functions for all target functions
         foreach ($functionName in $functionNames) {
-            if ($functionParams[$functionName]) {
+            if ($global:functionParams[$functionName]) {
                 Write-Host "Creating wrapper for $functionName"
                 New-PwshCoreWrapper -FunctionName $functionName
             }
