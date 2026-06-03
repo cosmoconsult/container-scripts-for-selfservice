@@ -218,7 +218,7 @@ function Invoke-PwshOverwriting {
             }.GetNewClosure()
     
             # Create the function in the script scope
-            Set-Item -Path "function:script:$FunctionName" -Value $scriptBlock
+            Set-Item -Path "function:global:$FunctionName" -Value $scriptBlock
         }
 
         # Ensure the module containing the target commands is loaded in the current session to retrieve parameter metadata
