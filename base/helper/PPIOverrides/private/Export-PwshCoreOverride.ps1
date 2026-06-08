@@ -202,9 +202,12 @@ function Invoke-PwshOverwriting {
 
                     pwsh -NoProfile -c {
                         param([string]$jsonParams, [string]$cmdName)
-
                         Write-Verbose "[$cmdName] Received JSON: $jsonParams"
                         $params = $jsonParams | ConvertFrom-Json
+
+                        Write-Verbose "[$cmdName] Invoke Prompt"
+                        c:\run\prompt.ps1 -silent
+
                         $command = Get-Command $cmdName -ErrorAction Stop
 
                         # Convert JSON object to hashtable for splatting
