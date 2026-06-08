@@ -123,6 +123,13 @@ function Invoke-PwshOverwriting {
 
                         $attributes = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
 
+                        $paramAttr = New-Object System.Management.Automation.ParameterAttribute
+                        $attributes.Add($paramAttr)
+                        foreach ($alias in $paramInfo.Aliases) {
+                            $attributes.Add([System.Management.Automation.AliasAttribute]::new($alias))
+                        }
+
+                        <#
                         # Get all ParameterAttribute instances to support multiple parameter sets
                         $paramAttributes = $paramInfo.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
 
@@ -149,7 +156,7 @@ function Invoke-PwshOverwriting {
                         $paramInfo.Attributes | Where-Object { $_ -isnot [System.Management.Automation.ParameterAttribute] } | ForEach-Object {
                             $attributes.Add($_)
                         }
-
+                        #>
                         $paramType = try { [Type]($paramInfo.ParameterType) } catch { [Type]::GetType('System.String') }
 
                         $runtimeParam = New-Object System.Management.Automation.RuntimeDefinedParameter(
@@ -157,6 +164,7 @@ function Invoke-PwshOverwriting {
                             $paramType,
                             $attributes
                         )
+
                         $paramDict.Add($paramInfo.Name, $runtimeParam)
                     }
 
