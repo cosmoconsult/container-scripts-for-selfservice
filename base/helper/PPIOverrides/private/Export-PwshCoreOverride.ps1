@@ -164,9 +164,7 @@ function Invoke-PwshOverwriting {
                 }
 
                 process {
-                    foreach ($arg in @($NotMappedArgs)) {
-                        Write-Warning "Argument '$arg' is not mapped to the wrapper function. Ensure that this parameter is defined in the target function for proper handling."
-                    }
+                    Write-Warning "Arguments '$($NotMappedArgs -join ' ')' are not mapped to the wrapper function. Ensure that these parameters are defined in the target function for proper handling."
                     $targetFunction = $MyInvocation.MyCommand.Name
 
                     # Prevent the wrapper's catch-all parameter from being forwarded.
