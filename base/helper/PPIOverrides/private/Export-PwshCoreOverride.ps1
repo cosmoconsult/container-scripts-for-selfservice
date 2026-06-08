@@ -164,10 +164,15 @@ function Invoke-PwshOverwriting {
                 }
 
                 process {
-                    foreach ($arg in $NotMappedArgs) {
-                        Write-Warning "Parameter $($arg.Name) is not mapped to the wrapper function. Ensure that this parameter is defined in the target function for proper handling."
+                    foreach ($arg in @($NotMappedArgs)) {
+                        Write-Warning "Argument '$arg' is not mapped to the wrapper function. Ensure that this parameter is defined in the target function for proper handling."
                     }
                     $targetFunction = $MyInvocation.MyCommand.Name
+
+                    # Prevent the wrapper's catch-all parameter from being forwarded.
+                    if ($PSBoundParameters.ContainsKey('NotMappedArgs')) {
+                        $PSBoundParameters.Remove('NotMappedArgs') | Out-Null
+                    }
 
                     # Convert Version parameters to strings before serialization
                     $paramsToSerialize = @{}
