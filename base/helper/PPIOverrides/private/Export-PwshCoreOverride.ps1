@@ -172,7 +172,9 @@ function Invoke-PwshOverwriting {
                 }
 
                 process {
-                    Write-Warning "Arguments '$($NotMappedArgs -join ' ')' are not mapped to the wrapper function. Ensure that these parameters are defined in the target function for proper handling."
+                    if ($NotMappedArgs -and @($NotMappedArgs).Count -gt 0) {
+                        Write-Warning "Arguments '$($NotMappedArgs -join ' ')' are not mapped to the wrapper function. Ensure that these parameters are defined in the target function for proper handling."
+                    }
                     $targetFunction = $MyInvocation.MyCommand.Name
 
                     # Prevent the wrapper's catch-all parameter from being forwarded.
@@ -203,12 +205,14 @@ function Invoke-PwshOverwriting {
 
                         Write-Verbose "[$cmdName] Received JSON: $jsonParams"
                         $params = $jsonParams | ConvertFrom-Json
+                        $command = Get-Command $cmdName -ErrorAction Stop
 
                         # Convert JSON object to hashtable for splatting
                         $ht = @{}
                         $params.PSObject.Properties | ForEach-Object {
                             $name = $_.Name
                             $value = $_.Value
+                            $parameterType = $command.Parameters[$name].ParameterType
 
                             Write-Verbose "[$cmdName] Processing param: $name = $value (Type: $($value.GetType().FullName))"
 
@@ -221,7 +225,27 @@ function Invoke-PwshOverwriting {
                             }
                             # Handle regular parameters
                             else {
-                                $ht[$name] = $value
+                                # Common JSON serialization pattern for wrapped scalar types: @{ Value = ... }
+                                if (
+                                    $value -is [PSCustomObject] -and
+                                    $value.PSObject.Properties.Count -eq 1 -and
+                                    $value.PSObject.Properties['Value']
+                                ) {
+                                    $value = $value.Value
+                                }
+
+                                if ($parameterType) {
+                                    try {
+                                        $ht[$name] = [System.Management.Automation.LanguagePrimitives]::ConvertTo($value, $parameterType)
+                                    }
+                                    catch {
+                                        Write-Verbose "[$cmdName] Could not convert parameter '$name' to type '$($parameterType.FullName)'. Using raw value. Error: $($_.Exception.Message)"
+                                        $ht[$name] = $value
+                                    }
+                                }
+                                else {
+                                    $ht[$name] = $value
+                                }
                             }
                         }
 
