@@ -105,8 +105,8 @@ function Invoke-PwshOverwriting {
             $scriptBlock = {
                 [CmdletBinding()]
                 param(
-                    [Parameter(Mandatory = $false,ValueFromRemainingArguments)]
-                    $RemainingArgs # Unused parameter to allow passing all args to pwsh without binding issues
+                    [Parameter(Mandatory = $false, ValueFromRemainingArguments)]
+                    $NotMappedArgs # Unused parameter to allow passing all args to pwsh without binding issues
                 )
 
                 dynamicparam {
@@ -164,6 +164,9 @@ function Invoke-PwshOverwriting {
                 }
 
                 process {
+                    foreach ($arg in $NotMappedArgs) {
+                        Write-Warning "Parameter $($arg.Name) is not mapped to the wrapper function. Ensure that this parameter is defined in the target function for proper handling."
+                    }
                     $targetFunction = $MyInvocation.MyCommand.Name
 
                     # Convert Version parameters to strings before serialization
