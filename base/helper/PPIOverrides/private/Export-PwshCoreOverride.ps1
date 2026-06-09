@@ -15,81 +15,123 @@ function Export-PwshCoreOverride() {
         [Parameter(ParameterSetName = 'ModuleImportPath', Mandatory)]
         [string]$ModuleImportPath,
         [Parameter(ParameterSetName = 'ModuleImportScriptBlock', Mandatory)]
-        [scriptblock]$ModuleImportScriptBlock
+        [scriptblock]$ModuleImportScriptBlock,
+
+        [bool]$UseRemoteSession = $true
     )
 
     begin {
+        if ($UseRemoteSession) {
+            Write-Verbose "Exporting $CommandName with PowerShell Core remote session."
+        }
+        else {
+            Write-Verbose "Exporting $CommandName with PowerShell Core direct execution."
+            # Validate that PowerShell Core (pwsh) is available up front for the BC28+ path
+            try {
+                Get-Command pwsh -ErrorAction Stop | Out-Null
+            }
+            catch {
+                throw "PowerShell Core ('pwsh') is required but was not found. Ensure that PowerShell Core is installed and 'pwsh' is available on PATH."
+            }
+        }
+
         $scriptBlock = {
             [CmdletBinding()]
             param()
-    
+
             dynamicparam {
                 $override = $script:PwshCoreOverrides[$MyInvocation.MyCommand.Name]
-                $pwshCoreSession = Request-PwshCoreSession
-                if (!$pwshCoreSession) { return }
-                $overwrittenParameters = @{}
-                Invoke-Command -Session $pwshCoreSession -ScriptBlock {
-                    if (! (Get-Module $using:override.ModuleName)) {
-                        if ($using:override.ModuleImportPath) {
-                            Import-Module $using:override.ModuleImportPath -wa SilentlyContinue
+                $pwshCoreParameters = @()
+                $pwshCoreParametersScriptBlock = {
+                    param($override)
+                    if (! (Get-Module $override.ModuleName)) {
+                        if ($override.ModuleImportPath) {
+                            Import-Module $override.ModuleImportPath -wa SilentlyContinue
                         }
                         else {
-                            . ( [ScriptBlock]::create($using:override.ModuleImportScriptBlock) )
+                            . ( [ScriptBlock]::create($override.ModuleImportScriptBlock) )
                         }
                     }
                     # Get parameters and their attributes for the command
-                    (Get-Command $using:override.CommandName).Parameters.Values | Select-Object -Property *
-                } | ForEach-Object {
-                    $overwrittenParameters[$_.Name] = $_;
-                } | Out-Null
+                    (Get-Command $override.CommandName).Parameters.Values | Select-Object -Property *
+                }
+                if ($override.UseRemoteSession) {
+                    $pwshCoreSession = Request-PwshCoreSession
+                    if (!$pwshCoreSession) { return }
+                    $pwshCoreParameters = @(Invoke-Command -Session $pwshCoreSession -ScriptBlock $pwshCoreParametersScriptBlock -ArgumentList $override)
+                } else {
+                    $pwshCoreScriptBlock = {
+                        param($override, $pwshCoreParametersScriptBlock)
+                        . ( [ScriptBlock]::create($pwshCoreParametersScriptBlock) ) -override $override  | Select-Object -Property *
+                    }
+                    $pwshCoreParameters = @(pwsh -NoProfile -Command $pwshCoreScriptBlock -Args $override, $pwshCoreParametersScriptBlock -InputFormat XML -OutputFormat XML |
+                        Where-Object { $_ -is [System.Management.Automation.PSCustomObject] })
+                }
+
+                $overwrittenParameters = @{}
+                foreach ($pwshCoreParameter in $pwshCoreParameters) {
+                    $overwrittenParameters[$pwshCoreParameter.Name] = $pwshCoreParameter
+                }
                 ConvertTo-DynamicParameters -CommandName $override.CommandName -Parameters $overwrittenParameters
             }
-    
+
             begin {
                 $MyInvocation.MyCommand.Parameters.Values | Where-Object { ! $_.IsDynamic } | ForEach-Object {
                     $PSBoundParameters.Remove($_.Name) | Out-Null
                 }
             }
-            
+
             process {
                 $override = $script:PwshCoreOverrides[$MyInvocation.MyCommand.Name]
-                $pwshCoreSession = Request-PwshCoreSession
-                if (!$pwshCoreSession) { return }
-                Invoke-Command -Session $pwshCoreSession -ScriptBlock {
-                    if (! (Get-Module $using:override.ModuleName)) {
-                        if ($using:override.ModuleImportPath) {
-                            Import-Module $using:override.ModuleImportPath -wa SilentlyContinue
+                $pwshCoreScriptBlock = {
+                    param($override, $parameters)
+                    if (! (Get-Module $override.ModuleName)) {
+                        if ($override.ModuleImportPath) {
+                            Import-Module $override.ModuleImportPath -wa SilentlyContinue
                         }
                         else {
-                            . ( [ScriptBlock]::create($using:override.ModuleImportScriptBlock) )
+                            . ( [ScriptBlock]::create($override.ModuleImportScriptBlock) )
                         }
                     }
 
                     # Convert deserialized parameters to string
-                    $parameters = $using:PSBoundParameters
-                    @( $parameters.GetEnumerator() ) | 
-                    Where-Object { $_.Value -is [PSObject] } | 
+                    @( $parameters.GetEnumerator() ) |
+                    Where-Object { $_.Value -is [PSObject] } |
                     Where-Object { $_.Value.PSObject.TypeNames -match '^Deserialized\.' } |
                     ForEach-Object { $parameters[$_.Name] = $_.Value.ToString() }
 
-                    & $using:override.CommandName @parameters | Select-Object -Property *
+
+                    Write-Host "Invoking $($override.CommandName) in PowerShell Core with parameters: $($parameters | ConvertTo-Json -Compress)"
+
+                    & $override.CommandName @parameters | Select-Object -Property *
+                }
+                if ($override.UseRemoteSession) {
+                    $pwshCoreSession = Request-PwshCoreSession
+                    if (!$pwshCoreSession) { return }
+                    Invoke-Command -Session $pwshCoreSession -ScriptBlock $pwshCoreScriptBlock -ArgumentList $override, $PSBoundParameters
+                } else {
+                    pwsh -NoProfile -Command $pwshCoreScriptBlock -Args $override, $PSBoundParameters -InputFormat XML -OutputFormat XML |
+                        Where-Object { $_ -is [System.Management.Automation.PSCustomObject] }
                 }
             }
         }
     }
 
     process {
-        $script:PwshCoreOverrides[$CommandName] = @{ 
+        $script:PwshCoreOverrides[$CommandName] = @{
             ModuleName              = $ModuleName
             ModuleImportPath        = $ModuleImportPath
             ModuleImportScriptBlock = $ModuleImportScriptBlock
             CommandName             = '{0}\{1}' -f $ModuleName, $CommandName
+            UseRemoteSession      = $UseRemoteSession
         }
 
         Set-Item -Path "function:script:$CommandName" -Value $scriptBlock
         Export-ModuleMember -Function $CommandName
     }
 }
+
+Export-PwshCoreOverride -CommandName "Invoke-RestMethod" -ModuleName "Microsoft.PowerShell.Utility" -ModuleImportScriptBlock { Import-Module "Microsoft.PowerShell.Utility" } -UseRemoteSession $false
 
 function Invoke-PwshOverwriting {
     param(
@@ -101,31 +143,31 @@ function Invoke-PwshOverwriting {
             param(
                 [string]$FunctionName
             )
-    
+
             $scriptBlock = {
                 [CmdletBinding()]
                 param(
                     [Parameter(ValueFromRemainingArguments)]
                     $RemainingArgs # Unused parameter to allow passing all args to pwsh without binding issues
                 )
-        
+
                 dynamicparam {
                     # Get the function name from the enclosing scope
                     $targetFunction = $MyInvocation.MyCommand.Name
-            
+
                     # Create a dynamic parameter dictionary
                     $paramDict = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
-            
+
                     # Build parameters from the stored function info
                     $commonParameters = [System.Management.Automation.PSCmdlet]::CommonParameters + [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
                     $functionParams[$targetFunction].Values | Where-Object { $_.Name -notin $commonParameters } | ForEach-Object {
                         $paramInfo = $_
-                
+
                         $attributes = New-Object System.Collections.ObjectModel.Collection[System.Attribute]
-                
+
                         # Get all ParameterAttribute instances to support multiple parameter sets
                         $paramAttributes = $paramInfo.Attributes | Where-Object { $_ -is [System.Management.Automation.ParameterAttribute] }
-                
+
                         if ($paramAttributes) {
                             # Add each parameter set definition
                             foreach ($paramAttr in $paramAttributes) {
@@ -144,26 +186,26 @@ function Invoke-PwshOverwriting {
                             $paramAttr = New-Object System.Management.Automation.ParameterAttribute
                             $attributes.Add($paramAttr)
                         }
-                
+
                         # Add other attributes (ValidateSet, ValidateRange, etc.)
                         $paramInfo.Attributes | Where-Object { $_ -isnot [System.Management.Automation.ParameterAttribute] } | ForEach-Object {
                             $attributes.Add($_)
                         }
-                
+
                         $runtimeParam = New-Object System.Management.Automation.RuntimeDefinedParameter(
-                            $paramInfo.Name, 
-                            $paramInfo.ParameterType, 
+                            $paramInfo.Name,
+                            $paramInfo.ParameterType,
                             $attributes
                         )
                         $paramDict.Add($paramInfo.Name, $runtimeParam)
                     }
-            
+
                     return $paramDict
                 }
-        
+
                 process {
                     $targetFunction = $MyInvocation.MyCommand.Name
-            
+
                     # Convert Version parameters to strings before serialization
                     $paramsToSerialize = @{}
                     foreach ($key in $PSBoundParameters.Keys) {
@@ -176,26 +218,26 @@ function Invoke-PwshOverwriting {
                             $paramsToSerialize[$key] = $value
                         }
                     }
-            
+
                     Write-Verbose "[$targetFunction] Captured Parameters: $($paramsToSerialize | ConvertTo-Json -Compress)"
-            
+
                     # Serialize parameters to JSON for passing to pwsh
                     $paramsJson = $paramsToSerialize | ConvertTo-Json -Compress -Depth 10
-            
+
                     pwsh -NoProfile -c {
                         param([string]$jsonParams, [string]$cmdName)
-                
+
                         Write-Verbose "[$cmdName] Received JSON: $jsonParams"
                         $params = $jsonParams | ConvertFrom-Json
-                
+
                         # Convert JSON object to hashtable for splatting
                         $ht = @{}
                         $params.PSObject.Properties | ForEach-Object {
                             $name = $_.Name
                             $value = $_.Value
-                    
+
                             Write-Verbose "[$cmdName] Processing param: $name = $value (Type: $($value.GetType().FullName))"
-                    
+
                             # Automatically detect switch parameters by checking for IsPresent property
                             if ($value -is [PSCustomObject] -and $value.PSObject.Properties['IsPresent']) {
                                 if ($value.IsPresent -eq $true) {
@@ -208,15 +250,15 @@ function Invoke-PwshOverwriting {
                                 $ht[$name] = $value
                             }
                         }
-                
+
                         Write-Verbose "[$cmdName] Reconstructed Parameters: $($ht | ConvertTo-Json -Compress)"
-                
+
                         . c:\run\prompt.ps1 -silent
                         & $cmdName @ht
                     } -args $paramsJson, $targetFunction
                 }
             }.GetNewClosure()
-    
+
             # Create the function in the script scope
             Set-Item -Path "function:script:$FunctionName" -Value $scriptBlock
         }

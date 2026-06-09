@@ -10,44 +10,32 @@ if (! (Get-Module 'PPIPowershellCoreUtils')) {
 }
 
 $commandNamesForAppManagement = @(
-    'Get-NavAppRuntimePackage', 
-    'Install-NAVApp', 
-    'Invoke-InplacePublishing', 
-    'Publish-NAVApp', 
-    'Repair-NAVApp', 
-    'Start-NAVAppDataUpgrade', 
-    'Sync-NAVApp', 
-    'Uninstall-NAVApp', 
+    'Get-NavAppRuntimePackage',
+    'Install-NAVApp',
+    'Invoke-InplacePublishing',
+    'Publish-NAVApp',
+    'Repair-NAVApp',
+    'Start-NAVAppDataUpgrade',
+    'Sync-NAVApp',
+    'Uninstall-NAVApp',
     'Unpublish-NAVApp'
-) 
+)
 
 $commandNamesForManagement = @(
     'Mount-NAVTenant'
-) 
+)
 
-if ($bcVersion.Major -ge 28) {
-    # Validate that PowerShell Core (pwsh) is available up front for the BC28+ path
-    try {
-        Get-Command pwsh -ErrorAction Stop | Out-Null
-    }
-    catch {
-        throw "PowerShell Core ('pwsh') is required but was not found. Ensure that PowerShell Core is installed and 'pwsh' is available on PATH."
-    }
-    Invoke-PwshOverwriting -commandNames ($commandNamesForAppManagement + $commandNamesForManagement)
-    
-    Get-PwshCoreSessionConfiguration | Out-Null
+$useRemoteSession = $bcVersion.Major -lt 28
+
+# Create powershell core remote session (may enable remoting for powershell core)
+Get-PwshCoreSessionConfiguration | Out-Null
+
+$moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
+
+$commandNamesForAppManagement | ForEach-Object {
+    Export-PwshCoreOverride -CommandName $_ -ModuleName 'Microsoft.BusinessCentral.Apps.Management' -ModuleImportScriptBlock $moduleImportScriptBlock -UseRemoteSession $useRemoteSession
 }
-else {
-    # Create powershell core remote session (may enable remoting for powershell core)
-    Get-PwshCoreSessionConfiguration | Out-Null
 
-    $moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
-   
-    $commandNamesForAppManagement | ForEach-Object {
-        Export-PwshCoreOverride -CommandName $_ -ModuleName 'Microsoft.BusinessCentral.Apps.Management' -ModuleImportScriptBlock $moduleImportScriptBlock
-    }
-
-    $commandNamesForManagement | ForEach-Object {
-        Export-PwshCoreOverride -CommandName $_ -ModuleName 'Microsoft.BusinessCentral.Management' -ModuleImportScriptBlock $moduleImportScriptBlock
-    }
+$commandNamesForManagement | ForEach-Object {
+    Export-PwshCoreOverride -CommandName $_ -ModuleName 'Microsoft.BusinessCentral.Management' -ModuleImportScriptBlock $moduleImportScriptBlock -UseRemoteSession $useRemoteSession
 }
