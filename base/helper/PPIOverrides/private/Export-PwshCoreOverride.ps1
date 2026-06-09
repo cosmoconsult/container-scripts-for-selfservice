@@ -215,7 +215,10 @@ function Invoke-PwshOverwriting {
                         $params.PSObject.Properties | ForEach-Object {
                             $name = $_.Name
                             $value = $_.Value
-                            $parameterType = $command.Parameters[$name].ParameterType
+                            $parameterType = $null
+                            if ($command.Parameters.ContainsKey($name)) {
+                                $parameterType = $command.Parameters[$name].ParameterType
+                            }
 
                             Write-Verbose "[$cmdName] Processing param: $name = $value (Type: $($value.GetType().FullName))"
 
