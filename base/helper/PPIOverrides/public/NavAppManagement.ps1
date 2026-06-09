@@ -25,10 +25,10 @@ $commandNamesForManagement = @(
     'Mount-NAVTenant'
 )
 
-$useRemoteSession = $bcVersion.Major -lt 28
-
 # Create powershell core remote session (may enable remoting for powershell core)
 Get-PwshCoreSessionConfiguration | Out-Null
+
+$useRemoteSession = $bcVersion.Major -lt 28 # For BC28 and higher the import of the BC modules fails in WinRM-Sessions, so we will use direct execution for the overrides instead of remote sessions.
 
 $moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
 
