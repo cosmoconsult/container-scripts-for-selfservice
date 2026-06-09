@@ -22,7 +22,7 @@ function Export-PwshCoreOverride() {
         $scriptBlock = {
             [CmdletBinding()]
             param()
-
+    
             dynamicparam {
                 $override = $script:PwshCoreOverrides[$MyInvocation.MyCommand.Name]
                 $pwshCoreSession = Request-PwshCoreSession
@@ -44,13 +44,13 @@ function Export-PwshCoreOverride() {
                 } | Out-Null
                 ConvertTo-DynamicParameters -CommandName $override.CommandName -Parameters $overwrittenParameters
             }
-
+    
             begin {
                 $MyInvocation.MyCommand.Parameters.Values | Where-Object { ! $_.IsDynamic } | ForEach-Object {
                     $PSBoundParameters.Remove($_.Name) | Out-Null
                 }
             }
-
+            
             process {
                 $override = $script:PwshCoreOverrides[$MyInvocation.MyCommand.Name]
                 $pwshCoreSession = Request-PwshCoreSession
@@ -67,8 +67,8 @@ function Export-PwshCoreOverride() {
 
                     # Convert deserialized parameters to string
                     $parameters = $using:PSBoundParameters
-                    @( $parameters.GetEnumerator() ) |
-                    Where-Object { $_.Value -is [PSObject] } |
+                    @( $parameters.GetEnumerator() ) | 
+                    Where-Object { $_.Value -is [PSObject] } | 
                     Where-Object { $_.Value.PSObject.TypeNames -match '^Deserialized\.' } |
                     ForEach-Object { $parameters[$_.Name] = $_.Value.ToString() }
 
@@ -79,7 +79,7 @@ function Export-PwshCoreOverride() {
     }
 
     process {
-        $script:PwshCoreOverrides[$CommandName] = @{
+        $script:PwshCoreOverrides[$CommandName] = @{ 
             ModuleName              = $ModuleName
             ModuleImportPath        = $ModuleImportPath
             ModuleImportScriptBlock = $ModuleImportScriptBlock

@@ -1,14 +1,14 @@
 function Get-AppFilesSortedByDependencies {
     [CmdletBinding()]
-    param(
+    param(            
         [string] $Path,
         [string] $Filter = "*.app",
-        [string[]] $ExcludeExpr = ".*Test_.*|.*Tests_.*",
+        [string[]] $ExcludeExpr = ".*Test_.*|.*Tests_.*",        
         [bool] $Distinct = $true,
         [Parameter(Mandatory = $false)]
         $Depth
     )
-
+    
     begin {
         if (! (Get-Module -Name "Microsoft.Dynamics.Nav.Management")) {
             Write-Warning "Module Microsoft.Dynamics.Nav.Management not loaded"
@@ -79,24 +79,22 @@ function Get-AppFilesSortedByDependencies {
         if ($Depth) {
             $optionalParameters["Depth"] = $Depth
         }
-        if ($ExcludeExpr) {
+        if($ExcludeExpr) {
             Write-Host ("Searching for apps excluding: {0}" -f $ExcludeExpr)
-        }
-        else {
+        } else {
             Write-Host "Searching for apps"
         }
-        $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Recurse @optionalParameters | Where-Object { [string]::IsNullOrEmpty($ExcludeExpr) -or ($_.Name -notmatch $ExcludeExpr) }
+        $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Recurse @optionalParameters | Where-Object { [string]::IsNullOrEmpty($ExcludeExpr) -or ($_.Name -NotMatch $ExcludeExpr) }
 
         $AllApps = [System.Collections.ArrayList]@()
         $ApplicationAppId = ""
         foreach ($AppFile in $AllAppFiles) {
-            Write-Verbose "Processing $($AppFile.Name)"
             try {
-                $App = Get-NAVAppInfo -Path $AppFile.FullName
+                $App = Get-NAVAppInfo -Path $AppFile.FullName 
                 $AppId = $App.AppId
                 if ($App.Name -eq "Application") {
                     $ApplicationAppId = $App.AppId
-                    $AppId = "00000000-0000-0000-0000-000000000000"
+                    $AppId = "00000000-0000-0000-0000-000000000000" 
                 }
                 if ($Distinct) {
                     $equalApp = ($AllApps | Where-Object { $AppId -eq $_.AppId })

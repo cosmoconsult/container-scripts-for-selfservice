@@ -113,7 +113,7 @@ function Import-AppArtifact {
                         # Special handling for NAV2018
                         # '-Force' is only added, when 'SandboxDatabaseName' (NAV2018) is NOT present because parameter '-Force' works only when 'SandboxDatabaseName' is not empty
                         $CommandInfo = Get-Command Publish-NAVApp
-                        if ((-not $CommandInfo.Parameters.SandboxDatabaseName) -and ($CommandInfo.Version.Major -le 28)) {
+                        if (-not $CommandInfo.Parameters.SandboxDatabaseName) {
                             $optionalParameters["Force"] = $true
                         }
                         if ($CommandInfo.Parameters.Scope) {
