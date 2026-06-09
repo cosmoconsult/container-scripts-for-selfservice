@@ -60,11 +60,7 @@ function Export-PwshCoreOverride() {
                     if (!$pwshCoreSession) { return }
                     $pwshCoreParameters = @(Invoke-Command -Session $pwshCoreSession -ScriptBlock $pwshCoreParametersScriptBlock -ArgumentList $override)
                 } else {
-                    $pwshCoreScriptBlock = {
-                        param($override, $pwshCoreParametersScriptBlock)
-                        . ( [ScriptBlock]::create($pwshCoreParametersScriptBlock) ) -override $override  | Select-Object -Property *
-                    }
-                    $pwshCoreParameters = @(pwsh -NoProfile -Command $pwshCoreScriptBlock -Args $override, $pwshCoreParametersScriptBlock -InputFormat XML -OutputFormat XML |
+                    $pwshCoreParameters = @(pwsh -NoProfile -Command $pwshCoreParametersScriptBlock -Args $override -InputFormat XML -OutputFormat XML |
                         Where-Object { $_ -is [System.Management.Automation.PSCustomObject] })
                 }
 
