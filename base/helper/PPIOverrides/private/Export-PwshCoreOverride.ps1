@@ -131,8 +131,6 @@ function Export-PwshCoreOverride() {
     }
 }
 
-Export-PwshCoreOverride -CommandName "Invoke-RestMethod" -ModuleName "Microsoft.PowerShell.Utility" -ModuleImportScriptBlock { Import-Module "Microsoft.PowerShell.Utility" } -UseRemoteSession $false
-
 function Invoke-PwshOverwriting {
     param(
         [string[]]$commandNames
