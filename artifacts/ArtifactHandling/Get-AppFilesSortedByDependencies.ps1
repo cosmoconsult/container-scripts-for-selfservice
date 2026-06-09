@@ -113,13 +113,16 @@ function Get-AppFilesSortedByDependencies {
                         Name         = $App.Name
                         Publisher    = $App.Publisher
                         ProcessOrder = 0
-                        Dependencies = @() + $App.Dependencies | ForEach-Object { [PSCustomObject]@{
-                                AppId     = $_.AppId
-                                Publisher = $_.Publisher
-                                Name      = $_.Name
-                                Version   = $_.Version
+                        Dependencies = @(
+                            @($App.Dependencies) | Where-Object { $_ } | ForEach-Object {
+                                [PSCustomObject]@{
+                                    AppId     = $_.AppId
+                                    Publisher = $_.Publisher
+                                    Name      = $_.Name
+                                    Version   = $_.Version
+                                }
                             }
-                        }
+                        )
                         Path         = $AppFile.FullName
                     }) | Out-Null # adding the returned index to PS-Return content
             }
@@ -127,12 +130,16 @@ function Get-AppFilesSortedByDependencies {
                 Write-Warning "Got no AppInfo from $AppFile ... $_"
             }
         }
-        Write-Verbose "Analyzed Apps: $($AllApps | ConvertTo-Json -Depth 5 -Compress)"
+        if ($VerbosePreference -ne 'SilentlyContinue') {
+            Write-Verbose "Analyzed Apps: $($AllApps | ConvertTo-Json -Depth 5 -Compress)"
+        }
 
         $FinalResult = Get-DependencySortedApps -Apps $AllApps
         $FinalResult = $FinalResult | Sort-Object ProcessOrder, Name
         $FinalResult | Where-Object { $_.Name -eq "Application" } | ForEach-Object { $_.AppId = $ApplicationAppId }
-        Write-Verbose "Final sorted list: $($FinalResult | ConvertTo-Json -Depth 5 -Compress)"
+        if ($VerbosePreference -ne 'SilentlyContinue') {
+            Write-Verbose "Final sorted list: $($FinalResult | ConvertTo-Json -Depth 5 -Compress)"
+        }
         return $FinalResult
     }
 }
