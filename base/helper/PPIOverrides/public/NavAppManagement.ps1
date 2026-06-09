@@ -24,19 +24,7 @@ $commandNamesForAppManagement = @(
 $commandNamesForManagement = @(
     'Mount-NAVTenant'
 )
-if ($bcVersion.Major -ge 29) {
-    # Validate that PowerShell Core (pwsh) is available up front for the BC29+ path
-    try {
-        Get-Command pwsh -ErrorAction Stop | Out-Null
-    }
-    catch {
-        throw "PowerShell Core ('pwsh') is required but was not found. Ensure that PowerShell Core is installed and 'pwsh' is available on PATH."
-    }
-    Invoke-PwshOverwriting -commandNames ($commandNamesForAppManagement + $commandNamesForManagement)
-
-    Get-PwshCoreSessionConfiguration | Out-Null
-}
-elseif ($bcVersion.Major -eq 28) {
+if ($bcVersion.Major -ge 28) {
     # Validate that PowerShell Core (pwsh) is available up front for the BC28+ path
     try {
         Get-Command pwsh -ErrorAction Stop | Out-Null
