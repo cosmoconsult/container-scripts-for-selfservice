@@ -90,11 +90,18 @@ function Export-PwshCoreOverride() {
                         }
                     }
 
-                    # Convert deserialized parameters to string
+                    # Convert deserialized parameters
                     @( $parameters.GetEnumerator() ) |
-                    Where-Object { $_.Value -is [PSObject] } |
-                    Where-Object { $_.Value.PSObject.TypeNames -match '^Deserialized\.' } |
-                    ForEach-Object { $parameters[$_.Name] = $_.Value.ToString() }
+                        Where-Object { $_.Value -is [PSObject] } |
+                        Where-Object { $_.Value.PSObject.TypeNames -like 'Deserialized.*' } |
+                        ForEach-Object {
+                            if ($_.Value.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.SwitchParameter') {
+                                # Handle switch parameters specially since they lose their type and we just get a boolean value
+                                $parameters[$_.Name] = [switch]$_.Value.IsPresent
+                            } else {
+                                $parameters[$_.Name] = $_.Value.ToString()
+                            }
+                        }
 
 
                     Write-Host "Invoking $($override.CommandName) in PowerShell Core with parameters: $($parameters | ConvertTo-Json -Compress)"
@@ -119,7 +126,7 @@ function Export-PwshCoreOverride() {
             ModuleImportPath        = $ModuleImportPath
             ModuleImportScriptBlock = $ModuleImportScriptBlock
             CommandName             = '{0}\{1}' -f $ModuleName, $CommandName
-            UseRemoteSession      = $UseRemoteSession
+            UseRemoteSession        = $UseRemoteSession
         }
 
         Set-Item -Path "function:script:$CommandName" -Value $scriptBlock

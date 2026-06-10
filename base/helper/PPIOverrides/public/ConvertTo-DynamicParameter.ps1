@@ -19,11 +19,11 @@ function ConvertTo-DynamicParameter() {
     )
 
     # Add deserialized parameter attributes
-    $Parameter.Attributes | Where-Object { $_ -is [PSObject] } | Where-Object { $_.TypeId -eq 'System.Management.Automation.ParameterAttribute' } | ForEach-Object {
+    $Parameter.Attributes | Where-Object { $_ -is [PSObject] } | Where-Object { $_.TypeId.ToString() -eq 'System.Management.Automation.ParameterAttribute' } | ForEach-Object {
         $parameterAttribute = $_
         $dynamicParameterAttribute = New-Object $parameterAttribute.TypeId
-        $dynamicParameterAttribute.PSObject.Properties | 
-            Where-Object { $_.IsSettable } | 
+        $dynamicParameterAttribute.PSObject.Properties |
+            Where-Object { $_.IsSettable } |
             ForEach-Object {
                 if ($parameterAttribute.$($_.Name)) {
                     $_.Value = $parameterAttribute.$($_.Name)
