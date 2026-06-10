@@ -3,7 +3,7 @@ if (! (Get-Module 'PPIPowershellCoreUtils')) {
     Import-Module "c:\run\helper\PPIPowershellCoreUtils\PPIPowershellCoreUtils.psm1" -Global -Force
 }
 
-$script:PwshCoreOverrides = @{}
+$script:PwshCoreOverrideInfos = @{}
 
 function Export-PwshCoreOverride() {
     [CmdletBinding(DefaultParameterSetName = 'ModuleImportPath')]
@@ -40,35 +40,34 @@ function Export-PwshCoreOverride() {
             param()
 
             dynamicparam {
-                $override = $script:PwshCoreOverrides[$MyInvocation.MyCommand.Name]
+                $overrideInfo = $script:PwshCoreOverrideInfos[$MyInvocation.MyCommand.Name]
                 $pwshCoreParameters = @()
                 $pwshCoreParametersScriptBlock = {
-                    param($override)
-                    if (! (Get-Module $override.ModuleName)) {
-                        if ($override.ModuleImportPath) {
-                            Import-Module $override.ModuleImportPath -wa SilentlyContinue
+                    param($OverrideInfo)
+                    if (! (Get-Module $OverrideInfo.ModuleName)) {
+                        if ($OverrideInfo.ModuleImportPath) {
+                            Import-Module $OverrideInfo.ModuleImportPath -wa SilentlyContinue
                         }
                         else {
-                            . ( [ScriptBlock]::create($override.ModuleImportScriptBlock) )
+                            . ( [ScriptBlock]::create($OverrideInfo.ModuleImportScriptBlock) )
                         }
                     }
                     # Get parameters and their attributes for the command
-                    (Get-Command $override.CommandName).Parameters.Values | Select-Object -Property *
+                    (Get-Command $OverrideInfo.CommandName).Parameters.Values | Select-Object -Property *
                 }
-                if ($override.UseRemoteSession) {
+                if ($overrideInfo.UseRemoteSession) {
                     $pwshCoreSession = Request-PwshCoreSession
                     if (!$pwshCoreSession) { return }
-                    $pwshCoreParameters = @(Invoke-Command -Session $pwshCoreSession -ScriptBlock $pwshCoreParametersScriptBlock -ArgumentList $override)
+                    $pwshCoreParameters = @(Invoke-Command -Session $pwshCoreSession -ScriptBlock $pwshCoreParametersScriptBlock -ArgumentList $overrideInfo)
                 } else {
-                    $pwshCoreParameters = @(pwsh -NoProfile -Command $pwshCoreParametersScriptBlock -Args $override -InputFormat XML -OutputFormat XML |
-                        Where-Object { $_ -is [System.Management.Automation.PSCustomObject] })
+                    $pwshCoreParameters = Invoke-Pwsh -ScriptBlock $pwshCoreParametersScriptBlock -ArgumentList $overrideInfo
                 }
 
                 $overwrittenParameters = @{}
                 foreach ($pwshCoreParameter in $pwshCoreParameters) {
                     $overwrittenParameters[$pwshCoreParameter.Name] = $pwshCoreParameter
                 }
-                ConvertTo-DynamicParameters -CommandName $override.CommandName -Parameters $overwrittenParameters
+                ConvertTo-DynamicParameters -CommandName $overrideInfo.CommandName -Parameters $overwrittenParameters
             }
 
             begin {
@@ -78,47 +77,46 @@ function Export-PwshCoreOverride() {
             }
 
             process {
-                $override = $script:PwshCoreOverrides[$MyInvocation.MyCommand.Name]
+                $overrideInfo = $script:PwshCoreOverrideInfos[$MyInvocation.MyCommand.Name]
                 $pwshCoreScriptBlock = {
-                    param($override, $parameters)
-                    if (! (Get-Module $override.ModuleName)) {
-                        if ($override.ModuleImportPath) {
-                            Import-Module $override.ModuleImportPath -wa SilentlyContinue
+                    param($OverrideInfo, $Parameters)
+                    if (! (Get-Module $OverrideInfo.ModuleName)) {
+                        if ($OverrideInfo.ModuleImportPath) {
+                            Import-Module $OverrideInfo.ModuleImportPath -wa SilentlyContinue
                         }
                         else {
-                            . ( [ScriptBlock]::create($override.ModuleImportScriptBlock) )
+                            . ( [ScriptBlock]::create($OverrideInfo.ModuleImportScriptBlock) )
                         }
                     }
 
                     # Convert deserialized parameters
-                    @( $parameters.GetEnumerator() ) |
+                    @( $Parameters.GetEnumerator() ) |
                         Where-Object { $_.Value -is [PSObject] } |
                         Where-Object { $_.Value.PSObject.TypeNames -like 'Deserialized.*' } |
                         ForEach-Object {
                             if ($_.Value.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.SwitchParameter') {
                                 # Handle switch parameters specially since they lose their type and we just get a boolean value
-                                $parameters[$_.Name] = [switch]$_.Value.IsPresent
+                                $Parameters[$_.Name] = [switch]$_.Value.IsPresent
                             } else {
-                                $parameters[$_.Name] = $_.Value.ToString()
+                                $Parameters[$_.Name] = $_.Value.ToString()
                             }
                         }
 
-                    & $override.CommandName @parameters | Select-Object -Property *
+                    & $OverrideInfo.CommandName @Parameters | Select-Object -Property *
                 }
-                if ($override.UseRemoteSession) {
+                if ($overrideInfo.UseRemoteSession) {
                     $pwshCoreSession = Request-PwshCoreSession
                     if (!$pwshCoreSession) { return }
-                    Invoke-Command -Session $pwshCoreSession -ScriptBlock $pwshCoreScriptBlock -ArgumentList $override, $PSBoundParameters
+                    Invoke-Command -Session $pwshCoreSession -ScriptBlock $pwshCoreScriptBlock -ArgumentList $overrideInfo, $PSBoundParameters
                 } else {
-                    pwsh -NoProfile -Command $pwshCoreScriptBlock -Args $override, $PSBoundParameters -InputFormat XML -OutputFormat XML |
-                        Where-Object { $_ -is [System.Management.Automation.PSCustomObject] }
+                    Invoke-Pwsh -ScriptBlock $pwshCoreScriptBlock -ArgumentList $overrideInfo, $PSBoundParameters
                 }
             }
         }
     }
 
     process {
-        $script:PwshCoreOverrides[$CommandName] = @{
+        $script:PwshCoreOverrideInfos[$CommandName] = @{
             ModuleName              = $ModuleName
             ModuleImportPath        = $ModuleImportPath
             ModuleImportScriptBlock = $ModuleImportScriptBlock
@@ -129,6 +127,34 @@ function Export-PwshCoreOverride() {
         Set-Item -Path "function:script:$CommandName" -Value $scriptBlock
         Export-ModuleMember -Function $CommandName
     }
+}
+
+function Invoke-Pwsh {
+    [cmdletbinding()]
+    param(
+        [Parameter(Mandatory=$true)]
+        [ScriptBlock]$ScriptBlock,
+        [object[]]$ArgumentList
+    )
+
+    pwsh -NoProfile -c {
+        param($ScriptBlock, $ArgumentList)
+        $InformationPreference = "Continue"
+        $WarningPreference = "Continue"
+        $VerbosePreference = "Continue"
+        $ErrorActionPreference = "Continue"
+
+        . ( [ScriptBlock]::create($ScriptBlock) ) @ArgumentList *>&1
+    } -Args $ScriptBlock, $ArgumentList 2>&1 |
+        ForEach-Object {
+            if ($_ -isnot [PSObject]) { return $_ }
+            elseif ($_ -is [System.Management.Automation.ErrorRecord])                                       { Write-Error $_ }
+            elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.ErrorRecord')       { Write-Error $_ }
+            elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.WarningRecord')     { Write-Warning $_ }
+            elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.VerboseRecord')     { Write-Verbose $_ }
+            elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.InformationRecord') { Write-Host $_ }
+            else { return $_ }
+        }
 }
 
 function Invoke-PwshOverwriting {
