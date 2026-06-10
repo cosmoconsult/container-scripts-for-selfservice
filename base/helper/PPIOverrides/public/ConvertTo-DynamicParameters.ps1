@@ -7,7 +7,7 @@ function ConvertTo-DynamicParameters() {
         [object]$Parameters = $null
     )
     $commandKey = $CommandName
-    
+
     if (! $script:DynamicParameters.ContainsKey($commandKey)) {
         $params = $Parameters
         if (! $params) {
