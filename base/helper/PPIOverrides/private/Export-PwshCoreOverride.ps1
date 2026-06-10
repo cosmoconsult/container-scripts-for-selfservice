@@ -103,9 +103,6 @@ function Export-PwshCoreOverride() {
                             }
                         }
 
-
-                    Write-Host "Invoking $($override.CommandName) in PowerShell Core with parameters: $($parameters | ConvertTo-Json -Compress)"
-
                     & $override.CommandName @parameters | Select-Object -Property *
                 }
                 if ($override.UseRemoteSession) {
