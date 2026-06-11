@@ -41,7 +41,6 @@ function Export-PwshCoreOverride() {
 
             dynamicparam {
                 $overrideInfo = $script:PwshCoreOverrideInfos[$MyInvocation.MyCommand.Name]
-                $pwshCoreParameters = @()
                 $pwshCoreParametersScriptBlock = {
                     param($OverrideInfo)
                     if (! (Get-Module $OverrideInfo.ModuleName)) {
@@ -55,13 +54,7 @@ function Export-PwshCoreOverride() {
                     # Get parameters and their attributes for the command
                     (Get-Command $OverrideInfo.CommandName).Parameters.Values | Select-Object -Property *
                 }
-                if ($overrideInfo.UseRemoteSession) {
-                    $pwshCoreSession = Request-PwshCoreSession
-                    if (!$pwshCoreSession) { return }
-                    $pwshCoreParameters = @(Invoke-Command -Session $pwshCoreSession -ScriptBlock $pwshCoreParametersScriptBlock -ArgumentList $overrideInfo)
-                } else {
-                    $pwshCoreParameters = Invoke-Pwsh -ScriptBlock $pwshCoreParametersScriptBlock -ArgumentList $overrideInfo
-                }
+                $pwshCoreParameters = @(Invoke-CommandInPwshCore -ScriptBlock $pwshCoreParametersScriptBlock -ArgumentList $overrideInfo -UseRemoteSession $overrideInfo.UseRemoteSession)
 
                 $overwrittenParameters = @{}
                 foreach ($pwshCoreParameter in $pwshCoreParameters) {
@@ -104,13 +97,7 @@ function Export-PwshCoreOverride() {
 
                     & $OverrideInfo.CommandName @Parameters | Select-Object -Property *
                 }
-                if ($overrideInfo.UseRemoteSession) {
-                    $pwshCoreSession = Request-PwshCoreSession
-                    if (!$pwshCoreSession) { return }
-                    Invoke-Command -Session $pwshCoreSession -ScriptBlock $pwshCoreScriptBlock -ArgumentList $overrideInfo, $PSBoundParameters
-                } else {
-                    Invoke-Pwsh -ScriptBlock $pwshCoreScriptBlock -ArgumentList $overrideInfo, $PSBoundParameters
-                }
+                Invoke-CommandInPwshCore -ScriptBlock $pwshCoreScriptBlock -ArgumentList $overrideInfo, $PSBoundParameters -UseRemoteSession $overrideInfo.UseRemoteSession
             }
         }
     }
@@ -127,34 +114,6 @@ function Export-PwshCoreOverride() {
         Set-Item -Path "function:script:$CommandName" -Value $scriptBlock
         Export-ModuleMember -Function $CommandName
     }
-}
-
-function Invoke-Pwsh {
-    [cmdletbinding()]
-    param(
-        [Parameter(Mandatory=$true)]
-        [ScriptBlock]$ScriptBlock,
-        [object[]]$ArgumentList
-    )
-
-    pwsh -NoProfile -c {
-        param($ScriptBlock, $ArgumentList)
-        $InformationPreference = "Continue"
-        $WarningPreference = "Continue"
-        $VerbosePreference = "Continue"
-        $ErrorActionPreference = "Continue"
-
-        . ( [ScriptBlock]::create($ScriptBlock) ) @ArgumentList *>&1
-    } -Args $ScriptBlock, $ArgumentList 2>&1 |
-        ForEach-Object {
-            if ($_ -isnot [PSObject]) { return $_ }
-            elseif ($_ -is [System.Management.Automation.ErrorRecord])                                       { Write-Error $_ }
-            elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.ErrorRecord')       { Write-Error $_ }
-            elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.WarningRecord')     { Write-Warning $_ }
-            elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.VerboseRecord')     { Write-Verbose $_ }
-            elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.InformationRecord') { Write-Host $_ }
-            else { return $_ }
-        }
 }
 
 function Invoke-PwshOverwriting {
