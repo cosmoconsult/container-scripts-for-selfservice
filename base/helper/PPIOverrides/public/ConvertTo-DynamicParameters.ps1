@@ -20,8 +20,7 @@ function ConvertTo-DynamicParameters() {
 
         $script:DynamicParameters[$commandKey] = New-Object System.Management.Automation.RuntimeDefinedParameterDictionary
 
-        function _cmdlet_() { [cmdletbinding()]Param() }
-        $excludedParams = @((Get-Command _cmdlet_).Parameters.Values.Name)
+        $excludedParams = [System.Management.Automation.PSCmdlet]::CommonParameters + [System.Management.Automation.PSCmdlet]::OptionalCommonParameters
 
         foreach ($param in $params.Values) {
             if ($param.Name -in $excludedParams) {
