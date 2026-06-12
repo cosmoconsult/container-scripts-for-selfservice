@@ -39,15 +39,3 @@ $commandNamesForAppManagement | ForEach-Object {
 $commandNamesForManagement | ForEach-Object {
     Export-PwshCoreOverride -CommandName $_ -ModuleName 'Microsoft.BusinessCentral.Management' -ModuleImportScriptBlock $moduleImportScriptBlock -UseRemoteSession $useRemoteSession
 }
-
-if ($useRemoteSession) {
-    # Validate that PowerShell Core (pwsh) is available up front for the BC28+ path
-    try {
-        Get-Command pwsh -ErrorAction Stop | Out-Null
-    }
-    catch {
-        throw "PowerShell Core ('pwsh') is required but was not found. Ensure that PowerShell Core is installed and 'pwsh' is available on PATH."
-    }
-    Invoke-PwshOverwriting -commandNames ($commandNamesForAppManagement + $commandNamesForManagement)
-
-}
