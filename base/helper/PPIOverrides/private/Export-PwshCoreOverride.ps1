@@ -119,7 +119,7 @@ function Export-PwshCoreOverride() {
                             }
                         }
 
-                    & $OverrideInfo.CommandName @Parameters | Select-Object -Property *
+                    & $OverrideInfo.CommandName @Parameters
                 }
 
                 Invoke-CommandInPwshCore `
