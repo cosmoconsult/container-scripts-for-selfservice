@@ -110,7 +110,7 @@ function Import-AppArtifact {
                         Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..." -data $app
 
                         $optionalParameters = @{ }
-                        $CommandInfo = Get-Command Publish-NAVApp
+                        $CommandInfo = Get-Command 'Publish-NAVApp'
                         # Special handling for NAV2018
                         # '-Force' is only added, when 'SandboxDatabaseName' (NAV2018) is NOT present because parameter '-Force' works only when 'SandboxDatabaseName' is not empty
                         if (-not $CommandInfo.Parameters.SandboxDatabaseName) {
