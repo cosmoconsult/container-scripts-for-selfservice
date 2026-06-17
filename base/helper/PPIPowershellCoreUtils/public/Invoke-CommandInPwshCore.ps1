@@ -9,17 +9,34 @@ function Invoke-CommandInPwshCore() {
         [bool]$UseRemoteSession = $true
     )
 
+    # Propagate caller's preferences across module boundary
+    # (only when not explicitly bound via -ErrorAction etc.)
+    @(
+        @{ Variable = 'ErrorActionPreference'; Parameter = 'ErrorAction' },
+        @{ Variable = 'WarningPreference'; Parameter = 'WarningAction' },
+        @{ Variable = 'InformationPreference'; Parameter = 'InformationAction' },
+        @{ Variable = 'VerbosePreference'; Parameter = 'Verbose' },
+        @{ Variable = 'DebugPreference'; Parameter = 'Debug' }
+    ) | Where-Object { -not $PSBoundParameters.ContainsKey($_.Parameter) } |
+        ForEach-Object {
+            Set-Variable -Name $_.Variable -Value $PSCmdlet.GetVariableValue($_.Variable)
+        }
+
     if ($PSVersionTable.PSEdition -eq 'Core') {
         & $ScriptBlock @ArgumentList
         return
     }
 
     $invokeScriptBlock = {
-        param($ScriptBlock, $ArgumentList)
-        $InformationPreference = "Continue"
-        $WarningPreference = "Continue"
-        $VerbosePreference = "Continue"
-        $ErrorActionPreference = "Continue"
+        param(
+            $ScriptBlock,
+            $ArgumentList,
+            $InformationPreference,
+            $WarningPreference,
+            $ErrorActionPreference,
+            $VerbosePreference,
+            $DebugPreference
+        )
 
         try {
             & ( [ScriptBlock]::create($ScriptBlock) ) @ArgumentList *>&1
@@ -27,6 +44,16 @@ function Invoke-CommandInPwshCore() {
             Write-Error $_ *>&1
         }
     }
+
+    $invokeArgs = @(
+        $ScriptBlock,
+        $ArgumentList,
+        $(if ($InformationPreference -eq 'SilentlyContinue') { 'Continue' } else { $InformationPreference }),
+        $(if ($WarningPreference -eq 'SilentlyContinue') { 'Continue' } else { $WarningPreference }),
+        $(if ($ErrorActionPreference -eq 'SilentlyContinue') { 'Continue' } else { $ErrorActionPreference }),
+        $VerbosePreference,
+        $DebugPreference
+    )
 
     $processScriptBlock = {
         if ($_ -isnot [PSObject]) { $_ }
@@ -45,12 +72,12 @@ function Invoke-CommandInPwshCore() {
         if (!$pwshCoreSession) { return }
 
         # Invoke scriptblock in session
-        Invoke-Command -Session $pwshCoreSession -ScriptBlock $invokeScriptBlock -ArgumentList $ScriptBlock, $ArgumentList |
+        Invoke-Command -Session $pwshCoreSession -ScriptBlock $invokeScriptBlock -ArgumentList $invokeArgs |
             ForEach-Object $processScriptBlock
     }
     else {
         # Invoke scriptblock in local pwsh process
-        pwsh -NoProfile -c $invokeScriptBlock -Args $ScriptBlock, $ArgumentList |
+        pwsh -NoProfile -c $invokeScriptBlock -Args $invokeArgs |
             ForEach-Object $processScriptBlock
     }
 }

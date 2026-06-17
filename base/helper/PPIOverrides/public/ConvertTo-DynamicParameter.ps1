@@ -28,7 +28,7 @@ function ConvertTo-DynamicParameter() {
             $dynamicParameterAttribute.PSObject.Properties |
                 Where-Object { $_.IsSettable } |
                 ForEach-Object {
-                    if ($parameterAttribute.$($_.Name)) {
+                    if ($null -ne $parameterAttribute.$($_.Name)) {
                         $_.Value = $parameterAttribute.$($_.Name)
                     }
                 }

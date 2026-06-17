@@ -74,6 +74,19 @@ function Export-PwshCoreOverride() {
             }
 
             begin {
+                # Propagate caller's preferences across module boundary
+                # (only when not explicitly bound via -ErrorAction etc.)
+                @(
+                    @{ Variable = 'ErrorActionPreference'; Parameter = 'ErrorAction' },
+                    @{ Variable = 'WarningPreference'; Parameter = 'WarningAction' },
+                    @{ Variable = 'InformationPreference'; Parameter = 'InformationAction' },
+                    @{ Variable = 'VerbosePreference'; Parameter = 'Verbose' },
+                    @{ Variable = 'DebugPreference'; Parameter = 'Debug' }
+                ) | Where-Object { -not $PSBoundParameters.ContainsKey($_.Parameter) } |
+                    ForEach-Object {
+                        Set-Variable -Name $_.Variable -Value $PSCmdlet.GetVariableValue($_.Variable)
+                    }
+
                 $MyInvocation.MyCommand.Parameters.Values | Where-Object { ! $_.IsDynamic } | ForEach-Object {
                     $PSBoundParameters.Remove($_.Name) | Out-Null
                 }
@@ -112,11 +125,7 @@ function Export-PwshCoreOverride() {
                 Invoke-CommandInPwshCore `
                     -ScriptBlock $pwshCoreScriptBlock `
                     -ArgumentList $overrideInfo, $PSBoundParameters `
-                    -UseRemoteSession $overrideInfo.UseRemoteSession `
-                    -ErrorAction $ErrorActionPreference `
-                    -InformationAction $InformationPreference `
-                    -WarningAction $WarningPreference `
-                    -Verbose:($VerbosePreference -eq 'Continue')
+                    -UseRemoteSession $overrideInfo.UseRemoteSession
             }
         }
     }
