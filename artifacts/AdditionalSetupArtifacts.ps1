@@ -227,8 +227,7 @@ try {
     if (![string]::IsNullOrEmpty($env:saasbakfile)) { $SyncMode = "ForceSync" }
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
 
-    # Exclude apps if environment variable is missing or set to "true"
-    $ExcludeApps = [string]::IsNullOrEmpty($env:AppExcludeExprEnabled) -or ($env:AppExcludeExprEnabled -eq "true")
+    $ExcludeApps = ($env:AppExcludeExprEnabled -eq "true")
 
     Import-Artifacts `
         -Path            (Join-Path $global:cosmoArtifacts.Path.Sorted '/general') `
