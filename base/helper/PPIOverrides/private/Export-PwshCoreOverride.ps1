@@ -18,6 +18,8 @@ function Export-PwshCoreOverride() {
         [Parameter(ParameterSetName = 'ModuleImportScriptBlock', Mandatory)]
         [scriptblock]$ModuleImportScriptBlock,
 
+        [scriptblock]$ForEachOutputScriptBlock = { $_ },
+
         [bool]$UseRemoteSession = $true
     )
 
@@ -125,7 +127,8 @@ function Export-PwshCoreOverride() {
                 Invoke-CommandInPwshCore `
                     -ScriptBlock $pwshCoreScriptBlock `
                     -ArgumentList $overrideInfo, $PSBoundParameters `
-                    -UseRemoteSession $overrideInfo.UseRemoteSession
+                    -UseRemoteSession $overrideInfo.UseRemoteSession |
+                    ForEach-Object $ForEachOutputScriptBlock
             }
         }
     }
