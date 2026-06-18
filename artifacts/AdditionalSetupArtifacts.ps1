@@ -228,9 +228,6 @@ try {
     if (! ($Scope -in @("Global", "Tenant")) ) { $Scope = "Global" }
 
     $ExcludeApps = ($env:AppExcludeExprEnabled -eq "true")
-    Write-Host ("##[debug] Import-Artifacts decision: AppExcludeExprEnabled='{0}' -> ExcludeApps='{1}'" -f $env:AppExcludeExprEnabled, $ExcludeApps)
-    Write-Host ("##[debug] Import-Artifacts expression from env: AppExcludeExpr='{0}'" -f $env:AppExcludeExpr)
-
     Import-Artifacts `
         -Path            (Join-Path $global:cosmoArtifacts.Path.Sorted '/general') `
         -NavServiceName  $NavServiceName `
