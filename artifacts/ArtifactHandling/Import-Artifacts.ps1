@@ -78,6 +78,7 @@ function Import-Artifacts {
         if (!$ExcludeApps) {
             $AppExcludeExpr = ""
         }
+        Write-Host ("##[debug] Import-Artifacts effective exclude settings: ExcludeApps='{0}', ExcludeExpr='{1}'" -f $ExcludeApps, $AppExcludeExpr)
         $params = @{
             Depth       = $maxDepth
             Filter      = "*.app"
