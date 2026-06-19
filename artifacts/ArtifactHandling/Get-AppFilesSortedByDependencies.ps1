@@ -87,7 +87,7 @@ function Get-AppFilesSortedByDependencies {
                     }
                 }
                 $AllApps.Add([PSCustomObject]@{
-                        AppId        = $AppId.ToString()
+                        AppId        = $AppId
                         Version      = $App.Version
                         Name         = $App.Name
                         Publisher    = $App.Publisher
