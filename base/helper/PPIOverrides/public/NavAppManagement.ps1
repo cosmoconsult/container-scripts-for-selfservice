@@ -46,7 +46,7 @@ if ($bcVersion.Major -ge 29) {
         # Return the object if it is not a PS Object
         if ($object -isnot [PSObject]) { return $object }
 
-        # Resolve properties of deserialized NavAppInfoDetail
+        # Resolve properties of deserialized NavAppInfo
         if ($object.PSObject.TypeNames -contains 'Deserialized.Microsoft.Dynamics.Nav.Apps.Management.Cmdlets.NavAppInfo') {
             $object.PSObject.Properties |
                 Where-Object { $_.Name -in 'AppId', 'PackageId' } |
