@@ -3,7 +3,7 @@ function Get-AppFilesSortedByDependencies {
     param(            
         [string] $Path,
         [string] $Filter = "*.app",
-        [string[]] $ExcludeExpr = ".*Test_.*|.*Tests_.*",        
+        [string[]] $ExcludeExpr = $env:AppExcludeExpr,        
         [bool] $Distinct = $true,
         [Parameter(Mandatory = $false)]
         $Depth
