@@ -44,13 +44,14 @@ if ($bcVersion.Major -ge 29) {
         $object = $_
 
         # Return the object if it is not a PS Object
-        if ($null -eq $object) { return $object }
         if ($object -isnot [PSObject]) { return $object }
 
         # Resolve properties of deserialized NavAppInfoDetail
-        if ($object.PSObject.TypeNames -contains 'Deserialized.Microsoft.Dynamics.Nav.Apps.Management.Cmdlets.NavAppInfoDetail') {
+        if ($object.PSObject.TypeNames -contains 'Deserialized.Microsoft.Dynamics.Nav.Apps.Management.Cmdlets.NavAppInfo') {
             $object.PSObject.Properties |
                 Where-Object { $_.Name -in 'AppId', 'PackageId' } |
+                Where-Object { $_.Value -is [PSObject] } |
+                Where-Object { $_.Value.PSObject.TypeNames -like 'Deserialized.*' } |
                 ForEach-Object {
                     $_.Value = $_.Value.Value
                 }
