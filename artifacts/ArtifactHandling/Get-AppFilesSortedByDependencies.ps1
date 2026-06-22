@@ -1,14 +1,14 @@
 function Get-AppFilesSortedByDependencies {
     [CmdletBinding()]
-    param(            
+    param(
         [string] $Path,
         [string] $Filter = "*.app",
-        [string[]] $ExcludeExpr = ".*Test_.*|.*Tests_.*",        
+        [string[]] $ExcludeExpr = ".*Test_.*|.*Tests_.*",
         [bool] $Distinct = $true,
         [Parameter(Mandatory = $false)]
         $Depth
     )
-    
+
     begin {
         if (! (Get-Module -Name "Microsoft.Dynamics.Nav.Management")) {
             Write-Warning "Module Microsoft.Dynamics.Nav.Management not loaded"
@@ -20,8 +20,8 @@ function Get-AppFilesSortedByDependencies {
                 [PSObject[]] $DependencyArray,
                 [PSObject[]] $AppCollection,
                 [Int] $Order = 1
-            )   
-    
+            )
+
             foreach ($Dependency in $App.Dependencies) {
                 $DependencyArray = AddToDependencyTree `
                     -App ($AppCollection | where AppId -eq $Dependency.AppId) `
@@ -29,7 +29,7 @@ function Get-AppFilesSortedByDependencies {
                     -AppCollection $AppCollection `
                     -Order ($Order - 1)
             }
-    
+
             if (-not($DependencyArray | where AppId -eq $App.AppId)) {
                 $DependencyArray += $App
                 try {
@@ -40,9 +40,9 @@ function Get-AppFilesSortedByDependencies {
             else {
                 if (($DependencyArray | where AppId -eq $App.AppId).ProcessOrder -gt $Order) {
                     ($DependencyArray | where AppId -eq $App.AppId).ProcessOrder = $Order
-                } 
+                }
             }
-    
+
             $DependencyArray
         }
     }
@@ -69,11 +69,11 @@ function Get-AppFilesSortedByDependencies {
         $ApplicationAppId = ""
         foreach ($AppFile in $AllAppFiles) {
             try {
-                $App = Get-NAVAppInfo -Path $AppFile.FullName 
+                $App = Get-NAVAppInfo -Path $AppFile.FullName
                 $AppId = $App.AppId
                 if ($App.Name -eq "Application") {
                     $ApplicationAppId = $App.AppId
-                    $AppId = "00000000-0000-0000-0000-000000000000" 
+                    $AppId = "00000000-0000-0000-0000-000000000000"
                 }
                 if ($Distinct) {
                     $equalApp = ($AllApps | Where-Object { $AppId -eq $_.AppId })
@@ -91,7 +91,7 @@ function Get-AppFilesSortedByDependencies {
                         Version      = $App.Version
                         Name         = $App.Name
                         Publisher    = $App.Publisher
-                        ProcessOrder = 0                            
+                        ProcessOrder = 0
                         Dependencies = $App.Dependencies
                         Path         = $AppFile.FullName
                     }) | Out-Null # adding the returned index to PS-Return content
@@ -102,7 +102,7 @@ function Get-AppFilesSortedByDependencies {
         }
         $FinalResult = @()
 
-        $AllApps | ForEach-Object {    
+        $AllApps | ForEach-Object {
             $FinalResult = AddToDependencyTree -App $_ -DependencyArray $FinalResult -AppCollection $AllApps -Order $AllApps.Count
         }
 
