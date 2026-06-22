@@ -32,10 +32,48 @@ $useRemoteSession = $bcVersion.Major -lt 28 # For BC28 and higher the import of 
 
 $moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
 
+$forEachOutputScriptBlock = { $_ }
+
+if ($bcVersion.Major -ge 29) {
+    # For BC29 and higher, we will also override Get-NAVAppInfo to handle issues with the returned AppId
+    # The returned deserialized object for the AppId can not be passed directly to other NAV App cmdlets because they expect a Guid
+    $commandNamesForAppManagement += 'Get-NAVAppInfo'
+
+    $forEachOutputScriptBlock = {
+        $object = $_
+
+        # Return the object if it is not a PS Object
+        if ($object -isnot [PSObject]) { return $object }
+
+        # Resolve properties of deserialized NavAppInfo
+        if ($object.PSObject.TypeNames -contains 'Deserialized.Microsoft.Dynamics.Nav.Apps.Management.Cmdlets.NavAppInfo') {
+            $object.PSObject.Properties |
+                Where-Object { $_.Name -in 'AppId', 'PackageId' } |
+                Where-Object { $_.Value -is [PSObject] } |
+                Where-Object { $_.Value.PSObject.TypeNames -like 'Deserialized.*' } |
+                ForEach-Object {
+                    $_.Value = $_.Value.Value
+                }
+        }
+
+        return $object
+    }
+}
+
 $commandNamesForAppManagement | ForEach-Object {
-    Export-PwshCoreOverride -CommandName $_ -ModuleName 'Microsoft.BusinessCentral.Apps.Management' -ModuleImportScriptBlock $moduleImportScriptBlock -UseRemoteSession $useRemoteSession
+    Export-PwshCoreOverride `
+        -CommandName $_ `
+        -ModuleName 'Microsoft.BusinessCentral.Apps.Management' `
+        -ModuleImportScriptBlock $moduleImportScriptBlock `
+        -ForEachOutputScriptBlock $forEachOutputScriptBlock `
+        -UseRemoteSession $useRemoteSession
 }
 
 $commandNamesForManagement | ForEach-Object {
-    Export-PwshCoreOverride -CommandName $_ -ModuleName 'Microsoft.BusinessCentral.Management' -ModuleImportScriptBlock $moduleImportScriptBlock -UseRemoteSession $useRemoteSession
+    Export-PwshCoreOverride `
+        -CommandName $_ `
+        -ModuleName 'Microsoft.BusinessCentral.Management' `
+        -ModuleImportScriptBlock $moduleImportScriptBlock `
+        -ForEachOutputScriptBlock $forEachOutputScriptBlock `
+        -UseRemoteSession $useRemoteSession
 }
