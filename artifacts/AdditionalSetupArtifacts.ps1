@@ -63,7 +63,8 @@ function Move-Database {
 
 function Import-PPIModules {
     Write-Host "Files in Run Dir:"
-    Get-ChildItem -Path "c:\run" | ForEach-Object { Write-Host " - $($_.FullName.Replace('c:\run', ''))" }
+    Get-ChildItem -Path "c:\run" -Recurse | ForEach-Object { Write-Host " - $($_.FullName.Replace('c:\run', ''))" }
+    Write-Host "IsBuildContainer: $($env:IsBuildContainer)"
 
     if (Test-Path "c:\run\my\PPIArtifactUtils.ps1") {
         . "c:\run\my\PPIArtifactUtils.ps1"
