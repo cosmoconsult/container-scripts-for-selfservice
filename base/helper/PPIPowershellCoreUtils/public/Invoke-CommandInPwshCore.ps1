@@ -6,7 +6,15 @@ function Invoke-CommandInPwshCore() {
         [scriptblock]$ScriptBlock,
         [object[]]$ArgumentList = @(),
 
-        [bool]$UseRemoteSession = $true
+        [bool]$UseRemoteSession = $true,
+
+        [scriptblock]$ErrorScriptBlock       = { Write-Error $_ },
+        [scriptblock]$WarningScriptBlock     = { Write-Warning $_ },
+        [scriptblock]$VerboseScriptBlock     = { Write-Verbose $_ },
+        [scriptblock]$DebugScriptBlock       = { Write-Debug $_ },
+        [scriptblock]$InformationScriptBlock = { Write-Information $_ },
+        [scriptblock]$HostScriptBlock        = { Write-Host $_ },
+        [scriptblock]$OutputScriptBlock      = { $_ }
     )
 
     # Propagate caller's preferences across module boundary
@@ -22,11 +30,6 @@ function Invoke-CommandInPwshCore() {
             Set-Variable -Name $_.Variable -Value $PSCmdlet.GetVariableValue($_.Variable)
         }
 
-    if ($PSVersionTable.PSEdition -eq 'Core') {
-        & $ScriptBlock @ArgumentList
-        return
-    }
-
     $invokeScriptBlock = {
         param(
             $ScriptBlock,
@@ -39,7 +42,10 @@ function Invoke-CommandInPwshCore() {
         )
 
         try {
-            & ( [ScriptBlock]::create($ScriptBlock) ) @ArgumentList *>&1
+            if ($ScriptBlock -isnot [scriptblock]) {
+                $ScriptBlock = [ScriptBlock]::Create($ScriptBlock)
+            }
+            & $ScriptBlock.GetNewClosure() @ArgumentList *>&1
         } catch {
             Write-Error $_ *>&1
         }
@@ -56,18 +62,31 @@ function Invoke-CommandInPwshCore() {
     )
 
     $processScriptBlock = {
-        if ($_ -isnot [PSObject]) { $_ }
-        elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.ErrorRecord')       { Write-Error $_ }
-        elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.WarningRecord')     { Write-Warning $_ }
-        elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.VerboseRecord')     { Write-Verbose $_ }
-        elseif ($_.PSObject.TypeNames -eq 'Deserialized.System.Management.Automation.InformationRecord') {
-            if ($_.Source -eq 'Write-Information') { Write-Information $_ }
-            else                                   { Write-Host $_ }
+        $object = $_
+        $objectScriptBlock = $OutputScriptBlock
+        if ($object -is [PSObject]) {
+            switch($object.PSObject.TypeNames) {
+                { $_ -match '^(Deserialized\.)?System\.Management\.Automation\.VerboseRecord$' }     { $objectScriptBlock = $VerboseScriptBlock }
+                { $_ -match '^(Deserialized\.)?System\.Management\.Automation\.DebugRecord$' }       { $objectScriptBlock = $DebugScriptBlock }
+                { $_ -match '^(Deserialized\.)?System\.Management\.Automation\.ErrorRecord$' }       { $objectScriptBlock = $ErrorScriptBlock }
+                { $_ -match '^(Deserialized\.)?System\.Management\.Automation\.WarningRecord$' }     { $objectScriptBlock = $WarningScriptBlock }
+                { $_ -match '^(Deserialized\.)?System\.Management\.Automation\.InformationRecord$' } {
+                    if ($object.Source -eq 'Write-Information') { $objectScriptBlock = $InformationScriptBlock }
+                    else                                        { $objectScriptBlock = $HostScriptBlock }
+                }
+            }
         }
-        else { $_ }
+        $object | ForEach-Object $objectScriptBlock
     }
 
-    if ($UseRemoteSession) {
+
+
+    if ($PSVersionTable.PSEdition -eq 'Core') {
+        # Invoke scriptblock in current process
+        Invoke-Command -ScriptBlock $invokeScriptBlock -ArgumentList $invokeArgs |
+            ForEach-Object $processScriptBlock
+    }
+    elseif ($UseRemoteSession) {
         $pwshCoreSession = Request-PwshCoreSession
         if (!$pwshCoreSession) { return }
 

@@ -127,8 +127,8 @@ function Export-PwshCoreOverride() {
                 Invoke-CommandInPwshCore `
                     -ScriptBlock $pwshCoreScriptBlock `
                     -ArgumentList $overrideInfo, $PSBoundParameters `
-                    -UseRemoteSession $overrideInfo.UseRemoteSession |
-                    ForEach-Object $ForEachOutputScriptBlock
+                    -UseRemoteSession $overrideInfo.UseRemoteSession `
+                    -OutputScriptBlock $ForEachOutputScriptBlock
             }
         }
     }
