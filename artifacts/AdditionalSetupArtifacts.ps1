@@ -30,7 +30,7 @@ function Move-Database {
                     $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' + $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
                     $toCopy += , @($_.FileName, $destination)
                     $_.FileName = $destination
-                } 
+                }
             }
             $_.LogFiles | ForEach-Object {
                 $destination = (Join-Path -Path $dbPath -ChildPath ($_.Name + '.' + $_.FileName.SubString($_.FileName.LastIndexOf('.') + 1)))
@@ -53,7 +53,7 @@ function Move-Database {
             $toCopy | ForEach-Object {
                 Move-Item -Path $_[0] -Destination $_[1]
             }
-            
+
             $_.SetOnline()
         }
         $smo.ConnectionContext.Disconnect()
@@ -62,11 +62,13 @@ function Move-Database {
 }
 
 function Import-PPIModules {
+    Write-Host "Files in Run Dir:"
+    Get-ChildItem -Path "c:\run" | ForEach-Object { Write-Host " - $($_.FullName.Replace('c:\run', ''))" }
 
     if (Test-Path "c:\run\my\PPIArtifactUtils.ps1") {
         . "c:\run\my\PPIArtifactUtils.ps1"
     }
-    
+
     if (Test-Path "c:\run\my\PPIOverrides.ps1") {
         . "c:\run\my\PPIOverrides.ps1"
     }
@@ -150,9 +152,9 @@ Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryCli
 
 # Show installed apps
 Write-Host "##[group]Initially installed apps"
-Get-NAVAppInfo -Tenant $tenantId -TenantSpecificProperties -ServerInstance $ServerInstance | 
-    Select-Object Name, Publisher, Version, Scope, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion | 
-    Format-Table -AutoSize | 
+Get-NAVAppInfo -Tenant $tenantId -TenantSpecificProperties -ServerInstance $ServerInstance |
+    Select-Object Name, Publisher, Version, Scope, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion |
+    Format-Table -AutoSize |
     Out-String -Width 1024
 Write-Host "##[endgroup]"
 
@@ -161,7 +163,7 @@ if ($global:cosmoRunspacePool) {
     try {
         Write-Host "##[group]Download Artifacts (Async) - Wait & Finish"
         $cosmoArtifactsDownloadEnd = $null
-        $global:cosmoArtifacts.Download.Runspaces.Values | 
+        $global:cosmoArtifacts.Download.Runspaces.Values |
             ForEach-Object { $_ } |
             Where-Object { $_ } |
             Wait-DownloadArtifactAsync -TelemetryClient $telemetryClient -End ([ref]$cosmoArtifactsDownloadEnd)
@@ -169,7 +171,7 @@ if ($global:cosmoRunspacePool) {
 
         $telemetryProperties = @{}
         $telemetryProperties["artifacts"] = ( $global:cosmoArtifacts.Artifacts.All | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
-        
+
         Invoke-LogOperation -name "AdditionalSetup - Download Artifacts (Async) - Wait & Finish" -started $global:cosmoArtifacts.Download.Start -ended $global:cosmoArtifacts.Download.End -telemetryClient $telemetryClient -properties $telemetryProperties
         Add-ArtifactsLog -message "Download Artifacts (Async) done. (Duration: $(New-TimeSpan -start $global:cosmoArtifacts.Download.Start -end $global:cosmoArtifacts.Download.End); Elapsed: $(New-TimeSpan -start $global:cosmoArtifacts.Download.Start))"
     }
@@ -197,7 +199,7 @@ if ($env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     $files = Get-DemoDataFiles
     foreach ($demoDataFile in $files) {
         $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
-        "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
+        "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host
         if ($demoDataFileName -match 'DemoData_(.*)_.xml') {
             $companyName = $Matches[1]
             Write-Host "  Create company $companyName"
@@ -278,11 +280,11 @@ if ($env:IsBuildContainer) {
 $enablePerformanceCounter = $($env:enablePerformanceCounter)
 if ([string]::IsNullOrEmpty($env:enablePerformanceCounter)) {
     $enablePerformanceCounter = "true"
-} 
+}
 
 if ($enablePerformanceCounter.ToLower() -eq "true") {
     Write-Host "Start Performance Data Collection"
-    $DCSName = "BC" 
+    $DCSName = "BC"
 
     if ($newPublicDnsName) {
         [xml]$doc = New-Object System.Xml.XmlDocument
@@ -297,7 +299,7 @@ if ($enablePerformanceCounter.ToLower() -eq "true") {
         $doc.AppendChild($root) | Out-Null
 
         $server = $env:COMPUTERNAME
-    
+
         Write-Host "Running Perfmon-Collector to create / update Perfmon Data Collector Set $DCSName on $Server" -ForegroundColor Green
         $SubDir = "C:\ProgramData\BCContainerHelper\PerfmonLogs"
         If (!(Test-Path -PathType Container $SubDir)) {
@@ -388,11 +390,11 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     $bak = $env:saasbakfile
     $tenantId = "saas"
-    
+
     if (!$databaseFolder) {
         $databaseFolder = "c:\databases\my"
     }
-    
+
     if (!(Test-Path -Path $databaseFolder -PathType Container)) {
         New-Item -Path $databaseFolder -itemtype Directory | Out-Null
     }
@@ -403,7 +405,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host " - Downloading SaaS DB from $bak"
         Invoke-WebRequest -Uri $uri -OutFile $bak
     }
-    
+
     Write-Host " - Restoring SaaS DB to $databaseFolder"
     New-NAVDatabase -DatabaseServer $DatabaseServer `
         -DatabaseInstance $DatabaseInstance `
@@ -411,7 +413,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -FilePath "$bak" `
         -DestinationPath "$databaseFolder" `
         -Timeout $SqlTimeout -Force | out-null
-    
+
     Write-Host " - Adapting package IDs"
     $diffPackageIds = Invoke-Sqlcmd -Query "select da.[App ID], da.[Package ID] FROM [default].[dbo].[NAV App Installed App] da JOIN [$tenantId].[dbo].[NAV App Installed App] ta ON da.[App ID] = ta.[App ID] AND da.[Version Major] = ta.[Version Major] AND da.[Version Minor] = ta.[Version Minor] AND da.[Version Build] = ta.[Version Build] AND da.[Version Revision] = ta.[Version Revision] AND da.[Package ID] != ta.[Package ID]" -ServerInstance "$DatabaseServer\$DatabaseInstance"
     foreach ($app in $diffPackageIds) {
@@ -441,7 +443,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     } else {
         Write-Host "Not setting the application version as this is not supported from version 27 onward"
     }
-        
+
     $collation = "Latin1_General_100_CI_AS"
         Write-Host "Change collation to $collation"
         $navDataFilePath = (Join-Path $volPath "export.navdata")
@@ -474,8 +476,8 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Force
 
     Write-Host "    - Showing status"
-    Get-NavTenant -ServerInstance $ServerInstance 
-        
+    Get-NavTenant -ServerInstance $ServerInstance
+
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
         -ServerInstance $ServerInstance `
@@ -518,7 +520,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
 
     Write-Host " - Check data upgrade is executed"
     Set-NavServerInstance -ServerInstance BC -Restart
-    
+
     for ($i = 0; $i -lt 10; $i++) {
         $TenantState = (Get-NavTenant -ServerInstance BC -Tenant $TenantId).State
         if (($TenantState -eq "Mounted") -or ($TenantState -eq "Operational")) {
@@ -566,7 +568,7 @@ if (![string]::IsNullOrEmpty($env:saasbakfile)) {
     else {
         $licenseToImport = $licensefile
     }
-    
+
     if (Test-Path $licenseToImport) {
         Import-NAVServerLicense -ServerInstance $ServerInstance -Tenant $tenantId -LicenseFile $licenseToImport -Database Tenant
         Set-NAVServerInstance -ServerInstance $ServerInstance -Restart
