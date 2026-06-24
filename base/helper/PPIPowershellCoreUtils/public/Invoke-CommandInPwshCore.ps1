@@ -68,8 +68,8 @@ function Invoke-CommandInPwshCore() {
                 { $_ -match '^(Deserialized\.)?System\.Management\.Automation\.ErrorRecord$' }       { $objectScriptBlock = $ErrorScriptBlock }
                 { $_ -match '^(Deserialized\.)?System\.Management\.Automation\.WarningRecord$' }     { $objectScriptBlock = $WarningScriptBlock }
                 { $_ -match '^(Deserialized\.)?System\.Management\.Automation\.InformationRecord$' } {
-                    if ($object.Source -eq 'Write-Information') { $objectScriptBlock = $InformationScriptBlock }
-                    else                                        { $objectScriptBlock = $HostScriptBlock }
+                    if ($object.Source -eq 'Write-Information') { $objectScriptBlock = $InformationScriptBlock }
+                    else                                        { $objectScriptBlock = $HostScriptBlock }
                 }
             }
         }
