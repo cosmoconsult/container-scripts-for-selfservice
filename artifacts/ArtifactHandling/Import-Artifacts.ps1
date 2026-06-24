@@ -78,6 +78,8 @@ function Import-Artifacts {
         if (!$ExcludeApps) {
             $AppExcludeExpr = ""
         }
+        $debugExcludeExpr = if ([string]::IsNullOrWhiteSpace($AppExcludeExpr)) { "<empty>" } else { $AppExcludeExpr }
+        Write-Host ("##[debug] Import-Artifacts ExcludeApps='{0}' AppExcludeExpr='{1}'" -f $ExcludeApps, $debugExcludeExpr)
         $params = @{
             Depth       = $maxDepth
             Filter      = "*.app"
@@ -87,6 +89,7 @@ function Import-Artifacts {
             $params.Add("Path", "$Path")
             Write-Host "Working on apps sorted by dependency"
             $items = @() + (Get-AppFilesSortedByDependencies @params -ErrorAction SilentlyContinue)
+            Write-Host ("##[debug] App files selected after dependency sort/filter: {0}" -f $items.Length)
         }
         if ($items) {
             try {

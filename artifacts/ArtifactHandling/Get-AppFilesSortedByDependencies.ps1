@@ -58,12 +58,38 @@ function Get-AppFilesSortedByDependencies {
         if ($Depth) {
             $optionalParameters["Depth"] = $Depth
         }
-        if($ExcludeExpr) {
-            Write-Host ("Searching for apps excluding: {0}" -f $ExcludeExpr)
-        } else {
+
+        $excludeExprValues = @($ExcludeExpr | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+        $hasExcludeExpr = $excludeExprValues.Count -gt 0
+        $excludePattern = if ($hasExcludeExpr) { $excludeExprValues -join "|" } else { $null }
+
+        Write-Host ("##[debug] AppExcludeExpr(raw env): '{0}'" -f $env:AppExcludeExpr)
+        Write-Host ("##[debug] AppExcludeExpr(effective): '{0}'" -f ($excludeExprValues -join ","))
+
+        if($hasExcludeExpr) {
+            Write-Host ("Searching for apps excluding: {0}" -f ($excludeExprValues -join ", "))
+            Write-Debug ("Exclude regex pattern: {0}" -f $excludePattern)
+        }
+        else {
             Write-Host "Searching for apps"
         }
-        $AllAppFiles = Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Recurse @optionalParameters | Where-Object { [string]::IsNullOrEmpty($ExcludeExpr) -or ($_.Name -NotMatch $ExcludeExpr) }
+
+        $candidateAppFiles = @(Get-ChildItem -LiteralPath "$Path" -Filter $Filter -Recurse @optionalParameters)
+        Write-Host ("##[debug] Candidate app count before exclusion: {0}" -f $candidateAppFiles.Count)
+
+        if ($hasExcludeExpr) {
+            $AllAppFiles = @($candidateAppFiles | Where-Object { $_.Name -notmatch $excludePattern })
+            $excludedAppFiles = @($candidateAppFiles | Where-Object { $_.Name -match $excludePattern })
+            Write-Host ("##[debug] Excluded app count: {0}" -f $excludedAppFiles.Count)
+            Write-Host ("##[debug] Remaining app count: {0}" -f $AllAppFiles.Count)
+            if ($excludedAppFiles.Count -gt 0) {
+                $excludedPreview = $excludedAppFiles | Select-Object -First 20 -ExpandProperty Name
+                Write-Debug ("Excluded app names (first {0}): {1}" -f $excludedPreview.Count, ($excludedPreview -join ", "))
+            }
+        }
+        else {
+            $AllAppFiles = $candidateAppFiles
+        }
 
         $AllApps = [System.Collections.ArrayList]@()
         $ApplicationAppId = ""
