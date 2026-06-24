@@ -42,7 +42,10 @@ function Invoke-CommandInPwshCore() {
         )
 
         try {
-            & ( [ScriptBlock]::create($ScriptBlock) ) @ArgumentList *>&1
+            if ($ScriptBlock -isnot [scriptblock]) {
+                $ScriptBlock = [ScriptBlock]::Create($ScriptBlock)
+            }
+            & $ScriptBlock.GetNewClosure() @ArgumentList *>&1
         } catch {
             Write-Error $_ *>&1
         }
