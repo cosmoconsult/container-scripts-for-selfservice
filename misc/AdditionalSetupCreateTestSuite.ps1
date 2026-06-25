@@ -15,7 +15,7 @@ if ($null -eq $myaccount) {
 
 Write-Host "Creating DEFAULT Test Suite in the company $($Company.CompanyName) of the tenant $($Tenant.Id)"
 try {
-    Invoke-NAVCodeunit -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id -CompanyName $Company.CompanyName -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument 'DEFAULT'
+    Invoke-NAVCodeunit -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id -CompanyName $Company.CompanyName -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument 'DEFAULT' -ErrorAction Stop
 }
 catch {
     Write-Host "Error creating DEFAULT Test Suite: $($_.Exception.Message)"
