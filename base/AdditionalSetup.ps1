@@ -2,7 +2,8 @@ $scripts = @(
                         (Join-Path $PSScriptRoot "AdditionalSetupArtifacts.ps1"),
                         (Join-Path $PSScriptRoot "AdditionalSetupPrerequisites.ps1"),
                         (Join-Path $PSScriptRoot "AdditionalSetupDuplicateUsers.ps1"),
-                        (Join-Path $PSScriptRoot "AdditionalSetupAdditionalOwners.ps1")
+                        (Join-Path $PSScriptRoot "AdditionalSetupAdditionalOwners.ps1"),
+                        (Join-Path $PSScriptRoot "AdditionalSetupCreateTestSuite.ps1")
 )
 
 Write-Host "Start AdditionalSetup"
