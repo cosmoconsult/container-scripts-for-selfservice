@@ -27,7 +27,7 @@ function Import-Artifacts {
         [Parameter(Mandatory = $false)]
         [bool]$ExcludeApps = $true,
         [Parameter(Mandatory = $false)]
-        [string]$AppExcludeExpr = $(if ($env:AppExcludeExpr) { $env:AppExcludeExpr }else { ".*Test_.*|.*Tests_.*" }),
+        [string]$AppExcludeExpr = $env:AppExcludeExpr,
         [Parameter(Mandatory = $false)]
         [bool]$throwErrors = $false
     )
