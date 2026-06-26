@@ -1,27 +1,13 @@
 Write-Host "Create DEFAULT Test Suite"
 
-Write-Host "Collecting information about the current user, server instance, tenant, and company..."
-$me = whoami
-$ServerInstance = Get-NAVServerInstance
-$Tenant = $ServerInstance | Get-NAVTenant
-$Company = Get-NAVCompany -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id | Select-Object -First 1
-$myaccount = get-navserveruser -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id | Where-Object { $_.WindowsAccount -eq $me }
+$companies = Get-NAVCompany -ServerInstance $ServerInstance @tenantParam
 
-if ($null -eq $myaccount) {
-    Write-Host "Adding $me as a user to the tenant $($Tenant.Id) and assigning SUPER permission set"
-    New-NAVServerUser -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id -WindowsAccount $me
-    New-NAVServerUserPermissionSet -WindowsAccount $me -PermissionSetId SUPER -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id
-}
-
-Write-Host "Creating DEFAULT Test Suite in the company $($Company.CompanyName) of the tenant $($Tenant.Id)"
-try {
-    Invoke-NAVCodeunit -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id -CompanyName $Company.CompanyName -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument 'DEFAULT' -ErrorAction Stop
-}
-catch {
-    Write-Host "Error creating DEFAULT Test Suite: $($_.Exception.Message)"
-}
-
-if ($null -eq $myaccount) {
-    Write-Host "Removing $me as a user from the tenant $($Tenant.Id)"
-    Remove-NAVServerUser -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id -WindowsAccount $me
+foreach ($Company in $companies) {
+    Write-Host "Creating DEFAULT Test Suite in the company $($Company.CompanyName)"
+    try {
+        Invoke-NAVCodeunit -ServerInstance $ServerInstance @tenantParam -CompanyName $Company.CompanyName -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument 'DEFAULT' -ErrorAction Stop
+    }
+    catch {
+        Write-Host "Error creating DEFAULT Test Suite: $($_.Exception.Message)"
+    }
 }
