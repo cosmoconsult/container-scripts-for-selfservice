@@ -12,9 +12,9 @@ if ($null -eq $myaccount) {
 }
 
 foreach ($Company in $Companies) {
-    Write-Host "Creating DEFAULT Test Suite in the company $($Company.CompanyName) of the tenant $($Tenant.Id)"
+    Write-Host "Creating DEFAULT Test Suite in the company $($Company.CompanyName) of the tenant $tenantId"
     try {
-        Invoke-NAVCodeunit -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id -CompanyName $Company.CompanyName -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument 'DEFAULT' -ErrorAction Stop
+        Invoke-NAVCodeunit -ServerInstance $ServerInstance -Tenant $tenantId -CompanyName $Company.CompanyName -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument 'DEFAULT' -ErrorAction Stop
     }
     catch {
         Write-Host "Error creating DEFAULT Test Suite: $($_.Exception.Message)"
@@ -22,6 +22,6 @@ foreach ($Company in $Companies) {
 }
 
 if ($null -eq $myaccount) {
-    Write-Host "Removing $me as a user from the tenant $($Tenant.Id)"
-    Remove-NAVServerUser -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id -WindowsAccount $me
+    Write-Host "Removing $me as a user from the tenant $tenantId"
+    Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -WindowsAccount $me
 }
