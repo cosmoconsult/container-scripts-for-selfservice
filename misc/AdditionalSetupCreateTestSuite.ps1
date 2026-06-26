@@ -4,7 +4,7 @@ Write-Host "Collecting information about the current user, server instance, tena
 $me = whoami
 $ServerInstance = Get-NAVServerInstance
 $Tenant = $ServerInstance | Get-NAVTenant
-$Company = Get-NAVCompany -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id | Select-Object -First 1
+$Companies = Get-NAVCompany -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id | Where-Object { $_.CompanyName -ne "My Company" }
 $myaccount = get-navserveruser -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id | Where-Object { $_.WindowsAccount -eq $me }
 
 if ($null -eq $myaccount) {
@@ -13,12 +13,14 @@ if ($null -eq $myaccount) {
     New-NAVServerUserPermissionSet -WindowsAccount $me -PermissionSetId SUPER -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id
 }
 
-Write-Host "Creating DEFAULT Test Suite in the company $($Company.CompanyName) of the tenant $($Tenant.Id)"
-try {
-    Invoke-NAVCodeunit -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id -CompanyName $Company.CompanyName -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument 'DEFAULT' -ErrorAction Stop
-}
-catch {
-    Write-Host "Error creating DEFAULT Test Suite: $($_.Exception.Message)"
+foreach ($Company in $Companies) {
+    Write-Host "Creating DEFAULT Test Suite in the company $($Company.CompanyName) of the tenant $($Tenant.Id)"
+    try {
+        Invoke-NAVCodeunit -ServerInstance $ServerInstance.ServerInstance -Tenant $Tenant.Id -CompanyName $Company.CompanyName -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument 'DEFAULT' -ErrorAction Stop
+    }
+    catch {
+        Write-Host "Error creating DEFAULT Test Suite: $($_.Exception.Message)"
+    }
 }
 
 if ($null -eq $myaccount) {
