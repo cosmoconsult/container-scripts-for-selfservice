@@ -40,6 +40,6 @@ if ($createdTempUser) {
         Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -WindowsAccount $me -ErrorAction Stop
     }
     catch {
-        Write-Host "Skipping Remove-NAVServerUser: $($_.Exception.Message)"
+        Write-Warning "Skipping Remove-NAVServerUser: $($_.Exception.Message)"
     }
 }
