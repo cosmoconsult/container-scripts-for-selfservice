@@ -2,8 +2,15 @@ Write-Host "Create DEFAULT Test Suite"
 
 Write-Host "Collecting information about the current user, server instance, tenant, and company..."
 $me = whoami
+$createdTempUser = $false
+$meShort = ($me -split "\\")[-1]
 $Companies = Get-NAVCompany -ServerInstance $ServerInstance @tenantParam | Where-Object { $_.CompanyName -ne "My Company" }
-$myaccount = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Where-Object { $_.WindowsAccount -eq $me }
+$myaccount = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Where-Object {
+    $_.WindowsAccount -eq $me -or
+    $_.UserName -eq $me -or
+    $_.UserName -eq $meShort -or
+    $_.UserName -like "$meShort@*"
+} | Select-Object -First 1
 
 Write-Host "Debug: ServerInstance=$ServerInstance, tenantId=$tenantId, currentUser=$me"
 if ($tenantParam.ContainsKey('Tenant')) {
@@ -14,10 +21,14 @@ else {
 }
 Write-Host "Debug: Companies found (excluding 'My Company')=$($Companies.Count)"
 Write-Host "Debug: Matching WindowsAccount user found=$($null -ne $myaccount)"
+if ($null -ne $myaccount) {
+    Write-Host "Debug: Matching user details: UserName='$($myaccount.UserName)', WindowsAccount='$($myaccount.WindowsAccount)'"
+}
 
 if ($null -eq $myaccount) {
     Write-Host "Adding $me as a user to the tenant $tenantId and assigning SUPER permission set"
     New-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me
+    $createdTempUser = $true
     New-NAVServerUserPermissionSet -WindowsAccount $me -PermissionSetId SUPER -ServerInstance $ServerInstance @tenantParam
     Write-Host "Debug: Create + SUPER assignment commands executed for $me"
 }
@@ -36,7 +47,7 @@ foreach ($Company in $Companies) {
     }
 }
 
-if ($null -eq $myaccount) {
+if ($createdTempUser) {
     Write-Host "Removing $me as a user from the tenant $tenantId"
     Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me
     Write-Host "Debug: Remove command executed for $me"
