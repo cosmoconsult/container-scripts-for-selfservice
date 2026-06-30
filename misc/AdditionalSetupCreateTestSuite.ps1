@@ -2,11 +2,6 @@ Write-Host "Create DEFAULT Test Suite"
 
 Write-Host "Collecting information about the current user, server instance, tenant, and company..."
 $me = whoami
-$tenantParam = @{}
-if ($tenantId) {
-    $tenantParam = @{ Tenant = $tenantId }
-}
-
 $Companies = Get-NAVCompany -ServerInstance $ServerInstance @tenantParam | Where-Object { $_.CompanyName -ne "My Company" }
 $myaccount = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Where-Object { $_.WindowsAccount -eq $me }
 
