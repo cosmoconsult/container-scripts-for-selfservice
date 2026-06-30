@@ -20,7 +20,7 @@ if ($null -eq $myaccount) {
         New-NAVServerUserPermissionSet -WindowsAccount $me -PermissionSetId SUPER -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Stop
     }
     catch {
-        Write-Host "Skipping New-NAVServerUserPermissionSet: $($_.Exception.Message)"
+        Write-Warning "Skipping New-NAVServerUserPermissionSet: $($_.Exception.Message)"
     }
 }
 
