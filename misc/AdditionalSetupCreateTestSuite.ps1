@@ -48,46 +48,27 @@ foreach ($Company in $Companies) {
 }
 
 if ($createdTempUser) {
-    Write-Host "Removing $me as a user from the tenant $tenantId"
+    Write-Host "Cleaning up temporary user $me in tenant $tenantId"
     try {
-        Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me -ErrorAction Stop
-        Write-Host "Debug: Remove command executed for $me via WindowsAccount"
+        Remove-NAVServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me -PermissionSetId SUPER -ErrorAction Stop
+        Write-Host "Debug: Removed SUPER permission set from temporary user $me"
     }
     catch {
-        Write-Warning "Remove via WindowsAccount failed: $($_.Exception.Message)"
+        Write-Warning "Cleanup: removing SUPER permission failed: $($_.Exception.Message)"
+    }
 
-        $tempUser = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Where-Object {
-            $_.WindowsAccount -eq $me -or
-            $_.UserName -eq $me -or
-            $_.UserName -eq $meShort -or
-            $_.UserName -like "$meShort@*"
-        } | Select-Object -First 1
-
-        if ($null -eq $tempUser) {
-            Write-Warning "No matching user found for cleanup after remove failure. Continuing."
+    try {
+        Set-NAVServerUser -ServerInstance $ServerInstance @tenantParam -UserName $me -State Disabled -ErrorAction Stop
+        Write-Host "Debug: Disabled temporary user $me"
+    }
+    catch {
+        Write-Warning "Cleanup: disabling temporary user by UserName failed: $($_.Exception.Message)"
+        try {
+            Set-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me -State Disabled -ErrorAction Stop
+            Write-Host "Debug: Disabled temporary user $me via WindowsAccount"
         }
-        else {
-            try {
-                Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -InputObject $tempUser -ErrorAction Stop
-                Write-Host "Debug: Remove command executed for $me via InputObject"
-            }
-            catch {
-                Write-Warning "Remove via InputObject failed: $($_.Exception.Message)"
-
-                $userNameProp = $tempUser.PSObject.Properties['UserName']
-                if ($null -ne $userNameProp -and -not [string]::IsNullOrWhiteSpace($userNameProp.Value)) {
-                    try {
-                        Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -UserName $userNameProp.Value -ErrorAction Stop
-                        Write-Host "Debug: Remove command executed for $me via UserName '$($userNameProp.Value)'"
-                    }
-                    catch {
-                        Write-Warning "Final remove fallback via UserName failed: $($_.Exception.Message)"
-                    }
-                }
-                else {
-                    Write-Warning "No UserName available for final remove fallback. Continuing."
-                }
-            }
+        catch {
+            Write-Warning "Cleanup: disabling temporary user by WindowsAccount failed: $($_.Exception.Message)"
         }
     }
 }
