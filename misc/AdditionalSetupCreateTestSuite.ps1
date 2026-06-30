@@ -37,7 +37,15 @@ foreach ($Company in $Companies) {
 if ($createdTempUser) {
     Write-Host "Removing $me as a user from the tenant $tenantId"
     try {
-        Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -WindowsAccount $me -ErrorAction Stop
+        $tempUser = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object { $_.WindowsAccount -eq $me } | Select-Object -First 1
+        Write-Host "tempuser $tempUser"
+
+        if ($null -ne $tempUser) {
+            Remove-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -InputObject $tempUser -ErrorAction Stop
+        }
+        else {
+            Write-Host "Skipping Remove-NAVServerUser: user $me not found anymore"
+        }
     }
     catch {
         Write-Host "Skipping Remove-NAVServerUser: $($_.Exception.Message)"
