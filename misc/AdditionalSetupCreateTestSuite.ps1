@@ -20,7 +20,7 @@ else {
     Write-Host "Debug: tenantParam has no Tenant key (single-tenant scope)"
 }
 Write-Host "Debug: Companies found (excluding 'My Company')=$($Companies.Count)"
-Write-Host "Debug: Matching WindowsAccount user found=$($null -ne $myaccount)"
+Write-Host "Debug: Matching user found=$($null -ne $myaccount)"
 if ($null -ne $myaccount) {
     Write-Host "Debug: Matching user details: UserName='$($myaccount.UserName)', WindowsAccount='$($myaccount.WindowsAccount)'"
 }
@@ -49,8 +49,47 @@ foreach ($Company in $Companies) {
 
 if ($createdTempUser) {
     Write-Host "Removing $me as a user from the tenant $tenantId"
-    Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me
-    Write-Host "Debug: Remove command executed for $me"
+    try {
+        Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me -ErrorAction Stop
+        Write-Host "Debug: Remove command executed for $me via WindowsAccount"
+    }
+    catch {
+        Write-Warning "Remove via WindowsAccount failed: $($_.Exception.Message)"
+
+        $tempUser = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Where-Object {
+            $_.WindowsAccount -eq $me -or
+            $_.UserName -eq $me -or
+            $_.UserName -eq $meShort -or
+            $_.UserName -like "$meShort@*"
+        } | Select-Object -First 1
+
+        if ($null -eq $tempUser) {
+            Write-Warning "No matching user found for cleanup after remove failure. Continuing."
+        }
+        else {
+            try {
+                Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -InputObject $tempUser -ErrorAction Stop
+                Write-Host "Debug: Remove command executed for $me via InputObject"
+            }
+            catch {
+                Write-Warning "Remove via InputObject failed: $($_.Exception.Message)"
+
+                $userNameProp = $tempUser.PSObject.Properties['UserName']
+                if ($null -ne $userNameProp -and -not [string]::IsNullOrWhiteSpace($userNameProp.Value)) {
+                    try {
+                        Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -UserName $userNameProp.Value -ErrorAction Stop
+                        Write-Host "Debug: Remove command executed for $me via UserName '$($userNameProp.Value)'"
+                    }
+                    catch {
+                        Write-Warning "Final remove fallback via UserName failed: $($_.Exception.Message)"
+                    }
+                }
+                else {
+                    Write-Warning "No UserName available for final remove fallback. Continuing."
+                }
+            }
+        }
+    }
 }
 else {
     Write-Host "Debug: Cleanup skipped (user was not created by this script)"
