@@ -13,7 +13,7 @@ if ($null -eq $myaccount) {
         $createdTempUser = $true
     }
     catch {
-        Write-Host "Skipping New-NAVServerUser: $($_.Exception.Message)"
+        Write-Warning "Skipping New-NAVServerUser: $($_.Exception.Message)"
     }
 
     try {
