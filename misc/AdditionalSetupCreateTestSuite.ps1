@@ -13,14 +13,14 @@ if ($null -eq $myaccount) {
         $createdTempUser = $true
     }
     catch {
-        Write-Host "Skipping New-NAVServerUser: $($_.Exception.Message)"
+        Write-Warning "Skipping New-NAVServerUser: $($_.Exception.Message)"
     }
 
     try {
         New-NAVServerUserPermissionSet -WindowsAccount $me -PermissionSetId SUPER -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Stop
     }
     catch {
-        Write-Host "Skipping New-NAVServerUserPermissionSet: $($_.Exception.Message)"
+        Write-Warning "Skipping New-NAVServerUserPermissionSet: $($_.Exception.Message)"
     }
 }
 
@@ -48,6 +48,6 @@ if ($createdTempUser) {
         }
     }
     catch {
-        Write-Host "Skipping Remove-NAVServerUser: $($_.Exception.Message)"
+        Write-Warning "Skipping Remove-NAVServerUser: $($_.Exception.Message)"
     }
 }
