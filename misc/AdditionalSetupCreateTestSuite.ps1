@@ -22,6 +22,16 @@ foreach ($Company in $Companies) {
 }
 
 if ($null -eq $myaccount) {
-    Write-Host "Removing $me as a user from the tenant $tenantId"
-    Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me
+    if ($tenantParam.ContainsKey('Tenant')) {
+        Write-Host "Disabling temporary user $me in tenant $($tenantParam.Tenant)"
+    }
+    else {
+        Write-Host "Disabling temporary user $me (single-tenant scope)"
+    }
+    try {
+        Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me
+    }
+    catch {
+        Write-Host "Error removing user: $($_.Exception.Message)"
+    }
 }
