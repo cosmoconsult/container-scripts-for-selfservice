@@ -22,4 +22,10 @@ catch {
 }
 
 # invoke default
-. (Join-Path $runPath $MyInvocation.MyCommand.Name)
+$defaultScript = Join-Path $runPath $MyInvocation.MyCommand.Name
+if ([string]::IsNullOrWhiteSpace($env:licensefile) -or -not (Test-Path -Path $env:licensefile)) {
+    Write-Warning "No license file configured or file not found. Skipping license import in SetupLicense."
+}
+else {
+    . $defaultScript
+}
