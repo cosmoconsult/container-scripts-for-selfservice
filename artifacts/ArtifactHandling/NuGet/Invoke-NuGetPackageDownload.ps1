@@ -50,12 +50,14 @@ function Invoke-NuGetPackageDownload() {
             Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
             Import-NugetTools
 
+            $select = if ($env:nuGetFeedSelectMode) { $env:nuGetFeedSelectMode } else { 'LatestMatching' }
+
             $downloadParameters = @{
                 packageName          = $Package
                 folder               = $Destination
                 installedPlatform    = $PlatformVersion
                 installedApps        = @()
-                select               = 'LatestMatching'
+                select               = $select
                 downloadDependencies = 'allButMicrosoft'
             }
 
