@@ -51,7 +51,6 @@ function Invoke-NuGetPackageDownload() {
             Import-NugetTools
 
             $select = if ($env:nuGetFeedSelectMode) { $env:nuGetFeedSelectMode } else { 'LatestMatching' }
-            Write-Host "NuGet feed select mode: $select"
 
             $downloadParameters = @{
                 packageName          = $Package
