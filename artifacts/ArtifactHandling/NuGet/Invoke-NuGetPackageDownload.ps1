@@ -24,7 +24,7 @@ function Invoke-NuGetPackageDownload() {
         $versionMetadataPattern   = '(?:\+[0-9A-Za-z.-]+)?' # [+<metadata>]
 
         $versionPattern       = '^\s*(?<version>{0})(?<prerelease>{1})(?<metadata>{2})\s*$' -f $versionStablePattern, $versionPrereleasePattern, $versionMetadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata>]
-        $versionRangePattern  = '^\s*[\[\(]?\s*({0}{1})(,{0}{1})?\s*[\]\)]?\s*$' -f $versionStablePattern, $versionPrereleasePattern # [[(] <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] [, <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] [)]]
+        $versionRangePattern  = '^\s*[\[\(]?\s*((?<versionFrom>{0})(?<prereleaseFrom>{1}))?(?:\s*,\s*)?((?<versionTo>{0})(?<prereleaseTo>{1}))?\s*[\]\)]?\s*$' -f $versionStablePattern, $versionPrereleasePattern # [[(] [<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] [,] [<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] [)]]
 
         $appInfosCacheFileName = ".nuget.apps.cache.json"
 
@@ -173,13 +173,19 @@ function Invoke-NuGetPackageDownload() {
 
                 # Determine highest possible version of predefined package
                 $packageVersion = $null
+                $versionParts = @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue, ([int32]::MaxValue - 1))
                 if (! $predefinedPackage.Version) {
-                    $versionParts = @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue, ([int32]::MaxValue - 1))
                     $packageVersion = $versionParts[0..3] -join '.'
                 } elseif ($predefinedPackage.Version -match $versionPattern) {
                     $versionMatches = $matches
-                    $versionParts = $versionMatches.version.Split('.') + @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue)
+                    $versionParts = $versionMatches.version.Split('.') + $versionParts
                     $packageVersion = '{0}{1}{2}' -f ($versionParts[0..3] -join '.'), $versionMatches.prerelease, $versionMatches.metadata
+                } elseif ($predefinedPackage.Version -match $versionRangePattern) {
+                    $versionRangeMatches = $matches
+                    if ($versionRangeMatches.versionTo) {
+                        $versionParts = $versionRangeMatches.versionTo.Split('.') + $versionParts
+                    }
+                    $packageVersion = '{0}{1}' -f ($versionParts[0..3] -join '.'), $versionRangeMatches.prereleaseTo
                 }
 
                 # Ignore predefined package if no version could be determined (e.g. version range)
