@@ -364,6 +364,11 @@ $excludeAppsFromSaaSBak = @(
         Reason = "deprecated"
     },
     [pscustomobject]@{
+        Name   = "4PS Bing Maps W1 (OBSOLETE)";
+        Id     = 'f11aaf49-158b-4d08-aa8c-342d1b0391f1';
+        Reason = "deprecated"
+    },
+    [pscustomobject]@{
         Name   = "Dynamics GP Intelligent Cloud";
         Id     = 'feeb3504-556e-4790-b28d-a2b9ce302d81';
         Reason = "works only on SaaS"
