@@ -24,7 +24,10 @@ function Invoke-NuGetPackageDownload() {
         $versionMetadataPattern   = '(?:\+[0-9A-Za-z.-]+)?' # [+<metadata>]
 
         $versionPattern       = '^\s*(?<version>{0})(?<prerelease>{1})(?<metadata>{2})\s*$' -f $versionStablePattern, $versionPrereleasePattern, $versionMetadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata>]
-        $versionRangePattern  = '^\s*[\[\(]?\s*((?<versionFrom>{0})(?<prereleaseFrom>{1}))?(?:\s*,\s*)?((?<versionTo>{0})(?<prereleaseTo>{1}))?\s*[\]\)]?\s*$' -f $versionStablePattern, $versionPrereleasePattern # [[(] [<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] [,] [<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] [)]]
+
+        $versionRangeLowerVersionPattern = '(?<versionLower>{0})(?<prereleaseLower>{1})' -f $versionStablePattern, $versionPrereleasePattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][,]
+        $versionRangeUpperVersionPattern = '(?<versionUpper>{0})(?<prereleaseUpper>{1})' -f $versionStablePattern, $versionPrereleasePattern # [,]<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]
+        $versionRangePattern  = '^\s*(?<rangeStart>[\[\(])\s*(?:(?:,?{1})|(?:{0},?)|(?:{0},{1}))\s*(?<rangeEnd>[\]\)])\s*$' -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # <[(> [<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]][,][<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] <)]>
 
         $appInfosCacheFileName = ".nuget.apps.cache.json"
 
@@ -175,17 +178,31 @@ function Invoke-NuGetPackageDownload() {
                 $packageVersion = $null
                 $versionParts = @([int32]::MaxValue, [int32]::MaxValue, [int32]::MaxValue, ([int32]::MaxValue - 1))
                 if (! $predefinedPackage.Version) {
+                    # If no version is specified, assume the highest possible version (e.g. <max>.<max>.<max>.<max - 1>)
                     $packageVersion = $versionParts[0..3] -join '.'
                 } elseif ($predefinedPackage.Version -match $versionPattern) {
                     $versionMatches = $matches
+                    # If a specific version is specified, use the upper limit of this version (e.g. 1.2 -> 1.2.<max>.<max>)
                     $versionParts = $versionMatches.version.Split('.') + $versionParts
                     $packageVersion = '{0}{1}{2}' -f ($versionParts[0..3] -join '.'), $versionMatches.prerelease, $versionMatches.metadata
                 } elseif ($predefinedPackage.Version -match $versionRangePattern) {
                     $versionRangeMatches = $matches
-                    if ($versionRangeMatches.versionTo) {
-                        $versionParts = $versionRangeMatches.versionTo.Split('.') + $versionParts
+                    # If a version range is specified, use the upper limit of this range
+                    # If the upper limit is exclusive, get the highest possible previous version (e.g. 1.2 -> 1.1.<max>.<max>)
+                    # If the upper limit is inclusive, use the upper limit version as-is (e.g. 1.2 -> 1.2.0.0)
+                    # If no upper limit is specified, use the highest possible version (e.g. <max>.<max>.<max>.<max - 1>)
+                    if ($versionRangeMatches.versionUpper) {
+                        $versionMaxParts = $versionRangeMatches.versionUpper.Split('.')
+                        if ($versionRangeMatches.rangeEnd -eq ')') {
+                            # Exclusive upper limit
+                            $versionMaxParts[-1] = [int]$versionMaxParts[-1] - 1
+                            $versionParts = $versionMaxParts + $versionParts
+                        } else {
+                            # Inclusive upper limit
+                            $versionParts = $versionMaxParts + @(0, 0, 0)
+                        }
                     }
-                    $packageVersion = '{0}{1}' -f ($versionParts[0..3] -join '.'), $versionRangeMatches.prereleaseTo
+                    $packageVersion = '{0}{1}' -f ($versionParts[0..3] -join '.'), $versionRangeMatches.prereleaseUpper
                 }
 
                 # Ignore predefined package if no version could be determined (e.g. version range)
