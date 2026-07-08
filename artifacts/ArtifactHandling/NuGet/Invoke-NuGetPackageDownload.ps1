@@ -188,18 +188,18 @@ function Invoke-NuGetPackageDownload() {
                 } elseif ($predefinedPackage.Version -match $versionRangePattern) {
                     $versionRangeMatches = $matches
                     # If a version range is specified, use the upper limit of this range
-                    # If the upper limit is exclusive, get the highest possible previous version (e.g. 1.2 -> 1.1.<max>.<max>)
+                    # If the upper limit is exclusive, get the highest possible previous version (e.g. 1.2 -> 1.1.<max>.<max>, 2.0 -> 1.<max>.<max>.<max>)
                     # If the upper limit is inclusive, use the upper limit version as-is (e.g. 1.2 -> 1.2.0.0)
                     # If no upper limit is specified, use the highest possible version (e.g. <max>.<max>.<max>.<max - 1>)
                     if ($versionRangeMatches.versionUpper) {
-                        $versionMaxParts = $versionRangeMatches.versionUpper.Split('.')
+                        $versionMaxParts = @($versionRangeMatches.versionUpper -replace '(\.0+)+$', '' -split '\.')
                         if ($versionRangeMatches.rangeEnd -eq ')') {
                             # Exclusive upper limit
                             $versionMaxParts[-1] = [int]$versionMaxParts[-1] - 1
                             $versionParts = $versionMaxParts + $versionParts
                         } else {
                             # Inclusive upper limit
-                            $versionParts = $versionMaxParts + @(0, 0, 0)
+                            $versionParts = $versionMaxParts + @(0, 0, 0, 0)
                         }
                     }
                     $packageVersion = '{0}{1}' -f ($versionParts[0..3] -join '.'), $versionRangeMatches.prereleaseUpper
