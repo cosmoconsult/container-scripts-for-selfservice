@@ -29,7 +29,6 @@ function Invoke-NuGetPackageDownload() {
 
         $versionRangeLowerVersionPattern = '(?<versionLower>{0})(?<prereleaseLower>{1})' -f $versionStablePattern, $versionPrereleasePattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][,]
         $versionRangeUpperVersionPattern = '(?<versionUpper>{0})(?<prereleaseUpper>{1})' -f $versionStablePattern, $versionPrereleasePattern # [,]<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]
-        $versionRangeSinglePattern = '(?<rangeStart>\[)\s*{0}\s*(?<rangeEnd>\])' -f $versionRangeUpperVersionPattern # [<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]]
         $versionRangePatterns = @(
             '(?<rangeStart>\[)\s*{0}\s*(?<rangeEnd>\])' -f $versionRangeUpperVersionPattern # Exact -> <[> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <]>
             '(?<rangeStart>\[|\()\s*{0},{1}\s*(?<rangeEnd>\)|\])'   -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # Range (both bounds) -> <[(> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>,<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <)]>
