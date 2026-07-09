@@ -8,13 +8,14 @@ function Invoke-NuGetPackageDownload() {
         [Parameter(Mandatory)]
         [string]$Package,
         [string]$Version,
-        [string]$Select = $( if ($env:nuGetFeedSelectMode) { $env:nuGetFeedSelectMode } else { 'LatestMatching' } ),
         [string]$InstalledAppsPath,
         [string]$ServiceTierFolder,
         [Version]$PlatformVersion,
         [PSCustomObject[]]$PredefinedPackages = @(),
         [ValidateRange(0, [int]::MaxValue)]
-        [int]$Retries = 0
+        [int]$Retries = 0,
+        [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
+        [string]$Select = $( if ($env:nuGetFeedSelectMode) { $env:nuGetFeedSelectMode } else { 'LatestMatching' } ),
     )
 
     begin {
@@ -28,7 +29,14 @@ function Invoke-NuGetPackageDownload() {
 
         $versionRangeLowerVersionPattern = '(?<versionLower>{0})(?<prereleaseLower>{1})' -f $versionStablePattern, $versionPrereleasePattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][,]
         $versionRangeUpperVersionPattern = '(?<versionUpper>{0})(?<prereleaseUpper>{1})' -f $versionStablePattern, $versionPrereleasePattern # [,]<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]
-        $versionRangePattern  = '^\s*(?<rangeStart>[\[\(])\s*(?:(?:,?{1})|(?:{0},?)|(?:{0},{1}))\s*(?<rangeEnd>[\]\)])\s*$' -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # <[(> [<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]][,][<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] <)]>
+        $versionRangeSinglePattern = '(?<rangeStart>\[)\s*{0}\s*(?<rangeEnd>\])' -f $versionRangeUpperVersionPattern # [<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]]
+        $versionRangePatterns = @(
+            '(?<rangeStart>\[)\s*{0}\s*(?<rangeEnd>\])' -f $versionRangeUpperVersionPattern # Exact -> <[> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <]>
+            '(?<rangeStart>\[|\()\s*{0},{1}\s*(?<rangeEnd>\)|\])'   -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # Range (both bounds) -> <[(> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>,<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <)]>
+            '(?<rangeStart>\()\s*(?:{0})?,{1}\s*(?<rangeEnd>\)|\])' -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # Range (upper bound) -> <(> [<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>],<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <)]>
+            '(?<rangeStart>\[|\()\s*{0},(?:{1})?\s*(?<rangeEnd>\))' -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # Range (lower bound) -> <[(> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>,[<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] <)>
+        )
+        $versionRangePattern  = '^\s*(?:{0})\s*$' -f ($versionRangePatterns -join '|')
 
         $appInfosCacheFileName = ".nuget.apps.cache.json"
 
