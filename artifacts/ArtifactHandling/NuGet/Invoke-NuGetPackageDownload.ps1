@@ -8,6 +8,7 @@ function Invoke-NuGetPackageDownload() {
         [Parameter(Mandatory)]
         [string]$Package,
         [string]$Version,
+        [string]$Select = $( if ($env:nuGetFeedSelectMode) { $env:nuGetFeedSelectMode } else { 'LatestMatching' } ),
         [string]$InstalledAppsPath,
         [string]$ServiceTierFolder,
         [Version]$PlatformVersion,
@@ -53,19 +54,17 @@ function Invoke-NuGetPackageDownload() {
             Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
             Import-NugetTools
 
-            $select = if ($env:nuGetFeedSelectMode) { $env:nuGetFeedSelectMode } else { 'LatestMatching' }
-
             $downloadParameters = @{
                 packageName          = $Package
                 folder               = $Destination
                 installedPlatform    = $PlatformVersion
                 installedApps        = @()
-                select               = $select
+                select               = $Select
                 downloadDependencies = 'allButMicrosoft'
             }
 
             if ($Version) {
-                if ($select -eq 'Exact') {
+                if ($Select -eq 'Exact') {
                     Write-Host "Use NuGet version '$Version' for select mode 'Exact'"
 
                     # Validate NuGet version (error if parsing fails)
@@ -77,7 +76,7 @@ function Invoke-NuGetPackageDownload() {
                     $downloadParameters.version = $versionRange -replace '\s+'
                 } else {
                     if ($Version -match $versionPattern) {
-                        Write-Host "Convert NuGet version '$Version' to NuGet version range for select mode '$select'"
+                        Write-Host "Convert NuGet version '$Version' to NuGet version range for select mode '$Select'"
 
                         # Convert NuGet version to a range (from version, to excl. version + 1)
                         # Increment the last version part to create upper bound
@@ -95,7 +94,7 @@ function Invoke-NuGetPackageDownload() {
 
                         Write-Host "Use converted NuGet version range '$versionRange'"
                     } else {
-                        Write-Host "Use NuGet version range '$Version' for select mode '$select'"
+                        Write-Host "Use NuGet version range '$Version' for select mode '$Select'"
 
                         $versionRange = $Version
                     }
@@ -219,6 +218,9 @@ function Invoke-NuGetPackageDownload() {
                         }
                     }
                     $packageVersion = '{0}{1}' -f ($versionParts[0..3] -join '.'), $versionRangeMatches.prereleaseUpper
+                } else {
+                    # If the version is neither a specific version nor a version range, throw an error
+                    throw "Invalid NuGet version or version range '$($predefinedPackage.Version)' for predefined package '$($predefinedPackage.Package)'"
                 }
 
                 # Ignore predefined package if no version could be determined (e.g. version range)
