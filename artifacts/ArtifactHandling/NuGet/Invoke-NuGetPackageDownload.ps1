@@ -15,7 +15,7 @@ function Invoke-NuGetPackageDownload() {
         [ValidateRange(0, [int]::MaxValue)]
         [int]$Retries = 0,
         [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
-        [string]$Select = $( if ($env:nuGetFeedSelectMode) { $env:nuGetFeedSelectMode } else { 'LatestMatching' } ),
+        [string]$Select = $( if ($env:nuGetFeedSelectMode) { $env:nuGetFeedSelectMode } else { 'LatestMatching' } )
     )
 
     begin {
@@ -204,27 +204,29 @@ function Invoke-NuGetPackageDownload() {
                     $packageVersion = $versionParts[0..3] -join '.'
                 } elseif ($predefinedPackage.Version -match $versionPattern) {
                     $versionMatches = $matches
-                    # If a specific version is specified, use the upper limit of this version (e.g. 1.2 -> 1.2.<max>.<max>)
+                    # If a specific version is specified, use the upper limit of this version (e.g. 1.2-beta+meta -> 1.2.<max>.<max>-beta+meta)
                     $versionParts = $versionMatches.version.Split('.') + $versionParts
                     $packageVersion = '{0}{1}{2}' -f ($versionParts[0..3] -join '.'), $versionMatches.prerelease, $versionMatches.metadata
                 } elseif ($predefinedPackage.Version -match $versionRangePattern) {
                     $versionRangeMatches = $matches
                     # If a version range is specified, use the upper limit of this range
-                    # If the upper limit is exclusive, get the highest possible previous version (e.g. 1.2 -> 1.1.<max>.<max>, 2.0 -> 1.<max>.<max>.<max>)
-                    # If the upper limit is inclusive, use the upper limit version as-is (e.g. 1.2 -> 1.2.0.0)
+                    # If the upper limit is exclusive, get the highest possible previous version without prerelease flag (e.g. 1.2-beta -> 1.1.<max>.<max>, 2.0-beta -> 1.<max>.<max>.<max>)
+                    # If the upper limit is inclusive, use the upper limit version as-is (e.g. 1.2-beta -> 1.2.0.0-beta)
                     # If no upper limit is specified, use the highest possible version (e.g. <max>.<max>.<max>.<max - 1>)
+                    $versionPrerelease = ""
                     if ($versionRangeMatches.versionUpper) {
-                        $versionMaxParts = @($versionRangeMatches.versionUpper -replace '(\.0+)+$', '' -split '\.')
+                        $versionUpperParts = @($versionRangeMatches.versionUpper -replace '(\.0+)+$', '' -split '\.')
                         if ($versionRangeMatches.rangeEnd -eq ')') {
                             # Exclusive upper limit
-                            $versionMaxParts[-1] = [int]$versionMaxParts[-1] - 1
-                            $versionParts = $versionMaxParts + $versionParts
+                            $versionUpperParts[-1] = [int]$versionUpperParts[-1] - 1
+                            $versionParts = $versionUpperParts + $versionParts
                         } else {
                             # Inclusive upper limit
-                            $versionParts = $versionMaxParts + @(0, 0, 0, 0)
+                            $versionParts = $versionUpperParts + @(0, 0, 0, 0)
+                            $versionPrerelease = $versionRangeMatches.prereleaseUpper
                         }
                     }
-                    $packageVersion = '{0}{1}' -f ($versionParts[0..3] -join '.'), $versionRangeMatches.prereleaseUpper
+                    $packageVersion = '{0}{1}' -f ($versionParts[0..3] -join '.'), $versionPrerelease
                 } else {
                     # If the version is neither a specific version nor a version range, throw an error
                     throw "Invalid NuGet version or version range '$($predefinedPackage.Version)' for predefined package '$($predefinedPackage.Package)'"
