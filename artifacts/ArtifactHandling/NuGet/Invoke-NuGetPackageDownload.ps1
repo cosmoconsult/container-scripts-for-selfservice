@@ -70,50 +70,48 @@ function Invoke-NuGetPackageDownload() {
                 downloadDependencies = 'allButMicrosoft'
             }
 
-            if ($Version) {
-                if ($Select -eq 'Exact') {
-                    Write-Host "Use NuGet version '$Version' for select mode 'Exact'"
+            if ($Select -eq 'Exact') {
+                Write-Host "Use NuGet version '$Version' for select mode 'Exact'"
 
-                    # Validate NuGet version (error if parsing fails)
-                    Write-Host "Validate NuGet version '$Version'"
-                    if ($Version -notmatch $versionPattern) {
-                        throw "Invalid NuGet version '$Version'"
-                    }
-
-                    $downloadParameters.version = $Version -replace '\s+'
-                } else {
-                    if ($Version -match $versionPattern) {
-                        Write-Host "Convert NuGet version '$Version' to NuGet version range for select mode '$Select'"
-
-                        # Convert NuGet version to a range (from version, to excl. version + 1)
-                        # Increment the last version part to create upper bound
-                        $versionParts = $matches.version.Split('.')
-                        $toVersionParts = $versionParts.Clone()
-                        $toVersionParts[-1] = [string]([int]$toVersionParts[-1] + 1)
-
-                        # Normalize both from and to versions to ensure at least major.minor format for System.Version compatibility
-                        $fromVersionNormalized = if ($versionParts.Count -eq 1) { "{0}.0" -f $versionParts[0] } else { $matches.version }
-                        $toVersionNormalized = if ($toVersionParts.Count -eq 1) { "{0}.0" -f $toVersionParts[0] } else { $toVersionParts -join '.' }
-
-                        $fromVersion  = '{0}{1}' -f $fromVersionNormalized, $matches.prerelease
-                        $toVersion    = '{0}{1}' -f $toVersionNormalized, $matches.prerelease
-                        $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
-
-                        Write-Host "Use converted NuGet version range '$versionRange'"
-                    } else {
-                        Write-Host "Use NuGet version range '$Version' for select mode '$Select'"
-
-                        $versionRange = $Version
-                    }
-
-                    # Validate NuGet version range (error if parsing fails)
-                    Write-Host "Validate NuGet version range '$versionRange'"
-                    if ($versionRange -notmatch $versionRangePattern) {
-                        throw "Invalid NuGet version range '$versionRange'"
-                    }
-
-                    $downloadParameters.version = $versionRange -replace '\s+'
+                # Validate NuGet version (error if parsing fails)
+                Write-Host "Validate NuGet version '$Version'"
+                if ($Version -notmatch $versionPattern) {
+                    throw "Invalid NuGet version '$Version' for package '$Package' with select mode 'Exact'"
                 }
+
+                $downloadParameters.version = $Version -replace '\s+'
+            } elseif ($Version) {
+                if ($Version -match $versionPattern) {
+                    Write-Host "Convert NuGet version '$Version' to NuGet version range for select mode '$Select'"
+
+                    # Convert NuGet version to a range (from version, to excl. version + 1)
+                    # Increment the last version part to create upper bound
+                    $versionParts = $matches.version.Split('.')
+                    $toVersionParts = $versionParts.Clone()
+                    $toVersionParts[-1] = [string]([int]$toVersionParts[-1] + 1)
+
+                    # Normalize both from and to versions to ensure at least major.minor format for System.Version compatibility
+                    $fromVersionNormalized = if ($versionParts.Count -eq 1) { "{0}.0" -f $versionParts[0] } else { $matches.version }
+                    $toVersionNormalized = if ($toVersionParts.Count -eq 1) { "{0}.0" -f $toVersionParts[0] } else { $toVersionParts -join '.' }
+
+                    $fromVersion  = '{0}{1}' -f $fromVersionNormalized, $matches.prerelease
+                    $toVersion    = '{0}{1}' -f $toVersionNormalized, $matches.prerelease
+                    $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
+
+                    Write-Host "Use converted NuGet version range '$versionRange'"
+                } else {
+                    Write-Host "Use NuGet version range '$Version' for select mode '$Select'"
+
+                    $versionRange = $Version
+                }
+
+                # Validate NuGet version range (error if parsing fails)
+                Write-Host "Validate NuGet version range '$versionRange'"
+                if ($versionRange -notmatch $versionRangePattern) {
+                    throw "Invalid NuGet version range '$versionRange' for package '$Package' with select mode '$Select'"
+                }
+
+                $downloadParameters.version = $versionRange -replace '\s+'
             }
 
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
