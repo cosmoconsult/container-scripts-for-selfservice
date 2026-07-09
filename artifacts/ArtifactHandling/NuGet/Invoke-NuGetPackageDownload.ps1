@@ -74,7 +74,7 @@ function Invoke-NuGetPackageDownload() {
                         throw "Invalid NuGet version '$Version'"
                     }
 
-                    $downloadParameters.version = $versionRange -replace '\s+'
+                    $downloadParameters.version = $Version -replace '\s+'
                 } else {
                     if ($Version -match $versionPattern) {
                         Write-Host "Convert NuGet version '$Version' to NuGet version range for select mode '$select'"
