@@ -256,7 +256,7 @@ function Invoke-NuGetPackageDownload() {
                     Test-NuGetVersionRangeMatches -VersionRangeMatches $matches -ErrorMessage "Invalid NuGet version range '$($predefinedPackage.Version)' for predefined package '$($predefinedPackage.Package)'"
 
                     # If a version range is specified, use the upper limit of this range
-                    # If the upper limit is exclusive, get the highest possible previous version without prerelease flag (e.g. 1.2 -> 1.1.<max>.<max>, 2.0 -> 1.<max>.<max>.<max>)
+                    # If the upper limit is exclusive, get the highest possible previous version (e.g. 1.2 -> 1.1.<max>.<max>, 2.0 -> 1.<max>.<max>.<max>)
                     # If the upper limit is inclusive, use the upper limit version as-is (e.g. 1.2 -> 1.2.0.0)
                     # If no upper limit is specified, use the highest possible version (e.g. <max>.<max>.<max>.<max - 1>)
                     $versionRangeMatches = $matches
