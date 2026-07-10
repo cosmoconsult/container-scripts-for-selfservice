@@ -23,9 +23,12 @@ catch {
 
 # invoke default
 $defaultScript = Join-Path $runPath $MyInvocation.MyCommand.Name
-if ([string]::IsNullOrWhiteSpace($env:licensefile) -or -not (Test-Path -LiteralPath $env:licensefile -PathType Leaf )) {
-    Write-Host "No license file configured or file not found. Skipping license import in SetupLicense."
+if ([string]::IsNullOrWhiteSpace($env:licensefile)) {
+    Write-Host "No license file configured. Skipping license import in SetupLicense."
+}
+elseif ((Test-Path -LiteralPath $env:licensefile -PathType Leaf) -or $env:licensefile -match '^https?://') {
+    . $defaultScript
 }
 else {
-    . $defaultScript
+    Write-Host "Configured license file is neither a local file nor an URL. Skipping license import in SetupLicense."
 }
