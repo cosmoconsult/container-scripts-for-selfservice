@@ -31,9 +31,9 @@ function Invoke-NuGetPackageDownload() {
         $versionRangeUpperVersionPattern = '(?<versionUpper>{0})(?<prereleaseUpper>{1})' -f $versionStablePattern, $versionPrereleasePattern # [,]<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]
         $versionRangePatterns = @(
             '(?<rangeStart>\[)\s*{0}\s*(?<rangeEnd>\])' -f $versionRangeUpperVersionPattern # Exact -> <[> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <]>
-            '(?<rangeStart>\[|\()\s*{0},{1}\s*(?<rangeEnd>\)|\])'   -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # Range (both bounds) -> <[(> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>,<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <)]>
-            '(?<rangeStart>\()\s*(?:{0})?,{1}\s*(?<rangeEnd>\)|\])' -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # Range (upper bound) -> <(> [<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>],<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <)]>
-            '(?<rangeStart>\[|\()\s*{0},(?:{1})?\s*(?<rangeEnd>\))' -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # Range (lower bound) -> <[(> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>,[<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]] <)>
+            '(?<rangeStart>\()\s*,{0}\s*(?<rangeEnd>\)|\])' -f $versionRangeUpperVersionPattern # Range (upper bound) -> <(> ,<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <)]>
+            '(?<rangeStart>\[|\()\s*{0},\s*(?<rangeEnd>\))' -f $versionRangeLowerVersionPattern # Range (lower bound) -> <[(> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>, <)>
+            '(?<rangeStart>\[|\()\s*{0},{1}\s*(?<rangeEnd>\)|\])' -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # Range (both bounds) -> <[(> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>,<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <)]>
         )
         $versionRangePattern  = '^\s*(?:{0})\s*$' -f ($versionRangePatterns -join '|')
 
