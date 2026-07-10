@@ -30,5 +30,5 @@ elseif ((Test-Path -LiteralPath $env:licensefile -PathType Leaf) -or $env:licens
     . $defaultScript
 }
 else {
-    Write-Host "Configured license file is neither a local file nor an URL. Skipping license import in SetupLicense."
+    Write-Host "Configured license file is neither a local file nor a URL. Skipping license import in SetupLicense."
 }
