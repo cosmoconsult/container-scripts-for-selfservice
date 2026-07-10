@@ -40,6 +40,46 @@ function Invoke-NuGetPackageDownload() {
         $appInfosCacheFileName = ".nuget.apps.cache.json"
 
         $maxAttempts = $Retries + 1
+
+        function Test-NuGetVersionMatches {
+            param(
+                [Parameter(Mandatory)]
+                [hashtable]$VersionMatches,
+
+                [string]$ErrorMessage = "Invalid NuGet version '$($VersionMatches.0)'"
+            )
+
+            if ($VersionMatches.metadata) {
+                throw "$($ErrorMessage): Metadata is not supported"
+            }
+        }
+
+        function Test-NuGetVersionRangeMatches {
+            param(
+                [Parameter(Mandatory)]
+                [hashtable]$VersionRangeMatches,
+
+                [string]$ErrorMessage = "Invalid NuGet version range '$($VersionRangeMatches.0)'"
+            )
+
+            if ($VersionRangeMatches.prereleaseUpper -or $VersionRangeMatches.prereleaseLower) {
+                throw "$($ErrorMessage): Prerelease versions are not supported"
+            }
+
+            $lowerBoundVersion = $null
+            $upperBoundVersion = $null
+
+            if ($VersionRangeMatches.versionLower) {
+                $lowerBoundVersion = [System.Version]("$($VersionRangeMatches.versionLower).0.0.0".Split('.')[0..3] -join '.')
+            }
+            if ($VersionRangeMatches.versionUpper) {
+                $upperBoundVersion = [System.Version]("$($VersionRangeMatches.versionUpper).0.0.0".Split('.')[0..3] -join '.')
+            }
+
+            if ($lowerBoundVersion -and $upperBoundVersion -and $upperBoundVersion -le $lowerBoundVersion) {
+                throw "$($ErrorMessage): Upper bound version must be greater than lower bound version"
+            }
+        }
     }
 
     process {
@@ -71,18 +111,22 @@ function Invoke-NuGetPackageDownload() {
             }
 
             if ($Select -eq 'Exact') {
-                Write-Host "Use NuGet version '$Version' for select mode 'Exact'"
+                Write-Host "Use NuGet version '$Version' for select mode '$Select'"
 
-                # Validate NuGet version (error if parsing fails)
-                Write-Host "Validate NuGet version '$Version'"
-                if ($Version -notmatch $versionPattern) {
-                    throw "Invalid NuGet version '$Version' for package '$Package' with select mode 'Exact'"
+                if ($Version -match $versionPattern) {
+                    # Validate NuGet version
+                    Test-NuGetVersionMatches -VersionMatches $matches -ErrorMessage "Invalid NuGet version '$Version' for package '$Package'"
+                } else {
+                    throw "Invalid NuGet version '$Version' for package '$Package'"
                 }
 
                 $downloadParameters.version = $Version -replace '\s+'
             } elseif ($Version) {
                 if ($Version -match $versionPattern) {
                     Write-Host "Convert NuGet version '$Version' to NuGet version range for select mode '$Select'"
+
+                    # Validate NuGet version
+                    Test-NuGetVersionMatches -VersionMatches $matches -ErrorMessage "Invalid NuGet version '$Version' for package '$Package'"
 
                     # Convert NuGet version to a range (from version, to excl. version + 1)
                     # Increment the last version part to create upper bound
@@ -99,16 +143,15 @@ function Invoke-NuGetPackageDownload() {
                     $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
 
                     Write-Host "Use converted NuGet version range '$versionRange'"
-                } else {
+                } elseif($Version -match $versionRangePattern) {
                     Write-Host "Use NuGet version range '$Version' for select mode '$Select'"
 
-                    $versionRange = $Version
-                }
+                    # Validate NuGet version range
+                    Test-NuGetVersionRangeMatches -VersionRangeMatches $matches -ErrorMessage "Invalid NuGet version range '$Version' for package '$Package'"
 
-                # Validate NuGet version range (error if parsing fails)
-                Write-Host "Validate NuGet version range '$versionRange'"
-                if ($versionRange -notmatch $versionRangePattern) {
-                    throw "Invalid NuGet version range '$versionRange' for package '$Package' with select mode '$Select'"
+                    $versionRange = $Version
+                } else {
+                    throw "Invalid NuGet version or NuGet version range '$Version' for package '$Package'"
                 }
 
                 $downloadParameters.version = $versionRange -replace '\s+'
@@ -201,17 +244,22 @@ function Invoke-NuGetPackageDownload() {
                     # If no version is specified, assume the highest possible version (e.g. <max>.<max>.<max>.<max - 1>)
                     $packageVersion = $versionParts[0..3] -join '.'
                 } elseif ($predefinedPackage.Version -match $versionPattern) {
+                    # Validate NuGet version
+                    Test-NuGetVersionMatches -VersionMatches $matches -ErrorMessage "Invalid NuGet version '$($predefinedPackage.Version)' for predefined package '$($predefinedPackage.Package)'"
+
+                    # If a specific version is specified, use the upper limit of this version (e.g. 1.2-beta -> 1.2.<max>.<max>-beta)
                     $versionMatches = $matches
-                    # If a specific version is specified, use the upper limit of this version (e.g. 1.2-beta+meta -> 1.2.<max>.<max>-beta+meta)
                     $versionParts = $versionMatches.version.Split('.') + $versionParts
-                    $packageVersion = '{0}{1}{2}' -f ($versionParts[0..3] -join '.'), $versionMatches.prerelease, $versionMatches.metadata
+                    $packageVersion = '{0}{1}' -f ($versionParts[0..3] -join '.'), $versionMatches.prerelease
                 } elseif ($predefinedPackage.Version -match $versionRangePattern) {
-                    $versionRangeMatches = $matches
+                    # Validate NuGet version range
+                    Test-NuGetVersionRangeMatches -VersionRangeMatches $matches -ErrorMessage "Invalid NuGet version range '$($predefinedPackage.Version)' for predefined package '$($predefinedPackage.Package)'"
+
                     # If a version range is specified, use the upper limit of this range
-                    # If the upper limit is exclusive, get the highest possible previous version without prerelease flag (e.g. 1.2-beta -> 1.1.<max>.<max>, 2.0-beta -> 1.<max>.<max>.<max>)
-                    # If the upper limit is inclusive, use the upper limit version as-is (e.g. 1.2-beta -> 1.2.0.0-beta)
+                    # If the upper limit is exclusive, get the highest possible previous version without prerelease flag (e.g. 1.2 -> 1.1.<max>.<max>, 2.0 -> 1.<max>.<max>.<max>)
+                    # If the upper limit is inclusive, use the upper limit version as-is (e.g. 1.2 -> 1.2.0.0)
                     # If no upper limit is specified, use the highest possible version (e.g. <max>.<max>.<max>.<max - 1>)
-                    $versionPrerelease = ""
+                    $versionRangeMatches = $matches
                     if ($versionRangeMatches.versionUpper) {
                         $versionUpperParts = @($versionRangeMatches.versionUpper -replace '(\.0+)+$', '' -split '\.')
                         if ($versionRangeMatches.rangeEnd -eq ')') {
@@ -220,14 +268,13 @@ function Invoke-NuGetPackageDownload() {
                             $versionParts = $versionUpperParts + $versionParts
                         } else {
                             # Inclusive upper limit
-                            $versionParts = $versionUpperParts + @(0, 0, 0, 0)
-                            $versionPrerelease = $versionRangeMatches.prereleaseUpper
+                            $versionParts = $versionUpperParts + @(0, 0, 0)
                         }
                     }
-                    $packageVersion = '{0}{1}' -f ($versionParts[0..3] -join '.'), $versionPrerelease
+                    $packageVersion = $versionParts[0..3] -join '.'
                 } else {
                     # If the version is neither a specific version nor a version range, throw an error
-                    throw "Invalid NuGet version or version range '$($predefinedPackage.Version)' for predefined package '$($predefinedPackage.Package)'"
+                    throw "Invalid NuGet version or NuGet version range '$($predefinedPackage.Version)' for predefined package '$($predefinedPackage.Package)'"
                 }
 
                 # Ignore predefined package if no version could be determined (e.g. version range)
@@ -252,7 +299,7 @@ function Invoke-NuGetPackageDownload() {
             foreach($attempt in 1..$maxAttempts) {
                 try {
                     Write-Verbose -Message "Download NuGet package $Package (attempt $attempt of $maxAttempts)"
-                    Download-BcNuGetPackageToFolder @downloadParameters
+                    # Download-BcNuGetPackageToFolder @downloadParameters
                     break
                 } catch {
                     if ($attempt -ge $maxAttempts) {
