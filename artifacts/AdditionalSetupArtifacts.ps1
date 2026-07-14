@@ -61,26 +61,6 @@ function Move-Database {
 
 }
 
-function Import-PPIModules {
-
-    if (Test-Path "c:\run\my\PPIArtifactUtils.ps1") {
-        . "c:\run\my\PPIArtifactUtils.ps1"
-    }
-    
-    if (Test-Path "c:\run\my\PPIOverrides.ps1") {
-        . "c:\run\my\PPIOverrides.ps1"
-    }
-
-    if (Test-Path "c:\run\my\PPIAsyncUtils.ps1") {
-        . "c:\run\my\PPIAsyncUtils.ps1"
-    }
-
-    if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)) {
-        Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
-        Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
-    }
-}
-
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
     if (!$TenantId) { $TenantId = "default" }
