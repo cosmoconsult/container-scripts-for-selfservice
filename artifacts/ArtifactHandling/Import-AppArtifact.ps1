@@ -90,12 +90,7 @@ function Import-AppArtifact {
             }
             else {
                 $sameVersionAlreadyPublished = $oldApp -and $oldApp.IsPublished -and ($oldApp.Version -eq $app.Version)
-                if ($oldApp -and !$sameVersionAlreadyPublished) {
-                    $runDataUpgrade = $true
-                }
-                else {
-                    $runDataUpgrade = $false
-                }
+                $runDataUpgrade = $false
                 $success = $true
             }
 
@@ -163,7 +158,14 @@ function Import-AppArtifact {
                 $skipInstall = ! $success
             }
 
-            # Check for Data Upgrade
+            # If extension data version is older than extension version, that should also trigger the data upgrade
+            $appInfoExtDataVersion = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
+            if ((! $skipInstall) -and ($appInfoExtDataVersion.ExtensionDataVersion) -and [System.Version]$appInfoExtDataVersion.ExtensionDataVersion -lt [System.Version]$appInfoExtDataVersion.Version) {
+                Add-ArtifactsLog -kind App -message "Identified lower extension data version ($($appInfoExtDataVersion.ExtensionDataVersion)) than extension version ($($appInfoExtDataVersion.Version)), need to run data upgrade" -data $app
+                $runDataUpgrade = $true
+            }
+
+            # Run Data Upgrade
             if ((! $skipInstall) -and ($runDataUpgrade)) {
                 try {
                     $started2 = Get-Date -Format "o"
