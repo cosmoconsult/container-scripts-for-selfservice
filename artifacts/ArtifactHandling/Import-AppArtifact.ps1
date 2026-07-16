@@ -90,6 +90,7 @@ function Import-AppArtifact {
             }
             else {
                 $sameVersionAlreadyPublished = $oldApp -and $oldApp.IsPublished -and ($oldApp.Version -eq $app.Version)
+                # A data upgrade requires a previously installed app with extension data.
                 $runDataUpgrade = $false
                 $success = $true
             }
