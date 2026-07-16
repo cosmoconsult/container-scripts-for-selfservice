@@ -90,12 +90,7 @@ function Import-AppArtifact {
             }
             else {
                 $sameVersionAlreadyPublished = $oldApp -and $oldApp.IsPublished -and ($oldApp.Version -eq $app.Version)
-                if ($oldApp -and !$sameVersionAlreadyPublished) {
-                    $runDataUpgrade = $true
-                }
-                else {
-                    $runDataUpgrade = $false
-                }
+                $runDataUpgrade = $false
                 $success = $true
             }
 
