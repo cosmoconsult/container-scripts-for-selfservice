@@ -1,4 +1,7 @@
-Write-Host "::group::Create DEFAULT Test Suite"
+$permissionSetId = "SUPER"
+$testSuiteName = "DEFAULT"
+
+Write-Host "##[group]Create $testSuiteName Test Suite"
 
 Write-Host "Collecting information about the server instance, tenant and companies..."
 
@@ -11,44 +14,51 @@ if ($tenantParam.ContainsKey('Tenant')) {
 $companies = @(Get-NAVCompany -ServerInstance $ServerInstance @tenantParam | Select-Object -ExpandProperty CompanyName | Where-Object { $_ -ne "My Company" })
 Write-Host "Companies: $($companies -join ', ')"
 
-Write-Host "Ensure OS user is a BC user and has the SUPER permission set..."
+Write-Host "Ensure OS user is a BC user and has the $permissionSetId permission set..."
 
-$me = whoami
-Write-Host "OS user: $me"
-$bcUser = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Select-Object -ExpandProperty UserName | Where-Object { $_ -eq $me } | Select-Object -First 1
+$osUserIdentity = [System.Security.Principal.WindowsIdentity]::GetCurrent()
+$osUser = $osUserIdentity.Name
+Write-Host "OS user: $osUser"
+$bcUserObject = Get-NAVServerUser -ServerInstance $ServerInstance @tenantParam | Where-Object { $_.UserName -eq $osUser } | Select-Object -First 1
+$bcUser = $bcUserObject.UserName
 Write-Host "BC user: $bcUser"
 
 if ($null -eq $bcUser) {
-    Write-Host "Adding BC user $me"
-    New-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me
+    Write-Host "Adding BC user $osUser for OS user $osUser"
+    New-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $osUser
+} else {
+    if ($bcUserObject.WindowsSecurityId -ne $osUserIdentity.User.Value) {
+        Write-Host "Setting BC user $bcUser to OS user $osUser"
+        Set-NAVServerUser -ServerInstance $ServerInstance @tenantParam -UserName $bcUser -NewWindowsAccount $osUser
+    }
 }
 
-$bcUserPermissionSets = @(Get-NAVServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me | Select-Object -ExpandProperty PermissionSetID)
+$bcUserPermissionSets = @(Get-NAVServerUserPermissionSet -ServerInstance $ServerInstance @tenantParam -WindowsAccount $osUser | Select-Object -ExpandProperty PermissionSetID)
 Write-Host "BC user permission sets: $($bcUserPermissionSets -join ', ')"
 
-if ($bcUserPermissionSets -notcontains "SUPER") {
-    Write-Host "Granting BC user the SUPER permission set"
-    New-NAVServerUserPermissionSet -WindowsAccount $me -PermissionSetId SUPER -ServerInstance $ServerInstance @tenantParam
+if ($bcUserPermissionSets -notcontains $permissionSetId) {
+    Write-Host "Granting $permissionSetId permission set to BC user $osUser"
+    New-NAVServerUserPermissionSet -WindowsAccount $osUser -PermissionSetId $permissionSetId -ServerInstance $ServerInstance @tenantParam
 }
 
 foreach ($company in $companies) {
     try {
-        Write-Host "Creating DEFAULT Test Suite in the company $company"
-        Invoke-NAVCodeunit -ServerInstance $ServerInstance @tenantParam -CompanyName $company -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument 'DEFAULT' -ErrorAction Stop
+        Write-Host "Creating $testSuiteName Test Suite in the company $company"
+        Invoke-NAVCodeunit -ServerInstance $ServerInstance @tenantParam -CompanyName $company -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument $testSuiteName -ErrorVariable err
     }
     catch {
-        Write-Host "Error creating DEFAULT Test Suite: $($_.Exception.Message)"
+        Write-Host "Error creating $testSuiteName Test Suite: $($_.Exception.Message)"
     }
 }
 
 if ($null -eq $bcUser) {
     try {
-        Write-Host "Removing BC user $me"
-        Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $me
+        Write-Host "Removing BC user $osUser"
+        Remove-NAVServerUser -ServerInstance $ServerInstance @tenantParam -WindowsAccount $osUser
     }
     catch {
         Write-Host "Error removing user: $($_.Exception.Message)"
     }
 }
 
-Write-Host "::endgroup::"
+Write-Host "##[endgroup]"
