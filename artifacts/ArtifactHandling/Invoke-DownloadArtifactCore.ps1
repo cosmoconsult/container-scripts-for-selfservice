@@ -163,6 +163,10 @@ function Invoke-DownloadArtifactCore {
                                 $fileType = 'app'
                                 break
                             }
+                            { $contentDisposition -and $contentDisposition.EndsWith(".rapidstart") } {
+                                $fileType = 'rapidstart'
+                                break
+                            }
                             { [string]::new([char[]]($response.Content[0..3])) -eq "NAVX" } {
                                 $fileType = 'app'
                                 break
@@ -181,7 +185,11 @@ function Invoke-DownloadArtifactCore {
                                 $destinationPath = $tempApp
                                 $isArchive = $false
                             }
-                            Default {
+                            'rapidstart' {
+                                $destinationPath = $tempApp
+                                $isArchive = $false
+                            }
+                            default {
                                 # also zip, do this to not break existing implementations
                                 $destinationPath = $tempArchive
                                 $isArchive = $true
