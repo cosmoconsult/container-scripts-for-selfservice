@@ -1,14 +1,9 @@
-if (!(Test-Path "C:\CosmoSetupCompleted.txt")) {
-    New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
-    Write-Host "Set marker for health check"
-}
-
 # make sure BC is healthy before returning
 Write-Host " - Check BC Health"
 for ($i = 0; $i -lt 10; $i++) {
     . C:\run\CheckHealth.ps1
     Write-Host " - - CheckHealth returned $LASTEXITCODE, healthCheckBaseUrl is $($env:healthCheckBaseUrl)"
-    if ($LASTEXITCODE -eq 0) {
+    if ($LASTEXITCODE -in 0, 193) {
         Write-Host " - - BC is healthy"
         break;
     }

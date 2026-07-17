@@ -1,10 +1,11 @@
 $scripts = @(
     (Join-Path $PSScriptRoot "AdditionalSetupBegin.ps1"),
     (Join-Path $PSScriptRoot "AdditionalSetupArtifacts.ps1"),
+    (Join-Path $PSScriptRoot "AdditionalSetupCheckHealth.ps1"),
     (Join-Path $PSScriptRoot "AdditionalSetupDuplicateUsers.ps1"),
     (Join-Path $PSScriptRoot "AdditionalSetupAdditionalOwners.ps1"),
     (Join-Path $PSScriptRoot "AdditionalSetupCreateTestSuite.ps1"),
-    (Join-Path $PSScriptRoot "AdditionalSetupHealth.ps1"), # From this point on, the container will be considered healthy and ready for use
+    (Join-Path $PSScriptRoot "AdditionalSetupCosmoSetupCompleted.ps1"), # From this point on, the container will be considered healthy and ready for use
     (Join-Path $PSScriptRoot "AdditionalSetupOpenSSH.ps1"),
     (Join-Path $PSScriptRoot "AdditionalSetupEnd.ps1")
 )
