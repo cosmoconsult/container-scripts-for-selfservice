@@ -44,7 +44,7 @@ if ($bcUserPermissionSets -notcontains $permissionSetId) {
 foreach ($company in $companies) {
     try {
         Write-Host "Creating $testSuiteName Test Suite in the company $company"
-        Invoke-NAVCodeunit -ServerInstance $ServerInstance @tenantParam -CompanyName $company -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument $testSuiteName -ErrorVariable err
+        Invoke-NAVCodeunit -ServerInstance $ServerInstance @tenantParam -CompanyName $company -CodeunitId 130456 -MethodName 'CreateTestSuite' -Argument $testSuiteName -ErrorAction Stop
     }
     catch {
         Write-Host "Error creating $testSuiteName Test Suite: $($_.Exception.Message)"
