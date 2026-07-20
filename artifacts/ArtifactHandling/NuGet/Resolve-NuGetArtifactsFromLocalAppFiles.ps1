@@ -44,7 +44,7 @@ function Resolve-NuGetArtifactsFromLocalAppFiles {
 
         $constraintText = if ($artifact.version) { $artifact.version } else { '<any>' }
         Write-Host "Use local app file '$($localApp.Path)' for Microsoft app '$($localApp.Name)' ($($localApp.Id)) version '$($localApp.Version)' instead of downloading NuGet package '$($artifact.name)' with version constraint '$constraintText'"
-        $artifact.url = $localApp.Path
+        $artifact | Add-Member -MemberType NoteProperty -Name url -Value $localApp.Path -Force
         $artifact.type = 'url'
     }
 
