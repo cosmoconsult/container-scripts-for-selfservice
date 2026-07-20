@@ -14,6 +14,9 @@ function Resolve-NuGetArtifactsFromLocalAppFiles {
 
     Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
     Import-NuGetTools
+    $nuGetToolsModule = Get-Module -Name 'BcContainerHelper'
+    $isVersionIncludedInRange = $nuGetToolsModule.NewBoundScriptBlock(
+        [ScriptBlock]::Create('param($Version, $VersionRange) [NuGetFeed]::IsVersionIncludedInRange($Version, $VersionRange)'))
 
     $localAppInfos = @(@('C:\Applications', 'C:\Extensions') |
         ForEach-Object { Get-NuGetAppInfos -AppFilesPath $_ } |
@@ -32,7 +35,7 @@ function Resolve-NuGetArtifactsFromLocalAppFiles {
             if ($_.Id -ne $packageNameInfo.Id) {
                 return $false
             }
-            return (! $versionConstraint) -or [NuGetFeed]::IsVersionIncludedInRange($_.Version, $versionConstraint)
+            return (! $versionConstraint) -or (& $isVersionIncludedInRange $_.Version $versionConstraint)
         } | Sort-Object { [Version]$_.Version } -Descending | Select-Object -First 1)
         if (! $localApp) {
             continue
