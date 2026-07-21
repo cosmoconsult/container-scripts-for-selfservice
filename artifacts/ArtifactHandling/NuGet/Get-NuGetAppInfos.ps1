@@ -10,24 +10,36 @@ function Get-NuGetAppInfos {
         return @()
     }
 
-    $appInfoManifestPath = Join-Path $AppFilesPath 'AppInfo.Financials.json'
-    if ($AppIds -and (Test-Path -Path $appInfoManifestPath -PathType Leaf)) {
+    $appInfoFinancialsJsonPath = Join-Path $AppFilesPath 'AppInfo.Financials.json'
+    if (Test-Path -Path $appInfoFinancialsJsonPath -PathType Leaf) {
         try {
-            $appInfoManifest = @(Get-Content -Path $appInfoManifestPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+            $appInfoFinancials = @(Get-Content -Path $appInfoFinancialsJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop)
         } catch {
-            Write-Warning "Unable to read app info manifest '$appInfoManifestPath': $($_.Exception.Message)"
+            Write-Warning "Unable to read app info manifest '$appInfoFinancialsJsonPath': $($_.Exception.Message)"
             return @()
         }
 
-        $appFiles = @($appInfoManifest |
-            Where-Object { $_.id -in $AppIds } |
-            ForEach-Object { Join-Path $AppFilesPath $_.path } |
-            Where-Object { Test-Path -Path $_ -PathType Leaf } |
-            Get-Item)
-        Write-Host "Found $($appFiles.Count) matching app files in '$appInfoManifestPath'"
-    } else {
-        $appFiles = @(Get-ChildItem -Path $AppFilesPath -Filter '*.app' -Recurse)
+        $matchingAppInfoFinancials = @($appInfoFinancials | Where-Object { (! $AppIds) -or ($_.id -in $AppIds) })
+        $appInfos = @($matchingAppInfoFinancials |
+            ForEach-Object {
+                $appInfo = $_
+                $appFilePath = Join-Path $AppFilesPath $appInfo.path
+                if (Test-Path -Path $appFilePath -PathType Leaf) {
+                    [PSCustomObject]@{
+                        Package   = '{0}.{1}.{2}' -f $appInfo.publisher, $appInfo.name, $appInfo.id -replace ' '
+                        Name      = [string]$appInfo.name
+                        Publisher = [string]$appInfo.publisher
+                        Id        = [string]$appInfo.id
+                        Version   = [string]$appInfo.version
+                        Path      = [System.IO.Path]::GetFullPath($appFilePath)
+                    }
+                }
+            })
+        Write-Host "Found $($appInfos.Count) matching app files in '$AppFilesPath'"
+        return $appInfos
     }
+
+    $appFiles = @(Get-ChildItem -Path $AppFilesPath -Filter '*.app' -Recurse)
     Write-Host "Found $($appFiles.Count) app files in '$AppFilesPath'"
     if (! $appFiles) {
         return @()
