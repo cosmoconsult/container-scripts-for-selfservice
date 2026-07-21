@@ -13,7 +13,8 @@ function Get-NuGetAppInfos {
     $appInfoFinancialsJsonPath = Join-Path $AppFilesPath 'AppInfo.Financials.json'
     if (Test-Path -Path $appInfoFinancialsJsonPath -PathType Leaf) {
         try {
-            $appInfoFinancials = @(Get-Content -Path $appInfoFinancialsJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+            $appInfoFinancials = Get-Content -Path $appInfoFinancialsJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop
+            $appInfoFinancials = @($appInfoFinancials | ForEach-Object { $_ })
         } catch {
             Write-Warning "Unable to read app info manifest '$appInfoFinancialsJsonPath': $($_.Exception.Message)"
             return @()
