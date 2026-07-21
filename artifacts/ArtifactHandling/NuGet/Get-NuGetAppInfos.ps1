@@ -2,14 +2,32 @@ function Get-NuGetAppInfos {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [string]$AppFilesPath
+        [string]$AppFilesPath,
+        [string[]]$AppIds = @()
     )
 
     if (! (Test-Path -Path $AppFilesPath)) {
         return @()
     }
 
-    $appFiles = @(Get-ChildItem -Path $AppFilesPath -Filter '*.app' -Recurse)
+    $appInfoManifestPath = Join-Path $AppFilesPath 'AppInfo.Financials.json'
+    if ($AppIds -and (Test-Path -Path $appInfoManifestPath -PathType Leaf)) {
+        try {
+            $appInfoManifest = @(Get-Content -Path $appInfoManifestPath -Raw | ConvertFrom-Json -ErrorAction Stop)
+        } catch {
+            Write-Warning "Unable to read app info manifest '$appInfoManifestPath': $($_.Exception.Message)"
+            return @()
+        }
+
+        $appFiles = @($appInfoManifest |
+            Where-Object { $_.id -in $AppIds } |
+            ForEach-Object { Join-Path $AppFilesPath $_.path } |
+            Where-Object { Test-Path -Path $_ -PathType Leaf } |
+            Get-Item)
+        Write-Host "Found $($appFiles.Count) matching app files in '$appInfoManifestPath'"
+    } else {
+        $appFiles = @(Get-ChildItem -Path $AppFilesPath -Filter '*.app' -Recurse)
+    }
     Write-Host "Found $($appFiles.Count) app files in '$AppFilesPath'"
     if (! $appFiles) {
         return @()

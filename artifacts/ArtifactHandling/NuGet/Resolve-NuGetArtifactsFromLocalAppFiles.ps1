@@ -12,6 +12,14 @@ function Resolve-NuGetArtifactsFromLocalAppFiles {
         return $Artifacts
     }
 
+    $nuGetArtifactsAppIds = @($nuGetArtifacts |
+        ForEach-Object { Get-NuGetPackageNameInfo -Package $_.name -AllowBareGuid } |
+        Where-Object { $_.Id } |
+        Select-Object -ExpandProperty Id -Unique)
+    if (! $nuGetArtifactsAppIds) {
+        return $Artifacts
+    }
+
     Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
     Import-NuGetTools
     $nuGetToolsModule = Get-Module -Name 'BcContainerHelper'
@@ -20,10 +28,7 @@ function Resolve-NuGetArtifactsFromLocalAppFiles {
     $isVersionIncludedInRange = $nuGetToolsModule.NewBoundScriptBlock(
         [ScriptBlock]::Create('param($Version, $VersionRange) [NuGetFeed]::IsVersionIncludedInRange($Version, $VersionRange)'))
 
-    $localAppInfos = @(@('C:\Applications', 'C:\Extensions') |
-        ForEach-Object { Get-NuGetAppInfos -AppFilesPath $_ } |
-        Where-Object { $_.Publisher -eq 'Microsoft' })
-
+    $localAppInfos = @(Get-NuGetAppInfos -AppFilesPath 'C:\Extensions' -AppIds $nuGetArtifactsAppIds | Where-Object { $_.Publisher -eq 'Microsoft' })
     $select = Get-NuGetFeedSelectMode
 
     foreach ($artifact in $nuGetArtifacts) {
