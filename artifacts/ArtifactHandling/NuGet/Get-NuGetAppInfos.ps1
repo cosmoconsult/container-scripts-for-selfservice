@@ -57,6 +57,7 @@ function Get-NuGetAppInfos {
         }
     }
 
+    # only lookup specified appIds to avoid unnecessary processing of all app files
     $filterByAppIds = $AppIds.Count -gt 0
     $remainingAppIds = @{}
     $AppIds | ForEach-Object { $remainingAppIds[[string]$_] = $true }
