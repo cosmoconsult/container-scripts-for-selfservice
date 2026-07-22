@@ -10,7 +10,6 @@ function Invoke-NuGetPackageDownload() {
         [string]$Version,
         [string]$InstalledAppsPath,
         [string]$ServiceTierFolder,
-        [Version]$PlatformVersion,
         [PSCustomObject[]]$PredefinedPackages = @(),
         [ValidateRange(0, [int]::MaxValue)]
         [int]$Retries = 0,
@@ -34,17 +33,33 @@ function Invoke-NuGetPackageDownload() {
                 $ServiceTierFolder = Get-NAVServiceTierFolder
             }
 
-            if (! $PSBoundParameters.ContainsKey("PlatformVersion")) {
-                $PlatformVersion = [Version](Get-Item (Join-Path $ServiceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
-            }
-
             Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
             Import-NuGetTools
+
+            # Determine platform version and application version from installed Microsoft System Application and Microsoft Application app files
+            $systemApplicationId = '63ca2fa4-4f03-4f2b-a480-172fef340d3f'
+            $applicationId = 'c1335042-3002-4257-bf8a-75c898ccb1b8'
+            if (! (Test-Path variable:script:platformApplicatioAppInfos)) {
+                $script:platformApplicatioAppInfos = @(Get-NuGetAppInfos -AppFilesPath 'C:\Extensions' -AppIds @($systemApplicationId, $applicationId))
+            }
+            $platformApplicatioAppInfos = $script:platformApplicatioAppInfos
+
+            $systemApplication = $platformApplicatioAppInfos | Where-Object { $_.Id.ToString() -eq $systemApplicationId } | Select-Object -First 1
+            if ($systemApplication) {
+                $platformVersion = [Version]$systemApplication.Version
+                Write-Host "Detected platform version '$platformVersion' from Microsoft System Application app file"
+            }
+            else {
+                $platformVersion = [Version](Get-Item (Join-Path $ServiceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
+                Write-Host "Detected platform version '$platformVersion' from Microsoft.Dynamics.Nav.Server.exe"
+            }
+            $application = $platformApplicatioAppInfos | Where-Object { $_.Id.ToString() -eq $applicationId } | Select-Object -First 1
+            $applicationVersion = if ($application) { [Version]$application.Version } else { $null }
 
             $downloadParameters = @{
                 packageName          = $Package
                 folder               = $Destination
-                installedPlatform    = $PlatformVersion
+                installedPlatform    = $platformVersion
                 installedApps        = @()
                 select               = $Select
                 downloadDependencies = 'allButMicrosoft'
@@ -55,13 +70,24 @@ function Invoke-NuGetPackageDownload() {
                 Write-Host "Use NuGet version constraint '$($downloadParameters.version)' for select mode '$Select'"
             }
 
+            $installedAppsHash = @{}
+            if ($applicationVersion) {
+                Write-Host "Add Microsoft Application with version '$applicationVersion' as installed app"
+                $installedAppsHash[$applicationId] = [PSCustomObject]@{
+                    Package   = "Microsoft.Application.$applicationId"
+                    Name      = 'Application'
+                    Publisher = 'Microsoft'
+                    Id        = $applicationId
+                    Version   = $applicationVersion
+                }
+            }
+
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
                 Write-Host "Collecting app files from '$InstalledAppsPath'"
                 $installedAppInfos = @(Get-NuGetAppInfos -AppFilesPath $InstalledAppsPath)
 
                 if ($installedAppInfos) {
                     Write-Host "Collecting apps infos from app files (only highest version per app id)"
-                    $installedAppsHash = @{}
                     foreach ($appInfo in $installedAppInfos) {
                         if ($installedAppsHash.ContainsKey($appInfo.Id)) {
                             if ([Version]$appInfo.Version -gt [Version]$installedAppsHash[$appInfo.Id].Version) {
@@ -76,9 +102,9 @@ function Invoke-NuGetPackageDownload() {
                     foreach ($installedApp in $installedApps) {
                         Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
                     }
-                    $downloadParameters.installedApps = @($installedApps)
                 }
             }
+            $downloadParameters.installedApps = @($installedAppsHash.Values)
 
             foreach ($predefinedPackage in $PredefinedPackages) {
                 # Ignore predefined package if it matches the requested package
