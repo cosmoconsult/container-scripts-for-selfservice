@@ -36,15 +36,16 @@ function Invoke-NuGetPackageDownload() {
             Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
             Import-NuGetTools
 
-            # Determine platform version and application version from installed Microsoft System Application and Microsoft Application app files
+            # Detect platform and application version from Microsoft System Application and Microsoft Application
             $systemApplicationId = '63ca2fa4-4f03-4f2b-a480-172fef340d3f'
             $applicationId = 'c1335042-3002-4257-bf8a-75c898ccb1b8'
-            if (! (Test-Path variable:script:platformApplicatioAppInfos)) {
-                $script:platformApplicatioAppInfos = @(Get-NuGetAppInfos -AppFilesPath 'C:\Extensions' -AppIds @($systemApplicationId, $applicationId))
+            if (! (Test-Path variable:script:applicationPlatformAppInfos)) {
+                Write-Host "Detecting platform and application version from Microsoft System Application and Microsoft Application app files"
+                $script:applicationPlatformAppInfos = @(Get-NuGetAppInfos -AppFilesPath 'C:\Extensions' -AppIds @($systemApplicationId, $applicationId))
             }
-            $platformApplicatioAppInfos = $script:platformApplicatioAppInfos
+            $applicationPlatformAppInfos = $script:applicationPlatformAppInfos
 
-            $systemApplication = $platformApplicatioAppInfos | Where-Object { $_.Id.ToString() -eq $systemApplicationId } | Select-Object -First 1
+            $systemApplication = $applicationPlatformAppInfos | Where-Object { $_.Id.ToString() -eq $systemApplicationId } | Select-Object -First 1
             if ($systemApplication) {
                 $platformVersion = [Version]$systemApplication.Version
                 Write-Host "Detected platform version '$platformVersion' from Microsoft System Application app file"
@@ -53,7 +54,7 @@ function Invoke-NuGetPackageDownload() {
                 $platformVersion = [Version](Get-Item (Join-Path $ServiceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
                 Write-Host "Detected platform version '$platformVersion' from Microsoft.Dynamics.Nav.Server.exe"
             }
-            $application = $platformApplicatioAppInfos | Where-Object { $_.Id.ToString() -eq $applicationId } | Select-Object -First 1
+            $application = $applicationPlatformAppInfos | Where-Object { $_.Id.ToString() -eq $applicationId } | Select-Object -First 1
             $applicationVersion = if ($application) { [Version]$application.Version } else { $null }
 
             $downloadParameters = @{
