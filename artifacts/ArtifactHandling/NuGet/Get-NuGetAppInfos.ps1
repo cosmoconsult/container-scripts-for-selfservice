@@ -11,7 +11,6 @@ function Get-NuGetAppInfos {
     }
 
     $appInfoFinancialsJsonPath = Join-Path $AppFilesPath 'AppInfo.Financials.json'
-    Remove-Item -Path $appInfoFinancialsJsonPath -ErrorAction SilentlyContinue
     if (Test-Path -Path $appInfoFinancialsJsonPath -PathType Leaf) {
         try {
             $appInfoFinancials = Get-Content -Path $appInfoFinancialsJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop
@@ -95,6 +94,7 @@ function Get-NuGetAppInfos {
         if ($filterByAppIds) {
             $remainingAppIds.Remove([string]$appInfo.Id)
             if ($remainingAppIds.Count -eq 0) {
+                Write-Host "All specified app ids have been found, skipping remaining app files"
                 break
             }
         }
