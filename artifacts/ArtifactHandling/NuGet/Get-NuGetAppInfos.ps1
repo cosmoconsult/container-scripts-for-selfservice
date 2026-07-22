@@ -11,6 +11,7 @@ function Get-NuGetAppInfos {
     }
 
     $appInfoFinancialsJsonPath = Join-Path $AppFilesPath 'AppInfo.Financials.json'
+    Remove-Item -Path $appInfoFinancialsJsonPath -ErrorAction SilentlyContinue
     if (Test-Path -Path $appInfoFinancialsJsonPath -PathType Leaf) {
         try {
             $appInfoFinancials = Get-Content -Path $appInfoFinancialsJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop
