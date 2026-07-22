@@ -36,7 +36,6 @@ function Invoke-NuGetPackageDownload() {
             Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
             Import-NuGetTools
 
-            # Detect platform and application version from Microsoft System Application and Microsoft Application
             $systemApplicationId = '63ca2fa4-4f03-4f2b-a480-172fef340d3f'
             $applicationId = 'c1335042-3002-4257-bf8a-75c898ccb1b8'
             if (! (Test-Path variable:script:applicationPlatformAppInfos)) {
@@ -66,11 +65,6 @@ function Invoke-NuGetPackageDownload() {
                 downloadDependencies = 'allButMicrosoft'
             }
 
-            if (($Select -eq 'Exact') -or $Version) {
-                $downloadParameters.version = ConvertTo-NuGetVersionConstraint -Version $Version -Select $Select -ErrorContext "package '$Package'"
-                Write-Host "Use NuGet version constraint '$($downloadParameters.version)' for select mode '$Select'"
-            }
-
             $installedAppsHash = @{}
             if ($applicationVersion) {
                 Write-Host "Add Microsoft Application with version '$applicationVersion' as installed app"
@@ -81,6 +75,11 @@ function Invoke-NuGetPackageDownload() {
                     Id        = $applicationId
                     Version   = $applicationVersion
                 }
+            }
+
+            if (($Select -eq 'Exact') -or $Version) {
+                $downloadParameters.version = ConvertTo-NuGetVersionConstraint -Version $Version -Select $Select -ErrorContext "package '$Package'"
+                Write-Host "Use NuGet version constraint '$($downloadParameters.version)' for select mode '$Select'"
             }
 
             if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
