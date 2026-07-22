@@ -57,6 +57,9 @@ function Get-NuGetAppInfos {
         }
     }
 
+    $filterByAppIds = $AppIds.Count -gt 0
+    $remainingAppIds = @{}
+    $AppIds | ForEach-Object { $remainingAppIds[[string]$_] = $true }
     $appInfos = foreach ($appFile in $appFiles) {
         $appInfoCacheKey = $appFile.FullName
         if ($appInfosCache.ContainsKey($appInfoCacheKey)) {
@@ -74,6 +77,10 @@ function Get-NuGetAppInfos {
             $appInfosCacheUpdated = $true
         }
 
+        if ($filterByAppIds -and ! $remainingAppIds.ContainsKey([string]$appInfo.Id)) {
+            continue
+        }
+
         [PSCustomObject]@{
             Package   = $appInfo.Package
             Name      = $appInfo.Name
@@ -81,6 +88,13 @@ function Get-NuGetAppInfos {
             Id        = $appInfo.Id
             Version   = $appInfo.Version
             Path      = $appFile.FullName
+        }
+
+        if ($filterByAppIds) {
+            $remainingAppIds.Remove([string]$appInfo.Id)
+            if ($remainingAppIds.Count -eq 0) {
+                break
+            }
         }
     }
 
