@@ -10,6 +10,7 @@ function Get-NuGetAppInfos {
         return @()
     }
 
+    Remove-Item -Path $AppFilesPath -Recurse -Force -ErrorAction
     $appInfoFinancialsJsonPath = Join-Path $AppFilesPath 'AppInfo.Financials.json'
     if (Test-Path -Path $appInfoFinancialsJsonPath -PathType Leaf) {
         try {
