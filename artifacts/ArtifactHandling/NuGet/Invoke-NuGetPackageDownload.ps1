@@ -39,7 +39,7 @@ function Invoke-NuGetPackageDownload() {
             $systemApplicationId = '63ca2fa4-4f03-4f2b-a480-172fef340d3f'
             $applicationId = 'c1335042-3002-4257-bf8a-75c898ccb1b8'
             if (! (Test-Path variable:script:applicationPlatformAppInfos)) {
-                Write-Host "Detecting platform and application version from Microsoft System Application and Microsoft Application app files"
+                Write-Host "Detecting Platform and Application version from Microsoft app files"
                 $script:applicationPlatformAppInfos = @(Get-NuGetAppInfos -AppFilesPath 'C:\Extensions' -AppIds @($systemApplicationId, $applicationId))
             }
             $applicationPlatformAppInfos = $script:applicationPlatformAppInfos
@@ -47,11 +47,11 @@ function Invoke-NuGetPackageDownload() {
             $systemApplication = $applicationPlatformAppInfos | Where-Object { $_.Id.ToString() -eq $systemApplicationId } | Select-Object -First 1
             if ($systemApplication) {
                 $platformVersion = [Version]$systemApplication.Version
-                Write-Host "Detected platform version '$platformVersion' from Microsoft System Application app file"
+                Write-Host "Detected Platform version '$platformVersion' from Microsoft System Application app file"
             }
             else {
                 $platformVersion = [Version](Get-Item (Join-Path $ServiceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
-                Write-Host "Detected platform version '$platformVersion' from Microsoft.Dynamics.Nav.Server.exe"
+                Write-Host "Detected Platform version '$platformVersion' from Microsoft.Dynamics.Nav.Server.exe"
             }
             $application = $applicationPlatformAppInfos | Where-Object { $_.Id.ToString() -eq $applicationId } | Select-Object -First 1
             $applicationVersion = if ($application) { [Version]$application.Version } else { $null }

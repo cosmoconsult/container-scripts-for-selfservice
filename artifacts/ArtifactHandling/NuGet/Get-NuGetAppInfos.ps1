@@ -9,12 +9,6 @@ function Get-NuGetAppInfos {
     if (! (Test-Path -Path $AppFilesPath)) {
         return @()
     }
-    
-    $testAppFilePath = Join-Path $AppFilesPath 'Microsoft_Intrastat Core_28.0.46665.52773.app'
-    if (Test-Path -Path $testAppFilePath -PathType Leaf) {
-        Write-Host "Deleting file 'C:\Extensions\Microsoft_Intrastat Core_28.0.46665.52773.app' for testing purposes"
-        Remove-Item -Path $testAppFilePath -Force
-    }
 
     $appInfoFinancialsJsonPath = Join-Path $AppFilesPath 'AppInfo.Financials.json'
     if (Test-Path -Path $appInfoFinancialsJsonPath -PathType Leaf) {
