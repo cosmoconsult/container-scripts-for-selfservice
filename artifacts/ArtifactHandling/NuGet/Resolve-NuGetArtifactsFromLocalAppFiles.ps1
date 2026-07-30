@@ -28,7 +28,8 @@ function Resolve-NuGetArtifactsFromLocalAppFiles {
     $isVersionIncludedInRange = $nuGetToolsModule.NewBoundScriptBlock(
         [ScriptBlock]::Create('param($Version, $VersionRange) [NuGetFeed]::IsVersionIncludedInRange($Version, $VersionRange)'))
 
-    $localAppInfos = @(Get-NuGetAppInfos -AppFilesPath 'C:\Extensions' -ServiceTierFolder $ServiceTierFolder -AppIds $nuGetArtifactsAppIds | Where-Object { $_.Publisher -eq 'Microsoft' })
+    $microsoftAppFilesPath = if (Test-Path -Path 'C:\Extensions') { 'C:\Extensions' } else { 'C:\Applications' }
+    $localAppInfos = @(Get-NuGetAppInfos -AppFilesPath $microsoftAppFilesPath -ServiceTierFolder $ServiceTierFolder -AppIds $nuGetArtifactsAppIds | Where-Object { $_.Publisher -eq 'Microsoft' })
     $select = Get-NuGetFeedSelectMode
 
     foreach ($artifact in $nuGetArtifacts) {

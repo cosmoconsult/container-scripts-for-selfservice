@@ -11,10 +11,12 @@ function Get-NuGetAppInfos {
         return @()
     }
 
+    # Prefer the image manifest because reading JSON is significantly faster than parsing app files
     $appInfoFinancialsJsonPath = Join-Path $AppFilesPath 'AppInfo.Financials.json'
     if (Test-Path -Path $appInfoFinancialsJsonPath -PathType Leaf) {
         try {
             $appInfoFinancials = Get-Content -Path $appInfoFinancialsJsonPath -Raw | ConvertFrom-Json -ErrorAction Stop
+            # Normalize top-level arrays
             $appInfoFinancials = @($appInfoFinancials | ForEach-Object { $_ })
         } catch {
             Write-Warning "Unable to read app info manifest '$appInfoFinancialsJsonPath': $($_.Exception.Message)"
@@ -58,25 +60,27 @@ function Get-NuGetAppInfos {
         }
     }
 
+    # Get-NAVAppInfo is much faster in PowerShell Core, so batch the fallback scan there when called from PowerShell
     $pwshCoreAppInfoObjs = @{}
     if ($PSVersionTable.PSEdition -ne 'Core') {
         if (! $ServiceTierFolder) {
             $ServiceTierFolder = Get-NAVServiceTierFolder
         }
 
-        $uncachedAppFilePaths = @($appFiles |
+        $uncachedAppFile = $appFiles |
             Where-Object { ! $appInfosCache.ContainsKey($_.FullName) } |
-            Select-Object -ExpandProperty FullName)
-        if ($uncachedAppFilePaths) {
+            Select-Object -First 1
+        if ($uncachedAppFile) {
             $pwshCoreScriptBlock = {
-                param($AppFilePaths)
+                param($AppFilesPath)
 
                 C:\run\Prompt.ps1 -silent
 
-                foreach ($appFilePath in $AppFilePaths) {
-                    $appInfoObj = Get-NAVAppInfo -Path $appFilePath
+                $appFiles = @(Get-ChildItem -Path $AppFilesPath -Filter '*.app' -Recurse)
+                foreach ($appFile in $appFiles) {
+                    $appInfoObj = Get-NAVAppInfo -Path $appFile.FullName
                     [PSCustomObject]@{
-                        Path      = $appFilePath
+                        Path      = $appFile.FullName
                         Publisher = [string]$appInfoObj.Publisher
                         Name      = [string]$appInfoObj.Name
                         AppId     = [string]$appInfoObj.AppId
@@ -88,7 +92,7 @@ function Get-NuGetAppInfos {
             $serverVersion = [Version](Get-Item (Join-Path $ServiceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
             $pwshCoreAppInfos = @(Invoke-CommandInPwshCore `
                 -ScriptBlock $pwshCoreScriptBlock `
-                -ArgumentList (, $uncachedAppFilePaths) `
+                -ArgumentList $AppFilesPath `
                 -UseRemoteSession ($serverVersion.Major -lt 28)) # see /base/helper/PPIOverrides/public/NavAppManagement.ps1
             foreach ($appInfo in $pwshCoreAppInfos) {
                 $pwshCoreAppInfoObjs[[string]$appInfo.Path] = $appInfo
@@ -96,7 +100,7 @@ function Get-NuGetAppInfos {
         }
     }
 
-    # only lookup specified appIds to avoid unnecessary processing of all app files
+    # Only lookup specified appIds to avoid unnecessary processing of all app files
     $filterByAppIds = $AppIds.Count -gt 0
     $remainingAppIds = @{}
     $AppIds | ForEach-Object { $remainingAppIds[[string]$_] = $true }

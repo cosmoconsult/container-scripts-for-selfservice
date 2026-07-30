@@ -40,7 +40,8 @@ function Invoke-NuGetPackageDownload() {
             $applicationId = 'c1335042-3002-4257-bf8a-75c898ccb1b8'
             if (! (Test-Path variable:script:applicationPlatformAppInfos)) {
                 Write-Host "Detecting Platform and Application version from Microsoft app files"
-                $script:applicationPlatformAppInfos = @(Get-NuGetAppInfos -AppFilesPath 'C:\Extensions' -ServiceTierFolder $ServiceTierFolder -AppIds @($systemApplicationId, $applicationId))
+                $microsoftAppFilesPath = if (Test-Path -Path 'C:\Extensions') { 'C:\Extensions' } else { 'C:\Applications' }
+                $script:applicationPlatformAppInfos = @(Get-NuGetAppInfos -AppFilesPath $microsoftAppFilesPath -ServiceTierFolder $ServiceTierFolder -AppIds @($systemApplicationId, $applicationId))
             }
             $applicationPlatformAppInfos = $script:applicationPlatformAppInfos
 
