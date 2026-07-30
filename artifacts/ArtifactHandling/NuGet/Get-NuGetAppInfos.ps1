@@ -3,6 +3,7 @@ function Get-NuGetAppInfos {
     param(
         [Parameter(Mandatory)]
         [string]$AppFilesPath,
+        [string]$ServiceTierFolder,
         [string[]]$AppIds = @()
     )
 
@@ -57,6 +58,44 @@ function Get-NuGetAppInfos {
         }
     }
 
+    $pwshCoreAppInfoObjs = @{}
+    if ($PSVersionTable.PSEdition -ne 'Core') {
+        if (! $ServiceTierFolder) {
+            $ServiceTierFolder = Get-NAVServiceTierFolder
+        }
+
+        $uncachedAppFilePaths = @($appFiles |
+            Where-Object { ! $appInfosCache.ContainsKey($_.FullName) } |
+            Select-Object -ExpandProperty FullName)
+        if ($uncachedAppFilePaths) {
+            $pwshCoreScriptBlock = {
+                param($AppFilePaths)
+
+                C:\run\Prompt.ps1 -silent
+
+                foreach ($appFilePath in $AppFilePaths) {
+                    $appInfoObj = Get-NAVAppInfo -Path $appFilePath
+                    [PSCustomObject]@{
+                        Path      = $appFilePath
+                        Publisher = [string]$appInfoObj.Publisher
+                        Name      = [string]$appInfoObj.Name
+                        AppId     = [string]$appInfoObj.AppId
+                        Version   = [string]$appInfoObj.Version
+                    }
+                }
+            }
+
+            $serverVersion = [Version](Get-Item (Join-Path $ServiceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
+            $pwshCoreAppInfos = @(Invoke-CommandInPwshCore `
+                -ScriptBlock $pwshCoreScriptBlock `
+                -ArgumentList (, $uncachedAppFilePaths) `
+                -UseRemoteSession ($serverVersion.Major -lt 28)) # see /base/helper/PPIOverrides/public/NavAppManagement.ps1
+            foreach ($appInfo in $pwshCoreAppInfos) {
+                $pwshCoreAppInfoObjs[[string]$appInfo.Path] = $appInfo
+            }
+        }
+    }
+
     # only lookup specified appIds to avoid unnecessary processing of all app files
     $filterByAppIds = $AppIds.Count -gt 0
     $remainingAppIds = @{}
@@ -65,8 +104,13 @@ function Get-NuGetAppInfos {
         $appInfoCacheKey = $appFile.FullName
         if ($appInfosCache.ContainsKey($appInfoCacheKey)) {
             $appInfo = $appInfosCache[$appInfoCacheKey]
+        } elseif ($pwshCoreAppInfoObjs.ContainsKey($appInfoCacheKey)) {
+            $appInfoObj = $pwshCoreAppInfoObjs[$appInfoCacheKey]
         } else {
             $appInfoObj = Get-NAVAppInfo -Path $appFile.FullName
+        }
+
+        if (! $appInfosCache.ContainsKey($appInfoCacheKey)) {
             $appInfo = [PSCustomObject]@{
                 Package   = '{0}.{1}.{2}' -f $appInfoObj.Publisher, $appInfoObj.Name, $appInfoObj.AppId -replace ' '
                 Name      = [string]$appInfoObj.Name
