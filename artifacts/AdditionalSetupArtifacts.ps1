@@ -61,26 +61,6 @@ function Move-Database {
 
 }
 
-function Import-PPIModules {
-
-    if (Test-Path "c:\run\my\PPIArtifactUtils.ps1") {
-        . "c:\run\my\PPIArtifactUtils.ps1"
-    }
-    
-    if (Test-Path "c:\run\my\PPIOverrides.ps1") {
-        . "c:\run\my\PPIOverrides.ps1"
-    }
-
-    if (Test-Path "c:\run\my\PPIAsyncUtils.ps1") {
-        . "c:\run\my\PPIAsyncUtils.ps1"
-    }
-
-    if ((Test-Path 'c:\run\cosmo.compiler.helper.psm1') -and ($env:IsBuildContainer)) {
-        Write-Host "Import compiler helper c:\run\cosmo.compiler.helper.psm1"
-        Import-Module 'c:\run\cosmo.compiler.helper.psm1' -DisableNameChecking -Force
-    }
-}
-
 if ($env:cosmoUpgradeSysApp) {
     Write-Host "System application upgrade requested"
     if (!$TenantId) { $TenantId = "default" }
@@ -137,16 +117,6 @@ if ($env:cosmoUpgradeSysApp) {
         } while ($uninstalledApps.Count -gt 0)
     }
 }
-
-Write-Host ""
-Write-Host "=== Additional Setup ==="
-
-Import-PPIModules
-Import-NAVModules -ServiceTierFolder $serviceTierFolder -RoleTailoredClientFolder $roleTailoredClientFolder -Force 2>$null
-
-$telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
-
-Invoke-LogEvent -name "AdditionalSetup - Started" -telemetryClient $telemetryClient
 
 # Show installed apps
 Write-Host "##[group]Initially installed apps"
@@ -575,29 +545,3 @@ if (![string]::IsNullOrEmpty($env:saasbakfile)) {
 }
 
 Invoke-4PSArtifactHandling -username $username -securepassword $securepassword -tenantParam $tenantParam
-
-if (!(Test-Path "C:\CosmoSetupCompleted.txt")) {
-    New-Item "C:\CosmoSetupCompleted.txt" -type "file" | Out-Null
-    Write-Host "Set marker for health check"
-}
-
-# make sure BC is healthy before returning
-Write-Host " - Check BC Health"
-for ($i = 0; $i -lt 10; $i++) {
-    . C:\run\CheckHealth.ps1
-    Write-Host " - - CheckHealth returned $LASTEXITCODE, healthCheckBaseUrl is $($env:healthCheckBaseUrl)"
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host " - - BC is healthy"
-        break;
-    }
-
-    Write-Host " - - BC not healthy yet (try $i), outputting service tier and tenant info, sleeping 30s and trying again"
-    Get-NAVServerInstance -ServerInstance $ServerInstance
-    Get-NAVTenant -ServerInstance $ServerInstance
-    Start-Sleep -Seconds 30
-}
-
-Invoke-LogEvent -name "AdditionalSetup - Done" -telemetryClient $telemetryClient
-Write-Host "=== Additional Setup Done ==="
-
-Write-Host ""

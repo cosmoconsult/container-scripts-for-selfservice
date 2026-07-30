@@ -1,3 +1,9 @@
+<#
+Exit Codes:
+    0 - healthy
+    1 - unhealthy
+    193 - BC healthy, COSMO setup not completed (marker file not found)
+#>
 try {
     . (Join-Path $PSScriptRoot "ServiceSettings.ps1")
     $CustomConfigFile = Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "CustomSettings.config"
@@ -33,6 +39,9 @@ public static class Dummy {
             # Web Client Health Check Endpoint will test Web Client, Service Tier and Database Connection
             if (Test-Path "C:\CosmoSetupCompleted.txt") {
                 exit 0
+            } else {
+                Write-Host " - - Health check endpoint returned healthy, but marker file not found, returning 193"
+                exit 193
             }
         }
     }
@@ -41,6 +50,9 @@ public static class Dummy {
         if ((Get-service -name "$NavServiceName").Status -eq 'Running') {
             if (Test-Path "C:\CosmoSetupCompleted.txt") {
                 exit 0
+            } else {
+                Write-Host " - - Service Tier is running, but marker file not found, returning 193"
+                exit 193
             }
         }
     }
