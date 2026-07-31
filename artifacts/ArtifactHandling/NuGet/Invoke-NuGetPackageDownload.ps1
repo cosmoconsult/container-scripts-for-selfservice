@@ -17,12 +17,8 @@ function Invoke-NuGetPackageDownload() {
         [string]$Select = $( Get-NuGetFeedSelectMode )
     )
 
-    begin {
-        $maxAttempts = $Retries + 1
-    }
-
-    process {
-        try {
+    $maxAttempts = $Retries + 1
+    try {
             Write-Host "Waiting for other NuGet Package downloads..."
             while (! $nuGetPackageDownloadLockFileStream) {
                 try { $nuGetPackageDownloadLockFileStream = [System.IO.File]::Open($script:nuGetPackageDownloadLockFile, 'OpenOrCreate', 'ReadWrite', 'None') }
@@ -163,10 +159,9 @@ function Invoke-NuGetPackageDownload() {
                     Start-Sleep -Seconds $waitSeconds
                 }
             }
-        } finally {
-            if ($nuGetPackageDownloadLockFileStream) {
-                $nuGetPackageDownloadLockFileStream.Close()
-            }
+    } finally {
+        if ($nuGetPackageDownloadLockFileStream) {
+            $nuGetPackageDownloadLockFileStream.Close()
         }
     }
 }
