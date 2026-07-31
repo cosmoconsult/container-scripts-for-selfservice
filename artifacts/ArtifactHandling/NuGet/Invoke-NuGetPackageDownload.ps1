@@ -45,17 +45,17 @@ function Invoke-NuGetPackageDownload() {
             }
             $applicationPlatformAppInfos = $script:applicationPlatformAppInfos
 
-            $systemApplication = $applicationPlatformAppInfos | Where-Object { $_.Id.ToString() -eq $systemApplicationId } | Select-Object -First 1
-            if ($systemApplication) {
-                $platformVersion = [Version]$systemApplication.Version
+            $systemApplicationAppInfo = $applicationPlatformAppInfos | Where-Object { $_.Id.ToString() -eq $systemApplicationId } | Select-Object -First 1
+            if ($systemApplicationAppInfo) {
+                $platformVersion = [Version]$systemApplicationAppInfo.Version
                 Write-Host "Detected Platform version '$platformVersion' from Microsoft System Application app file"
             }
             else {
                 $platformVersion = [Version](Get-Item (Join-Path $ServiceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
                 Write-Host "Detected Platform version '$platformVersion' from Microsoft.Dynamics.Nav.Server.exe"
             }
-            $application = $applicationPlatformAppInfos | Where-Object { $_.Id.ToString() -eq $applicationId } | Select-Object -First 1
-            $applicationVersion = if ($application) { [Version]$application.Version } else { $null }
+            $applicationAppInfo = $applicationPlatformAppInfos | Where-Object { $_.Id.ToString() -eq $applicationId } | Select-Object -First 1
+            $applicationVersion = if ($applicationAppInfo) { [Version]$applicationAppInfo.Version } else { $null }
 
             $downloadParameters = @{
                 packageName          = $Package
