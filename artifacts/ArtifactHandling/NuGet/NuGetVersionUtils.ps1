@@ -146,10 +146,10 @@ function ConvertTo-NuGetVersionConstraint {
 
     $specification = Get-NuGetVersionSpecification -Version $Version -AllowRange:($Select -ne 'Exact') -ErrorContext $ErrorContext
     if ($Select -eq 'Exact') {
-        return $Version -replace '\s+'
+        return Normalize-NuGetVersionConstraint -VersionConstraint ($Version -replace '\s+')
     }
     if ($specification.Kind -eq 'Range') {
-        return $Version -replace '\s+'
+        return Normalize-NuGetVersionConstraint -VersionConstraint ($Version -replace '\s+')
     } 
 
     # Convert NuGet version to a range (from version, to excl. version + 1)
@@ -165,7 +165,7 @@ function ConvertTo-NuGetVersionConstraint {
     $fromVersion  = '{0}{1}' -f $fromVersionNormalized, $specification.Prerelease
     $toVersion    = '{0}{1}' -f $toVersionNormalized, $specification.Prerelease
     $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
-    return $versionRange -replace '\s+'
+    return Normalize-NuGetVersionConstraint -VersionConstraint ($versionRange -replace '\s+')
 }
 
 function ConvertTo-NuGetMaximumVersion {
@@ -204,4 +204,21 @@ function ConvertTo-NuGetMaximumVersion {
         }
     }
     return $versionParts[0..3] -join '.'
+}
+
+function Normalize-NuGetVersionConstraint {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)]
+        [string]$VersionConstraint
+    )
+
+    # NuGet allows major-only versions, but BcContainerHelper parses constraints with System.Version and requires major.minor
+    # 28 → 28.0
+    # 28-beta → 28.0-beta
+    # [1,2) → [1.0,2.0)
+    # (,2] → (,2.0]
+    $majorOnlyVersionPattern = '(?<prefix>^|[\[\(,])(?<version>\d+)(?=$|[-+,\)\]])'
+    $addMissingMinorVersion = '${prefix}${version}.0'
+    return [regex]::Replace($VersionConstraint, $majorOnlyVersionPattern, $addMissingMinorVersion)
 }
