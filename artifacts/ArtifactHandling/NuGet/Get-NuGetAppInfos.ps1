@@ -20,27 +20,29 @@ function Get-NuGetAppInfos {
             $appInfoFinancials = @($appInfoFinancials | ForEach-Object { $_ })
         } catch {
             Write-Warning "Unable to read app info manifest '$appInfoFinancialsJsonPath': $($_.Exception.Message)"
-            return @()
+            $appInfoFinancials = $null
         }
 
-        $matchingAppInfoFinancials = @($appInfoFinancials | Where-Object { (! $AppIds) -or ($_.id -in $AppIds) })
-        $appInfos = @($matchingAppInfoFinancials |
-            ForEach-Object {
-                $appInfo = $_
-                $appFilePath = Join-Path $AppFilesPath $appInfo.path
-                if (Test-Path -Path $appFilePath -PathType Leaf) {
-                    [PSCustomObject]@{
-                        Package   = '{0}.{1}.{2}' -f $appInfo.publisher, $appInfo.name, $appInfo.id -replace ' '
-                        Name      = [string]$appInfo.name
-                        Publisher = [string]$appInfo.publisher
-                        Id        = [string]$appInfo.id
-                        Version   = [string]$appInfo.version
-                        Path      = [System.IO.Path]::GetFullPath($appFilePath)
+        if ($null -ne $appInfoFinancials) {
+            $matchingAppInfoFinancials = @($appInfoFinancials | Where-Object { (! $AppIds) -or ($_.id -in $AppIds) })
+            $appInfos = @($matchingAppInfoFinancials |
+                ForEach-Object {
+                    $appInfo = $_
+                    $appFilePath = Join-Path $AppFilesPath $appInfo.path
+                    if (Test-Path -Path $appFilePath -PathType Leaf) {
+                        [PSCustomObject]@{
+                            Package   = '{0}.{1}.{2}' -f $appInfo.publisher, $appInfo.name, $appInfo.id -replace ' '
+                            Name      = [string]$appInfo.name
+                            Publisher = [string]$appInfo.publisher
+                            Id        = [string]$appInfo.id
+                            Version   = [string]$appInfo.version
+                            Path      = [System.IO.Path]::GetFullPath($appFilePath)
+                        }
                     }
-                }
-            })
-        Write-Host "Found $($appInfos.Count) matching app files in '$AppFilesPath'"
-        return $appInfos
+                })
+            Write-Host "Found $($appInfos.Count) matching app files in '$AppFilesPath'"
+            return $appInfos
+        }
     }
 
     $appFiles = @(Get-ChildItem -Path $AppFilesPath -Filter '*.app' -Recurse)
