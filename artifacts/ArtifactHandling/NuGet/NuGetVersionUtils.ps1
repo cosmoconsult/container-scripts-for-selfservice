@@ -87,10 +87,10 @@ function Get-NuGetVersionSpecification {
         [string]$ErrorContext = 'NuGet package'
     )
 
-    $versionStablePattern     = '\d+(?:\.\d+){0,3}'     # <major>[.<minor>[.<patch>[.<revision>]]]
+    $versionStablePattern = '\d+(?:\.\d+){0,3}'     # <major>[.<minor>[.<patch>[.<revision>]]]
     $versionPrereleasePattern = '(?:-[0-9A-Za-z.-]+)?'  # [-<prerelease>]
-    $versionMetadataPattern   = '(?:\+[0-9A-Za-z.-]+)?' # [+<metadata>]
-    $versionPattern           = '^\s*(?<version>{0})(?<prerelease>{1})(?<metadata>{2})\s*$' -f $versionStablePattern, $versionPrereleasePattern, $versionMetadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata>]
+    $versionMetadataPattern = '(?:\+[0-9A-Za-z.-]+)?' # [+<metadata>]
+    $versionPattern = '^\s*(?<version>{0})(?<prerelease>{1})(?<metadata>{2})\s*$' -f $versionStablePattern, $versionPrereleasePattern, $versionMetadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata>]
 
     $versionRangeLowerVersionPattern = '(?<versionLower>{0})(?<prereleaseLower>{1})' -f $versionStablePattern, $versionPrereleasePattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][,]
     $versionRangeUpperVersionPattern = '(?<versionUpper>{0})(?<prereleaseUpper>{1})' -f $versionStablePattern, $versionPrereleasePattern # [,]<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>]
@@ -100,7 +100,7 @@ function Get-NuGetVersionSpecification {
         '(?<rangeStart>\[|\()\s*{0},\s*(?<rangeEnd>\))' -f $versionRangeLowerVersionPattern # Range (lower bound) -> <[(> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>, <)>
         '(?<rangeStart>\[|\()\s*{0},{1}\s*(?<rangeEnd>\)|\])' -f $versionRangeLowerVersionPattern, $versionRangeUpperVersionPattern # Range (both bounds) -> <[(> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>,<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <)]>
     )
-    $versionRangePattern  = '^\s*(?:{0})\s*$' -f ($versionRangePatterns -join '|')
+    $versionRangePattern = '^\s*(?:{0})\s*$' -f ($versionRangePatterns -join '|')
 
     if ($Version -match $versionPattern) {
         $versionMatches = $matches
@@ -162,8 +162,8 @@ function ConvertTo-NuGetVersionConstraint {
     $fromVersionNormalized = if ($versionParts.Count -eq 1) { "{0}.0" -f $versionParts[0] } else { $specification.Version }
     $toVersionNormalized = if ($toVersionParts.Count -eq 1) { "{0}.0" -f $toVersionParts[0] } else { $toVersionParts -join '.' }
 
-    $fromVersion  = '{0}{1}' -f $fromVersionNormalized, $specification.Prerelease
-    $toVersion    = '{0}{1}' -f $toVersionNormalized, $specification.Prerelease
+    $fromVersion = '{0}{1}' -f $fromVersionNormalized, $specification.Prerelease
+    $toVersion = '{0}{1}' -f $toVersionNormalized, $specification.Prerelease
     $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
     return Normalize-NuGetVersionConstraint -VersionConstraint ($versionRange -replace '\s+')
 }
@@ -198,7 +198,8 @@ function ConvertTo-NuGetMaximumVersion {
             # Exclusive upper limit
             $versionUpperParts[-1] = [int]$versionUpperParts[-1] - 1
             $versionParts = $versionUpperParts + $versionParts
-        } else {
+        }
+        else {
             # Inclusive upper limit
             $versionParts = $versionUpperParts + @(0, 0, 0)
         }

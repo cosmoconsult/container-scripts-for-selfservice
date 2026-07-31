@@ -40,14 +40,14 @@ function Resolve-NuGetArtifactsFromLocalAppFiles {
 
         $versionConstraint = ConvertTo-NuGetVersionConstraint -Version $artifact.version -Select $select -ErrorContext "package '$($artifact.name)'"
         $localApp = @($localAppInfos | Where-Object {
-            if ($_.Id -ne $packageNameInfo.Id) {
-                return $false
-            }
-            if ($select -eq 'Exact') {
-                return (& $normalizeVersion $_.Version) -eq (& $normalizeVersion $versionConstraint)
-            }
-            return (! $versionConstraint) -or (& $isVersionIncludedInRange $_.Version $versionConstraint)
-        } | Sort-Object { [Version]$_.Version } -Descending | Select-Object -First 1)
+                if ($_.Id -ne $packageNameInfo.Id) {
+                    return $false
+                }
+                if ($select -eq 'Exact') {
+                    return (& $normalizeVersion $_.Version) -eq (& $normalizeVersion $versionConstraint)
+                }
+                return (! $versionConstraint) -or (& $isVersionIncludedInRange $_.Version $versionConstraint)
+            } | Sort-Object { [Version]$_.Version } -Descending | Select-Object -First 1)
         if (! $localApp) {
             continue
         }
