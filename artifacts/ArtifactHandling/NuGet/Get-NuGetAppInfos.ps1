@@ -55,6 +55,7 @@ function Get-NuGetAppInfos {
         $ServiceTierFolder = Get-NAVServiceTierFolder
     }
     Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
+    $bcVersion = [Version](Get-Item (Join-Path $ServiceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
 
     $appInfosCache = @{}
     $appInfosCacheUpdated = $false
@@ -69,7 +70,7 @@ function Get-NuGetAppInfos {
 
     # Get-NAVAppInfo is much faster in PowerShell Core, so batch the fallback scan there when called from PowerShell
     $pwshCoreAppInfoObjs = @{}
-    if ($PSVersionTable.PSEdition -ne 'Core') {
+    if (($PSVersionTable.PSEdition -ne 'Core') -and ($bcVersion.Major -ge 24)) {
         $uncachedAppFile = $appFiles |
             Where-Object { ! $appInfosCache.ContainsKey($_.FullName) } |
             Select-Object -First 1
@@ -92,11 +93,10 @@ function Get-NuGetAppInfos {
                 }
             }
 
-            $serverVersion = [Version](Get-Item (Join-Path $ServiceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
             $pwshCoreAppInfos = @(Invoke-CommandInPwshCore `
                 -ScriptBlock $pwshCoreScriptBlock `
                 -ArgumentList $AppFilesPath `
-                -UseRemoteSession ($serverVersion.Major -lt 28)) # see /base/helper/PPIOverrides/public/NavAppManagement.ps1
+                -UseRemoteSession ($bcVersion.Major -lt 28)) # see /base/helper/PPIOverrides/public/NavAppManagement.ps1
             foreach ($appInfo in $pwshCoreAppInfos) {
                 $pwshCoreAppInfoObjs[[string]$appInfo.Path] = $appInfo
             }
