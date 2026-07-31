@@ -31,6 +31,15 @@ function Invoke-NuGetPackageDownload() {
 
             Import-NuGetTools
 
+            $downloadParameters = @{
+                packageName          = $Package
+                folder               = $Destination
+                installedApps        = @()
+                select               = $Select
+                downloadDependencies = 'allButMicrosoft'
+            }
+            $installedAppsHash = @{}       
+
             $systemApplicationId = '63ca2fa4-4f03-4f2b-a480-172fef340d3f'
             $applicationId = 'c1335042-3002-4257-bf8a-75c898ccb1b8'
             if (! (Test-Path variable:script:applicationPlatformAppInfos)) {
@@ -49,28 +58,12 @@ function Invoke-NuGetPackageDownload() {
                 $platformVersion = [Version](Get-Item (Join-Path $ServiceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
                 Write-Host "Detected Platform version '$platformVersion' from Microsoft.Dynamics.Nav.Server.exe"
             }
+            $downloadParameters.installedPlatform = $platformVersion
+            
             $applicationAppInfo = $applicationPlatformAppInfos | Where-Object { $_.Id.ToString() -eq $applicationId } | Select-Object -First 1
-            $applicationVersion = if ($applicationAppInfo) { [Version]$applicationAppInfo.Version } else { $null }
-
-            $downloadParameters = @{
-                packageName          = $Package
-                folder               = $Destination
-                installedPlatform    = $platformVersion
-                installedApps        = @()
-                select               = $Select
-                downloadDependencies = 'allButMicrosoft'
-            }
-
-            $installedAppsHash = @{}
-            if ($applicationVersion) {
-                Write-Host "Add Microsoft Application with version '$applicationVersion' as installed app"
-                $installedAppsHash[$applicationId] = [PSCustomObject]@{
-                    Package   = "Microsoft.Application.$applicationId"
-                    Name      = 'Application'
-                    Publisher = 'Microsoft'
-                    Id        = $applicationId
-                    Version   = $applicationVersion
-                }
+            if ($applicationAppInfo) {
+                Write-Host "Add $($applicationAppInfo.Publisher) $($applicationAppInfo.Name) with version '$($applicationAppInfo.Version)' as installed app"
+                $installedAppsHash[$applicationAppInfo.Id] = $applicationAppInfo
             }
 
             if (($Select -eq 'Exact') -or $Version) {
