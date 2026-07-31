@@ -29,40 +29,39 @@ try {
     # Get Telemetry Client
     $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
 
-    # Get Artifacts from Environment
-    Get-ArtifactsFromEnvironment -telemetryClient $telemetryClient -ErrorAction SilentlyContinue | 
-        Group-Object { [int]($_.type -eq "nuget") } | Sort-Object { [int]$_.Name } | ForEach-Object { $_.Group } | # Sort NuGet packages last but keep other original order
-        ForEach-Object {
-            $cosmoArtifacts.Artifacts.All += $_
+    # Get Artifacts from Environment and sort NuGet packages last while keeping the original order
+    $artifacts = @(Get-ArtifactsFromEnvironment -telemetryClient $telemetryClient -ErrorAction SilentlyContinue |
+        Group-Object { [int]($_.type -eq "nuget") } | Sort-Object { [int]$_.Name } | ForEach-Object { $_.Group })
 
-            # Sort Artifacts
-            if     ( $_.target -in @( "bak", "saasbak" ) )          { $cosmoArtifacts.Artifacts.Backup   += $_ }
-            elseif ( $_.target -in @( "fonts", "font" ) )           { $cosmoArtifacts.Artifacts.Font     += $_ }
-            elseif ( $_.target -in @( "add-ins", "dll" ) )          { $cosmoArtifacts.Artifacts.AddIn    += $_ }
-            elseif ( $_.target -in @( "demodata" ) )                { $cosmoArtifacts.Artifacts.Demodata += $_ }
-            elseif ( $_.name -and $_.name.StartsWith("sortorder") ) { $cosmoArtifacts.Artifacts.Sorted   += $_ }
-            else                                                    { $cosmoArtifacts.Artifacts.Unsorted += $_ }
+    $cosmoArtifacts.Download.NuGet = $null -ne ($artifacts | Where-Object { $_.type -eq "nuget" } | Select-Object -First 1)
+    if ($cosmoArtifacts.Download.NuGet) {
+        Install-NuGetTools
+        Initialize-NuGetFeeds # initialize NuGet feeds even if we may not need them to download NuGet packages, because BCCH caches them on first run
 
-            if ($_.type -eq "nuget") {
-                $cosmoArtifacts.Download.NuGet = $true
-            }
-        }
+        $serviceTierFolder = Get-NAVServiceTierFolder
+        $artifacts = @(Resolve-NuGetArtifactsFromLocalAppFiles -Artifacts $artifacts -ServiceTierFolder $serviceTierFolder)
+        $cosmoArtifacts.Download.NuGet = $null -ne ($artifacts | Where-Object { $_.type -eq "nuget" } | Select-Object -First 1)
+    }
+
+    $artifacts | ForEach-Object {
+        $cosmoArtifacts.Artifacts.All += $_
+
+        # Sort Artifacts
+        if     ( $_.target -in @( "bak", "saasbak" ) )          { $cosmoArtifacts.Artifacts.Backup   += $_ }
+        elseif ( $_.target -in @( "fonts", "font" ) )           { $cosmoArtifacts.Artifacts.Font     += $_ }
+        elseif ( $_.target -in @( "add-ins", "dll" ) )          { $cosmoArtifacts.Artifacts.AddIn    += $_ }
+        elseif ( $_.target -in @( "demodata" ) )                { $cosmoArtifacts.Artifacts.Demodata += $_ }
+        elseif ( $_.name -and $_.name.StartsWith("sortorder") ) { $cosmoArtifacts.Artifacts.Sorted   += $_ }
+        else                                                    { $cosmoArtifacts.Artifacts.Unsorted += $_ }
+    }
 
     # Set Telemetry Properties
     $telemetryProperties = @{}
     $telemetryProperties["artifacts"] = ( $cosmoArtifacts.Artifacts.All | ConvertTo-Json -Depth 50 -ErrorAction SilentlyContinue )
 
-    if ($cosmoArtifacts.Download.NuGet) {
-        # Install NuGet Tools
-        Install-NuGetTools
-        
-        # Set NuGet Feeds
-        Initialize-NuGetFeeds
-    }
-
     # Get Download Parameters
     $downloadParameters = @{
-        ServiceTierFolder = Get-NAVServiceTierFolder
+        ServiceTierFolder = if ($serviceTierFolder) { $serviceTierFolder } else { Get-NAVServiceTierFolder }
         ApiFeatures       = Get-AzureDevOpsApiFeatures
         AccessToken       = Get-AzureDevOpsAccessToken -Artifacts $cosmoArtifacts.Artifacts.All
         AllArtifacts      = $cosmoArtifacts.Artifacts.All

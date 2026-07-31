@@ -46,7 +46,6 @@ function Invoke-DownloadArtifactCore {
         $tempArchive = "$([System.IO.Path]::GetTempFileName()).zip"
         $tempApp = "$([System.IO.Path]::GetTempFileName()).app"
 
-        $platformVersion = [Version](Get-Item (Join-Path $serviceTierFolder "Microsoft.Dynamics.Nav.Server.exe")).VersionInfo.FileVersion
         $predefinedNuGetPackages = @( $allArtifacts |
             Where-Object { $_.Type -eq 'nuget' } |
             ForEach-Object {
@@ -247,7 +246,6 @@ function Invoke-DownloadArtifactCore {
                             Version            = $version
                             InstalledAppsPath  = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
                             ServiceTierFolder  = $serviceTierFolder
-                            PlatformVersion    = $platformVersion
                             PredefinedPackages = $predefinedNuGetPackages
                             Retries            = $retries
                         }
