@@ -146,10 +146,10 @@ function ConvertTo-NuGetVersionConstraint {
 
     $specification = Get-NuGetVersionSpecification -Version $Version -AllowRange:($Select -ne 'Exact') -ErrorContext $ErrorContext
     if ($Select -eq 'Exact') {
-        return Normalize-NuGetVersionConstraint -VersionConstraint ($Version -replace '\s+')
+        return Normalize-NuGetVersionConstraint -VersionConstraint $Version
     }
     if ($specification.Kind -eq 'Range') {
-        return Normalize-NuGetVersionConstraint -VersionConstraint ($Version -replace '\s+')
+        return Normalize-NuGetVersionConstraint -VersionConstraint $Version
     } 
 
     # Convert NuGet version to a range (from version, to excl. version + 1)
@@ -165,7 +165,7 @@ function ConvertTo-NuGetVersionConstraint {
     $fromVersion = '{0}{1}' -f $fromVersionNormalized, $specification.Prerelease
     $toVersion = '{0}{1}' -f $toVersionNormalized, $specification.Prerelease
     $versionRange = '[{0},{1})' -f $fromVersion, $toVersion
-    return Normalize-NuGetVersionConstraint -VersionConstraint ($versionRange -replace '\s+')
+    return Normalize-NuGetVersionConstraint -VersionConstraint $versionRange
 }
 
 function ConvertTo-NuGetMaximumVersion {
@@ -221,5 +221,5 @@ function Normalize-NuGetVersionConstraint {
     # (,2] → (,2.0]
     $majorOnlyVersionPattern = '(?<prefix>^|[\[\(,])(?<version>\d+)(?=$|[-+,\)\]])'
     $addMissingMinorVersion = '${prefix}${version}.0'
-    return [regex]::Replace($VersionConstraint, $majorOnlyVersionPattern, $addMissingMinorVersion)
+    return [regex]::Replace(($VersionConstraint -replace '\s+'), $majorOnlyVersionPattern, $addMissingMinorVersion)
 }
