@@ -29,7 +29,6 @@ function Invoke-NuGetPackageDownload() {
                 $ServiceTierFolder = Get-NAVServiceTierFolder
             }
 
-            Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
             Import-NuGetTools
 
             $systemApplicationId = '63ca2fa4-4f03-4f2b-a480-172fef340d3f'

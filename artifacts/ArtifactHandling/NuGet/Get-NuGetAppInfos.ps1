@@ -49,6 +49,11 @@ function Get-NuGetAppInfos {
         return @()
     }
 
+    if (! $ServiceTierFolder) {
+        $ServiceTierFolder = Get-NAVServiceTierFolder
+    }
+    Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
+
     $appInfosCache = @{}
     $appInfosCacheUpdated = $false
     $appInfosCachePath = Join-Path $AppFilesPath '.nuget.apps.cache.json'
@@ -63,10 +68,6 @@ function Get-NuGetAppInfos {
     # Get-NAVAppInfo is much faster in PowerShell Core, so batch the fallback scan there when called from PowerShell
     $pwshCoreAppInfoObjs = @{}
     if ($PSVersionTable.PSEdition -ne 'Core') {
-        if (! $ServiceTierFolder) {
-            $ServiceTierFolder = Get-NAVServiceTierFolder
-        }
-
         $uncachedAppFile = $appFiles |
             Where-Object { ! $appInfosCache.ContainsKey($_.FullName) } |
             Select-Object -First 1
