@@ -20,7 +20,6 @@ function Resolve-NuGetArtifactsFromLocalAppFiles {
         return $Artifacts
     }
 
-    Import-NAVModules -ServiceTierFolder $ServiceTierFolder -ExcludeRoleTailoredClient
     Import-NuGetTools
     $nuGetToolsModule = Get-Module -Name 'BcContainerHelper'
     $normalizeVersion = $nuGetToolsModule.NewBoundScriptBlock(
