@@ -129,7 +129,6 @@ function Export-PwshCoreOverride() {
                     -ArgumentList $overrideInfo, $PSBoundParameters `
                     -UseRemoteSession $overrideInfo.UseRemoteSession `
                     -OutputScriptBlock $ForEachOutputScriptBlock
-
             }
         }
     }
