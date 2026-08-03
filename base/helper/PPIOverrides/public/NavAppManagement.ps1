@@ -22,7 +22,8 @@ $commandNamesForAppManagement = @(
 )
 
 $commandNamesForManagement = @(
-    'Mount-NAVTenant'
+    'Mount-NAVTenant',
+    'Sync-NAVTenant'
 )
 
 # Create powershell core remote session (may enable remoting for powershell core)
