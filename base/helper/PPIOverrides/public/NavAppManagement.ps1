@@ -22,7 +22,8 @@ $commandNamesForAppManagement = @(
 )
 
 $commandNamesForManagement = @(
-    'Mount-NAVTenant'
+    'Mount-NAVTenant',
+    'Sync-NAVTenant'
 )
 
 # Create powershell core remote session (may enable remoting for powershell core)
@@ -74,23 +75,6 @@ $commandNamesForManagement | ForEach-Object {
         -CommandName $_ `
         -ModuleName 'Microsoft.BusinessCentral.Management' `
         -ModuleImportScriptBlock $moduleImportScriptBlock `
-        -AfterInvokeScriptBlock {
-            param($Parameters)
-
-            Write-Host "Wait for tenant '$($Parameters.Tenant)' to be ready for synchronization"
-            $tenantInfo = $null
-            for ($attempt = 1; $attempt -le 30; $attempt++) {
-                $tenantInfo = Get-NAVTenant -ServerInstance $Parameters.ServerInstance -Tenant $Parameters.Tenant
-                if ($tenantInfo.State -in @('Mounted', 'Operational')) {
-                    return
-                }
-
-                Write-Host "Tenant '$($Parameters.Tenant)' is not ready for synchronization (state: '$($tenantInfo.State)', attempt $attempt/30)"
-                Start-Sleep -Seconds 5
-            }
-
-            throw "Tenant '$($Parameters.Tenant)' did not become ready for synchronization. Last state: '$($tenantInfo.State)'; details: $($tenantInfo.DetailedState)"
-        } `
         -ForEachOutputScriptBlock $forEachOutputScriptBlock `
         -UseRemoteSession $useRemoteSession
 }

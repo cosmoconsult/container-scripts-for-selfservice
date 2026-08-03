@@ -20,8 +20,6 @@ function Export-PwshCoreOverride() {
 
         [scriptblock]$ForEachOutputScriptBlock = { $_ },
 
-        [scriptblock]$AfterInvokeScriptBlock,
-
         [bool]$UseRemoteSession = $true
     )
 
@@ -123,13 +121,7 @@ function Export-PwshCoreOverride() {
                             }
                         }
 
-                    $commandOutput = & $OverrideInfo.CommandName @Parameters
-                    $commandSucceeded = $?
-                    $commandOutput
-
-                    if ($commandSucceeded -and $OverrideInfo.AfterInvokeScriptBlock) {
-                        & ([ScriptBlock]::Create($OverrideInfo.AfterInvokeScriptBlock)) $Parameters
-                    }
+                    & $OverrideInfo.CommandName @Parameters
                 }
 
                 Invoke-CommandInPwshCore `
@@ -148,7 +140,6 @@ function Export-PwshCoreOverride() {
             ModuleImportPath        = $ModuleImportPath
             ModuleImportScriptBlock = $ModuleImportScriptBlock
             CommandName             = '{0}\{1}' -f $ModuleName, $CommandName
-            AfterInvokeScriptBlock  = if ($AfterInvokeScriptBlock) { $AfterInvokeScriptBlock.ToString() } else { '' }
             UseRemoteSession        = $UseRemoteSession
         }
 
