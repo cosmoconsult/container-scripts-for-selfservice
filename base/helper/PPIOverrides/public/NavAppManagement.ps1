@@ -22,8 +22,7 @@ $commandNamesForAppManagement = @(
 )
 
 $commandNamesForManagement = @(
-    'Mount-NAVTenant',
-    'Sync-NAVTenant'
+    'Mount-NAVTenant'
 )
 
 # Create powershell core remote session (may enable remoting for powershell core)
@@ -36,6 +35,8 @@ $moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
 $forEachOutputScriptBlock = { $_ }
 
 if ($bcVersion.Major -ge 29) {
+    $commandNamesForManagement += 'Sync-NAVTenant'
+
     # For BC29 and higher, we will also override Get-NAVAppInfo to handle issues with the returned AppId
     # The returned deserialized object for the AppId can not be passed directly to other NAV App cmdlets because they expect a Guid
     $commandNamesForAppManagement += 'Get-NAVAppInfo'
