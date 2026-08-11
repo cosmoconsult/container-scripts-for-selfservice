@@ -2,7 +2,7 @@ function Import-AppArtifact {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory = $true, ValueFromPipelineByPropertyName = $true)]
-        [Alias("FullName")]    
+        [Alias("FullName")]
         [string]$Path,
         [switch]$IsModifiedBaseApp,
         [Parameter(Mandatory = $false)]
@@ -18,11 +18,11 @@ function Import-AppArtifact {
         [string]$SyncMode = "Add",
         [Parameter(Mandatory = $false)]
         [ValidateSet("Global", "Tenant")]
-        [string]$Scope = "Global",        
+        [string]$Scope = "Global",
         [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null
     )
-    
+
     begin {
         if (! $telemetryClient) {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
@@ -31,7 +31,7 @@ function Import-AppArtifact {
         $importFiles = $false
         $started = Get-Date -Format "o"
     }
-    
+
     process {
         # check restart
         if ($env:cosmoServiceRestart -eq $true) {
@@ -42,14 +42,14 @@ function Import-AppArtifact {
         # Initialize, if files are present
         if (! $importFiles -and (Get-Item -Path $Path -Filter $Filter -ErrorAction SilentlyContinue)) {
             $importFiles = $true
-            Add-ArtifactsLog -message "Import App Artifacts..."           
+            Add-ArtifactsLog -message "Import App Artifacts..."
         }
-        
+
         $properties = @{"path" = $Path; "DatabaseName" = $DatabaseName; "NavServiceName" = $NavServiceName; "ServerInstance" = $ServerInstance; SyncMode = $SyncMode; Scope = $Scope }
         try {
             $started = Get-Date -Format "o"
-            
-            $app = (Get-NAVAppInfo -Path $Path)            
+
+            $app = (Get-NAVAppInfo -Path $Path)
             Write-Host "##[group]$($app.Name) $($app.Publisher) $($app.Version)"
             $properties["Name"] = $app.Name
             $properties["Publisher"] = $app.Publisher
@@ -60,7 +60,7 @@ function Import-AppArtifact {
 
             # Check if app is already published with another version
             $oldApp = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
-            
+
             # Uninstall old NAVApp, when present
             if ($oldApp -and $oldApp.IsInstalled) {
                 $sameVersionAlreadyPublished = $false
@@ -90,15 +90,10 @@ function Import-AppArtifact {
             }
             else {
                 $sameVersionAlreadyPublished = $oldApp -and $oldApp.IsPublished -and ($oldApp.Version -eq $app.Version)
-                if ($oldApp -and !$sameVersionAlreadyPublished) {
-                    $runDataUpgrade = $true
-                }
-                else {
-                    $runDataUpgrade = $false
-                } 
+                $runDataUpgrade = $false
                 $success = $true
             }
-    
+
             # Publish NAVApp
             if ($success) {
                 if ($sameVersionAlreadyPublished) {
@@ -108,17 +103,18 @@ function Import-AppArtifact {
                     try {
                         $started2 = Get-Date -Format "o"
                         Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) Scope: $Scope ..." -data $app
-    
+
                         $optionalParameters = @{ }
+                        $CommandInfo = Get-Command 'Publish-NAVApp'
                         # Special handling for NAV2018
                         # '-Force' is only added, when 'SandboxDatabaseName' (NAV2018) is NOT present because parameter '-Force' works only when 'SandboxDatabaseName' is not empty
-                        if (! ((Get-Command Publish-NAVApp).Parameters.SandboxDatabaseName)) {
+                        if (-not $CommandInfo.Parameters.SandboxDatabaseName) {
                             $optionalParameters["Force"] = $true
                         }
-                        if ((Get-Command Publish-NAVApp).Parameters.Scope) {
+                        if ($CommandInfo.Parameters.Scope) {
                             $optionalParameters["Scope"] = "$Scope"
                         }
-                        if (("$Scope" -eq "Tenant") -and ((Get-Command Publish-NAVApp).Parameters.Tenant)) {
+                        if (("$Scope" -eq "Tenant") -and ($CommandInfo.Parameters.Tenant)) {
                             $optionalParameters["Tenant"] = $Tenant
                         }
 
@@ -162,12 +158,19 @@ function Import-AppArtifact {
                 $skipInstall = ! $success
             }
 
-            # Check for Data Upgrade
+            # If extension data version is older than extension version, that should also trigger the data upgrade
+            $appInfoExtDataVersion = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
+            if ((! $skipInstall) -and ($appInfoExtDataVersion.ExtensionDataVersion) -and [System.Version]$appInfoExtDataVersion.ExtensionDataVersion -lt [System.Version]$appInfoExtDataVersion.Version) {
+                Add-ArtifactsLog -kind App -message "Identified lower extension data version ($($appInfoExtDataVersion.ExtensionDataVersion)) than extension version ($($appInfoExtDataVersion.Version)), need to run data upgrade" -data $app
+                $runDataUpgrade = $true
+            }
+
+            # Run Data Upgrade
             if ((! $skipInstall) -and ($runDataUpgrade)) {
                 try {
                     $started2 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
-                    
+
                     Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
@@ -176,7 +179,7 @@ function Import-AppArtifact {
                     if ($success) { Add-ArtifactsLog -kind App -message "App Data Upgrade ... successful" -data $app -success success }
                     # Check, if the new App is correct installed
                     $result = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
-                    $skipInstall = $result -and $result.IsInstalled  
+                    $skipInstall = $result -and $result.IsInstalled
 
                     if ($oldApp.IsPublished) {
                         try {
@@ -201,7 +204,7 @@ function Import-AppArtifact {
                         }
                         finally {
                             Invoke-LogOperation -name "Unpublish old App" -started $started3 -properties $properties -success $success -telemetryClient $telemetryClient
-                        } 
+                        }
                     }
                     else {
                         Write-Host "Old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) is already unpublished. Skip unpublishing."
@@ -229,11 +232,11 @@ function Import-AppArtifact {
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Install App ... successful" -data $app -success success }
                 }
-                catch {        
+                catch {
                     Add-ArtifactsLog -kind App -message "Install App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
                     $success = $false
                 }
-                finally {                
+                finally {
                     Invoke-LogOperation -name "Install App" -started $started3 -properties $properties -success $success -telemetryClient $telemetryClient
                 }
             }
@@ -246,7 +249,7 @@ function Import-AppArtifact {
 
             # Check Result
             $result = Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue
-            if ($result) { 
+            if ($result) {
                 Add-ArtifactsLog -kind App -message "$(($result | Select-Object Name, Publisher, Version, IsPublished, IsInstalled, SyncState, NeedsUpgrade, ExtensionDataVersion | Format-Table -AutoSize | Out-String -Width 1024).Trim())"
                 $result = $result | Select-Object -First 1
                 Add-ArtifactsLog -kind App -message "App Status $($app.Name) $($app.Publisher) $($app.Version) ... Published: $($result.IsPublished) Installed: $($result.IsInstalled) SyncState: $($result.SyncState) " -data $result
@@ -270,7 +273,7 @@ function Import-AppArtifact {
         }
         Write-Host "##[endgroup]"
     }
-    
+
     end {
         if ($importFiles) {
             Add-ArtifactsLog -message "Import App Artifacts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"

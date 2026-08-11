@@ -40,6 +40,9 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Install-NuGetTools.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Initialize-NuGetFeeds.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Import-NuGetTools.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Get-NuGetAppInfos.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/NuGetVersionUtils.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Resolve-NuGetArtifactsFromLocalAppFiles.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/NuGet/Invoke-NuGetPackageDownload.ps1")
 
 # Artifact Log Handling functions

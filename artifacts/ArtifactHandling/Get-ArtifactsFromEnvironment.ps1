@@ -7,16 +7,16 @@ function Get-ArtifactsFromEnvironment {
         [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null
     )
-    
+
     begin {
         if (! $telemetryClient) {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
     }
-    
+
     process {
         if ("$env:AZURE_DEVOPS_PACKAGES" -eq "" -and (-not $global:extendedEnv.AzureDevOpsArtifacts)) {
-            Write-Host "not packages / artifacts found"
+            Write-Host "no packages / artifacts found"
             $artifacts = [System.Collections.ArrayList]@()
             if (("$path" -ne "") -and (Test-Path "$path")) {
                 $artifactJson = (Get-Content $path -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue)
@@ -25,7 +25,7 @@ function Get-ArtifactsFromEnvironment {
                 }
                 if ($artifactJson.devopsArtifacts) {
                     $artifacts.AddRange($artifactJson.devopsArtifacts)
-                }   
+                }
             }
             return $artifacts
         }
@@ -35,7 +35,7 @@ function Get-ArtifactsFromEnvironment {
             if ("$env:AZURE_DEVOPS_PACKAGES" -ne "") {
                 $packages = "$env:AZURE_DEVOPS_PACKAGES".Split(@(',', ';'))
                 Write-Host "Artifacts from AZURE_DEVOPS_PACKAGES ..."
-                
+
                 $packages | ForEach-Object {
                     $artifacts += @{
                         name         = "$_";
@@ -48,7 +48,7 @@ function Get-ArtifactsFromEnvironment {
                         type         = "upack";
                     }
                 }
-            } 
+            }
             if ($global:extendedEnv.AzureDevOpsArtifacts) {
                 Write-Host "Artifacts from AZURE_DEVOPS_ARTIFACTS ..."
                 $base64 = $global:extendedEnv.AzureDevOpsArtifacts
@@ -83,9 +83,9 @@ function Get-ArtifactsFromEnvironment {
         catch {
             Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient
         }
-        return $artifacts        
+        return $artifacts
     }
-    
+
     end {
         Write-Host "$($artifacts.Count) Artifact(s) found."
     }

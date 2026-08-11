@@ -40,3 +40,4 @@
 - Stabilize SSH download and go to latest beta release of OpenSSH
 - Add a check in SetupLicense.ps1 for a specific image failing for unclear reasons
 - Add support for managing all nuget feeds by backend (and keep it backward compatible)
+- Run tenant synchronization for BC29 and higher through the PowerShell Core management override
