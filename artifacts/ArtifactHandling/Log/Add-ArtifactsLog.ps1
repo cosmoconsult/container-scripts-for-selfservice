@@ -35,11 +35,10 @@ function Add-ArtifactsLog {
 
         if ($data) {
             try {
-                # ConvertFrom-Json can throw a non-suppressible exception on duplicate case-insensitive keys (e.g. NAV version objects), so guard explicitly
                 $logEntry["data"] = ($data | ConvertTo-Json -Depth 1 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop)
             }
             catch {
-                Write-Host "Add-ArtifactsLog: could not serialize -data for message '$message': $($_.Exception.Message)"
+                # avoid aborting
             }
         }
         switch ($kind) {
