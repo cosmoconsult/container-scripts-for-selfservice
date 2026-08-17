@@ -68,11 +68,13 @@ function Import-AppArtifact {
                 try {
                     if ($oldApp.Version -ge $app.Version) {
                         Write-Host "Skipping installation of App $($app.Name) $($app.Publisher) $($app.Version) as version $($oldApp.Version) is already installed."
+                        Write-Host "[DIAG] $($app.Name): returning early (oldApp.Version $($oldApp.Version) >= new $($app.Version))"
                         Invoke-LogOperation -name "Import App Artifact skipped" -started $started -properties $properties -telemetryClient $telemetryClient
                         return;
                     }
                     $started1 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) ..." -data $app
+                    Write-Host "[DIAG] Uninstall old App $($oldApp.Name) $($oldApp.Version) -> $($app.Version) starting..."
                     Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant $Tenant -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
@@ -80,9 +82,13 @@ function Import-AppArtifact {
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Uninstall old App successful" -data $app -success success }
                     $runDataUpgrade = $true
+                    Write-Host "[DIAG] Uninstall old App $($oldApp.Name) success=$success errCount=$($err.Count) warnCount=$($warn.Count)"
+                    $err  | ForEach-Object { Write-Host "[DIAG]   Uninstall err: $_" }
+                    $warn | ForEach-Object { Write-Host "[DIAG]   Uninstall warn: $_" }
                 }
                 catch {
                     Add-ArtifactsLog -kind App -message "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
+                    Write-Host "[DIAG] Uninstall old App $($oldApp.Name) EXCEPTION: $($_.Exception.Message)"
                     $success = $false
                 }
                 finally {
@@ -94,6 +100,7 @@ function Import-AppArtifact {
                 $runDataUpgrade = $false
                 $success = $true
             }
+            Write-Host "[DIAG] $($app.Name) $($app.Version): sameVersionAlreadyPublished=$sameVersionAlreadyPublished runDataUpgrade=$runDataUpgrade"
 
             # Publish NAVApp
             if ($success) {
@@ -131,6 +138,7 @@ function Import-AppArtifact {
                     }
                     catch {
                         Add-ArtifactsLog -kind App -message "Publish App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
+                        Write-Host "[DIAG] Publish App $($app.Name) EXCEPTION: $($_.Exception.Message)"
                         $success = $false
                     }
                     finally {
@@ -138,6 +146,7 @@ function Import-AppArtifact {
                     }
                 }
                 $skipInstall = ! $success
+                Write-Host "[DIAG] $($app.Name) $($app.Version): skipInstall=$skipInstall after Publish step"
             }
 
             # Sync NAVApp
@@ -157,6 +166,7 @@ function Import-AppArtifact {
                 }
                 catch {
                     Add-ArtifactsLog -kind App -message "Sync App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
+                    Write-Host "[DIAG] Sync App $($app.Name) EXCEPTION: $($_.Exception.Message)"
                     $success = $false
                 }
                 finally {
@@ -168,9 +178,11 @@ function Import-AppArtifact {
 
             # If extension data version is older than extension version, that should also trigger the data upgrade
             $appInfoExtDataVersion = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
+            Write-Host "[DIAG] $($app.Name) $($app.Version): post-Sync ExtensionDataVersion=$($appInfoExtDataVersion.ExtensionDataVersion) Version=$($appInfoExtDataVersion.Version) IsInstalled=$($appInfoExtDataVersion.IsInstalled) SyncState=$($appInfoExtDataVersion.SyncState)"
             if ((! $skipInstall) -and ($appInfoExtDataVersion.ExtensionDataVersion) -and [System.Version]$appInfoExtDataVersion.ExtensionDataVersion -lt [System.Version]$appInfoExtDataVersion.Version) {
                 Add-ArtifactsLog -kind App -message "Identified lower extension data version ($($appInfoExtDataVersion.ExtensionDataVersion)) than extension version ($($appInfoExtDataVersion.Version)), need to run data upgrade" -data $app
                 $runDataUpgrade = $true
+                Write-Host "[DIAG] $($app.Name): runDataUpgrade set to true due to lower ExtensionDataVersion"
             }
 
             # Run Data Upgrade
@@ -185,9 +197,13 @@ function Import-AppArtifact {
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "App Data Upgrade ... successful" -data $app -success success }
+                    Write-Host "[DIAG] Data Upgrade $($app.Name) $($app.Version) success=$success errCount=$($err.Count) warnCount=$($warn.Count)"
+                    $err  | ForEach-Object { Write-Host "[DIAG]   DataUpgrade err: $_" }
+                    $warn | ForEach-Object { Write-Host "[DIAG]   DataUpgrade warn: $_" }
                     # Check, if the new App is correct installed
                     $result = (Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue) | Select-Object -First 1
                     $skipInstall = $result -and $result.IsInstalled
+                    Write-Host "[DIAG] $($app.Name) $($app.Version): after Data Upgrade skipInstall=$skipInstall (IsInstalled=$($result.IsInstalled))"
 
                     if ($oldApp.IsPublished) {
                         try {
@@ -205,9 +221,13 @@ function Import-AppArtifact {
                             $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
                             $success = ! $err
                             if ($success) { Add-ArtifactsLog -kind App -message "Unpublish old App successful" -data $app -success success }
+                            Write-Host "[DIAG] Unpublish old App $($oldApp.Name) $($oldApp.Version) success=$success errCount=$($err.Count) warnCount=$($warn.Count)"
+                            $err  | ForEach-Object { Write-Host "[DIAG]   Unpublish err: $_" }
+                            $warn | ForEach-Object { Write-Host "[DIAG]   Unpublish warn: $_" }
                         }
                         catch {
                             Add-ArtifactsLog -kind App -message "Unpublish old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
+                            Write-Host "[DIAG] Unpublish old App $($oldApp.Name) EXCEPTION: $($_.Exception.Message)"
                             $success = $false
                         }
                         finally {
@@ -220,6 +240,7 @@ function Import-AppArtifact {
                 }
                 catch {
                     Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
+                    Write-Host "[DIAG] Data Upgrade $($app.Name) EXCEPTION: $($_.Exception.Message)"
                     $success = $false
                     $skipInstall = $true
                 }
@@ -246,6 +267,7 @@ function Import-AppArtifact {
                 }
                 catch {
                     Add-ArtifactsLog -kind App -message "Install App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $app -success fail -severity Error
+                    Write-Host "[DIAG] Install App $($app.Name) EXCEPTION: $($_.Exception.Message)"
                     $success = $false
                 }
                 finally {
@@ -284,6 +306,7 @@ function Import-AppArtifact {
         }
         catch {
             Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import App Artifact"
+            Write-Host "[DIAG] Import-AppArtifact TOP-LEVEL EXCEPTION for '$Path': $($_.Exception.Message)"
         }
         Write-Host "##[endgroup]"
     }
