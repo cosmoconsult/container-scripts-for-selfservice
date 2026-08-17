@@ -49,10 +49,8 @@ if ($bcVersion.Major -ge 29) {
 
         # Resolve properties of deserialized NavAppInfo
         if ($object.PSObject.TypeNames -contains 'Deserialized.Microsoft.Dynamics.Nav.Apps.Management.Cmdlets.NavAppInfo') {
-            # Version/ExtensionDataVersion/CompatibilityId added because their leftover wrapper objects can carry both a synthetic
-            # lowercase "value" and their own "Value" property, which crashes ConvertTo-Json/ConvertFrom-Json round-trips later on.
             $object.PSObject.Properties |
-                Where-Object { $_.Name -in 'AppId', 'PackageId', 'Scope', 'ExtensionType', 'Version', 'ExtensionDataVersion', 'CompatibilityId' } |
+                Where-Object { $_.Name -in 'AppId', 'PackageId', 'Scope', 'ExtensionType' } |
                 Where-Object { $_.Value -is [PSObject] } |
                 Where-Object { $_.Value.PSObject.TypeNames -like 'Deserialized.*' } |
                 ForEach-Object {
