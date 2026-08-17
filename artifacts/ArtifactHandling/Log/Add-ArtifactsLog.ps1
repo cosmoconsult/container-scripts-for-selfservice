@@ -39,7 +39,7 @@ function Add-ArtifactsLog {
                 $logEntry["data"] = ($data | ConvertTo-Json -Depth 1 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop)
             }
             catch {
-                Write-Host "[DIAG] Add-ArtifactsLog: could not serialize -data for message '$message': $($_.Exception.Message)"
+                Write-Host "Add-ArtifactsLog: could not serialize -data for message '$message': $($_.Exception.Message)"
             }
         }
         switch ($kind) {
