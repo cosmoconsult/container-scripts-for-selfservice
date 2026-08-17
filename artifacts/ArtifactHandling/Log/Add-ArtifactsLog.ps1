@@ -34,7 +34,13 @@ function Add-ArtifactsLog {
         $logEntry = @{ "time" = $time; "type" = $kind; "message" = $message; "severity" = $severity; "success" = $success }
 
         if ($data) {
-            $logEntry["data"] = ($data | ConvertTo-Json -Depth 1 -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue)
+            try {
+                # ConvertFrom-Json can throw a non-suppressible exception on duplicate case-insensitive keys (e.g. NAV version objects), so guard explicitly
+                $logEntry["data"] = ($data | ConvertTo-Json -Depth 1 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop)
+            }
+            catch {
+                Write-Host "[DIAG] Add-ArtifactsLog: could not serialize -data for message '$message': $($_.Exception.Message)"
+            }
         }
         switch ($kind) {
             "FOB" { $artifactsLog.Log += @($logEntry); }
