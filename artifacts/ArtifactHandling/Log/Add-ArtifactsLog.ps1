@@ -34,7 +34,12 @@ function Add-ArtifactsLog {
         $logEntry = @{ "time" = $time; "type" = $kind; "message" = $message; "severity" = $severity; "success" = $success }
 
         if ($data) {
-            $logEntry["data"] = ($data | ConvertTo-Json -Depth 1 -ErrorAction SilentlyContinue | ConvertFrom-Json -ErrorAction SilentlyContinue)
+            try {
+                $logEntry["data"] = ($data | ConvertTo-Json -Depth 1 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop)
+            }
+            catch {
+                # avoid aborting
+            }
         }
         switch ($kind) {
             "FOB" { $artifactsLog.Log += @($logEntry); }
