@@ -20,7 +20,7 @@ param (
     [string]$AccessToken = "",
 
     # Deployment scope passed to Invoke-AppListDeployment.ps1
-    [ValidateSet('Global', 'Tenant', 'Dev')]
+    [ValidateSet('Global', 'Tenant')]
     [string]$DeployScope = "Tenant"
 )
 
