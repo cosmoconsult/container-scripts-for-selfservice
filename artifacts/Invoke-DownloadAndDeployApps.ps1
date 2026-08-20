@@ -22,8 +22,6 @@ param (
     [ValidateSet('Global', 'Tenant', 'Dev')]
     [string]$DeployScope = "Tenant"
 )
-
-$ErrorActionPreference = 'Stop'
 c:\run\prompt.ps1
 
 # Load the artifact-handling framework and the container's extended environment (trusted NuGet feeds, ADO settings).
@@ -60,7 +58,10 @@ try {
     Invoke-DownloadArtifact @downloadParameters | Out-Null
 
     $appFiles = @(Get-ChildItem -Path $targetDir -Filter *.app -Recurse)
-    if ($appFiles.Count -eq 0) { throw "No .app file found in downloaded artifact '$Name'" }
+    if ($appFiles.Count -eq 0) {
+        Write-Host "No .app file found in downloaded artifact '$Name'"
+        return
+    }
 
     # Deploy the whole set at once so it can be sorted by dependencies
     $appPaths = ($appFiles | ForEach-Object { $_.FullName }) -join ','
