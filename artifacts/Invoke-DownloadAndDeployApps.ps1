@@ -17,17 +17,16 @@ param (
     [ValidateSet('organization', 'project')]
     [string]$Scope = "project",
     [string]$Pat = "",
+    [string]$AccessToken = "",
 
     # Deployment scope passed to Invoke-AppListDeployment.ps1
     [ValidateSet('Global', 'Tenant', 'Dev')]
     [string]$DeployScope = "Tenant"
 )
-c:\run\prompt.ps1
 
-# Load the artifact-handling framework and the container's extended environment (trusted NuGet feeds, ADO settings).
-# The API only sends the artifact coordinates; credentials/feeds are already provisioned in the container.
-if (Test-Path "c:\run\PPIArtifactUtils.psd1") { Import-Module "c:\run\PPIArtifactUtils.psd1" -Force }
-if (Test-Path "c:\run\my\ExtendedEnvironment.ps1") { . "c:\run\my\ExtendedEnvironment.ps1" }
+c:\run\prompt.ps1
+Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
+. "c:\run\my\ExtendedEnvironment.ps1"
 
 $targetDir = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName())
 
@@ -37,10 +36,16 @@ try {
         Version     = $Version
         Type        = $Type
         Destination = $targetDir
-        PassThru    = $true
     }
 
     if ($Type -eq 'upack') {
+        if ([string]::IsNullOrWhiteSpace($Pat) -or [string]::IsNullOrWhiteSpace($AccessToken)) {
+            Write-Host "ADO artifact download requires both a feed token and an Alpaca API access token"
+            return
+        }
+
+        $env:CcOrgName = $Organization
+
         $downloadParameters += @{
             Organization = $Organization
             Project      = $Project
@@ -48,26 +53,30 @@ try {
             View         = $View
             Scope        = $Scope
             Pat          = $Pat
+            AccessToken  = $AccessToken
         }
     } else {
-        # NuGet downloads resolve dependencies (allButMicrosoft) from the container's trusted feeds
-        Install-NuGetTools
-        Initialize-NuGetFeeds
+        try {
+            Install-NuGetTools
+            Initialize-NuGetFeeds
+        }
+        catch {
+            Write-Host "NuGet feed initialization warning: $($_.Exception.Message)"
+        }
     }
 
-    Invoke-DownloadArtifact @downloadParameters | Out-Null
+    Invoke-DownloadArtifact @downloadParameters
 
     $appFiles = @(Get-ChildItem -Path $targetDir -Filter *.app -Recurse)
+
     if ($appFiles.Count -eq 0) {
         Write-Host "No .app file found in downloaded artifact '$Name'"
         return
     }
 
-    # Deploy the whole set at once so it can be sorted by dependencies
     $appPaths = ($appFiles | ForEach-Object { $_.FullName }) -join ','
     & c:\run\Invoke-AppListDeployment.ps1 -AppsToDeploy $appPaths -Scope $DeployScope
 
-    # Verify that every deployed app ended up installed before reporting success
     $allInstalled = $true
     foreach ($appFile in $appFiles) {
         $info = Get-NAVAppInfo -Path $appFile.FullName
@@ -75,6 +84,10 @@ try {
         if (-not ($deployed -and $deployed.IsInstalled)) { $allInstalled = $false }
     }
     if ($allInstalled) { Write-Host 'app deployment verified' }
+}
+catch {
+    Write-Host "App deployment failed: $($_.Exception.Message)"
+    throw
 }
 finally {
     Remove-Item -Path $targetDir -Recurse -Force -ErrorAction SilentlyContinue
