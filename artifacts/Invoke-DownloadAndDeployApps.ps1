@@ -1,61 +1,57 @@
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $true)]
-    [ValidateSet('nuget', 'upack')]
+    [ValidateSet('nuget', 'stream')]
     [string]$Type,
-
-    # Common artifact identity
-    [Parameter(Mandatory = $true)]
-    [string]$Name,
+    [string]$Name = "",
     [string]$Version = "",
-
-    # Azure DevOps (upack) coordinates
-    [string]$Organization = "",
-    [string]$Project = "",
-    [string]$Feed = "",
-    [string]$View = "",
-    [ValidateSet('organization', 'project')]
-    [string]$Scope = "project",
-    [string]$Pat = "",
-    [string]$AccessToken = "",
-
-    # Deployment scope passed to Invoke-AppListDeployment.ps1
+    [long]$InputLength = 0,
     [ValidateSet('Global', 'Tenant')]
     [string]$DeployScope = "Tenant"
 )
 
 c:\run\prompt.ps1
-Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
-. "c:\run\my\ExtendedEnvironment.ps1"
-
 $targetDir = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName())
 
 try {
-    $downloadParameters = @{
-        Name        = $Name
-        Version     = $Version
-        Type        = $Type
-        Destination = $targetDir
+    $artifactDir = $targetDir
+
+    if ($Type -eq 'stream') {
+        if ($InputLength -le 0) {
+            throw "Streamed artifact length must be greater than zero"
+        }
+
+        New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
+        $archivePath = Join-Path $targetDir 'artifact.zip'
+        $artifactDir = Join-Path $targetDir 'extracted'
+        $inputStream = [Console]::OpenStandardInput()
+        $archiveStream = $null
+        try {
+            $archiveStream = [System.IO.File]::Open($archivePath, [System.IO.FileMode]::CreateNew,
+                [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+            $buffer = [byte[]]::new(81920)
+            [long]$remaining = $InputLength
+            while ($remaining -gt 0) {
+                $bytesToRead = [int][Math]::Min($buffer.Length, $remaining)
+                $bytesRead = $inputStream.Read($buffer, 0, $bytesToRead)
+                if ($bytesRead -le 0) {
+                    throw "Stream ended with $remaining artifact bytes remaining"
+                }
+                $archiveStream.Write($buffer, 0, $bytesRead)
+                $remaining -= $bytesRead
+            }
+        }
+        finally {
+            if ($archiveStream) {
+                $archiveStream.Dispose()
+            }
+        }
+
+        Expand-Archive -Path $archivePath -DestinationPath $artifactDir -Force
     }
-
-    if ($Type -eq 'upack') {
-        if ([string]::IsNullOrWhiteSpace($Pat) -or [string]::IsNullOrWhiteSpace($AccessToken)) {
-            Write-Host "ADO artifact download requires both a feed token and an Alpaca API access token"
-            return
-        }
-
-        $env:CcOrgName = $Organization
-
-        $downloadParameters += @{
-            Organization = $Organization
-            Project      = $Project
-            Feed         = $Feed
-            View         = $View
-            Scope        = $Scope
-            Pat          = $Pat
-            AccessToken  = $AccessToken
-        }
-    } else {
+    else {
+        Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
+        . "c:\run\my\ExtendedEnvironment.ps1"
         try {
             Install-NuGetTools
             Initialize-NuGetFeeds
@@ -63,14 +59,15 @@ try {
         catch {
             Write-Host "NuGet feed initialization warning: $($_.Exception.Message)"
         }
+
+        Invoke-DownloadArtifact -Name $Name -Version $Version -Type nuget -Destination $targetDir
     }
 
-    Invoke-DownloadArtifact @downloadParameters
-
-    $appFiles = @(Get-ChildItem -Path $targetDir -Filter *.app -Recurse)
+    $appFiles = @(Get-ChildItem -Path $artifactDir -Filter *.app -Recurse)
 
     if ($appFiles.Count -eq 0) {
-        Write-Host "No .app file found in downloaded artifact '$Name'"
+        $artifactName = if ($Name) { "'$Name'" } else { 'stream' }
+        Write-Host "No .app file found in downloaded artifact $artifactName"
         return
     }
 
@@ -92,4 +89,3 @@ catch {
 finally {
     Remove-Item -Path $targetDir -Recurse -Force -ErrorAction SilentlyContinue
 }
-
