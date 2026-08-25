@@ -27,7 +27,10 @@ function Sync-AppDependencies {
                 -Tenant $Tenant `
                 -TenantSpecificProperties `
                 -Id $dependency.AppId `
-                -ErrorAction SilentlyContinue | Select-Object -First 1
+                -ErrorAction SilentlyContinue |
+                Where-Object { [version]$_.Version -ge [version]$dependency.MinVersion } |
+                Sort-Object { [version]$_.Version } -Descending |
+                Select-Object -First 1
 
             if (-not $dependencyApp) {
                 continue
