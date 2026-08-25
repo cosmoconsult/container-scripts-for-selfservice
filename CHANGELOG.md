@@ -1,3 +1,4 @@
+- Add Invoke-DownloadAndDeployApps.ps1 as an artifact download-and-deploy entry point
 - Add brackets to avoid problems if database names are reserved T-SQL words
 - Support COSMO IP artifacts (see [#1034](https://dev.azure.com/cc-ppi/General/_workitems/edit/1034))
 - Add severity level "debug" to logging (see [1232](https://dev.azure.com/cc-ppi/General/_workitems/edit/1232))
