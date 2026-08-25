@@ -10,7 +10,10 @@ function Sync-AppDependencies {
         [Parameter(Mandatory = $false)]
         [string]$ServerInstance = "BC",
         [Parameter(Mandatory = $false)]
-        [string]$Tenant = "default"
+        [string]$Tenant = "default",
+        [Parameter(Mandatory = $false)]
+        [ValidateSet("Add", "ForceSync")]
+        [string]$SyncMode = "Add"
     )
 
     process {
@@ -38,7 +41,7 @@ function Sync-AppDependencies {
                         -Publisher $dependencyApp.Publisher `
                         -Version $dependencyApp.Version `
                         -Tenant $Tenant `
-                        -Mode Add `
+                        -Mode $SyncMode `
                         -Force `
                         -ErrorAction Stop
                 }
