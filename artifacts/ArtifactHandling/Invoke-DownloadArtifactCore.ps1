@@ -46,7 +46,7 @@ function Invoke-DownloadArtifactCore {
         $tempArchive = "$([System.IO.Path]::GetTempFileName()).zip"
         $tempApp = "$([System.IO.Path]::GetTempFileName()).app"
 
-        $singleFileTargets = @{ rapidstart = ".rapidstart"; fob = ".fob"; bak = ".bak"; saasbak = ".bak" }
+        $singleFileTargets = @{ rapidstart = ".rapidstart"; fob = ".fob" }
 
         $predefinedNuGetPackages = @( $allArtifacts |
             Where-Object { $_.Type -eq 'nuget' } |
@@ -181,7 +181,7 @@ function Invoke-DownloadArtifactCore {
                                 $fileType = 'file'
                                 break
                             }
-                            { $singleFileTargets.ContainsKey("$target".ToLower()) } { #fallback to target
+                            { $singleFileTargets.ContainsKey("$target".ToLower()) } {
                                 $fileType = 'file'
                                 $fileExtension = $singleFileTargets["$target".ToLower()]
                                 break
