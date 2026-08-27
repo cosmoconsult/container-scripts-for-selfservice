@@ -46,6 +46,8 @@ function Invoke-DownloadArtifactCore {
         $tempArchive = "$([System.IO.Path]::GetTempFileName()).zip"
         $tempApp = "$([System.IO.Path]::GetTempFileName()).app"
 
+        $singleFileTargets = @{ rapidstart = ".rapidstart"; fob = ".fob"; bak = ".bak"; saasbak = ".bak" }
+
         $predefinedNuGetPackages = @( $allArtifacts |
             Where-Object { $_.Type -eq 'nuget' } |
             ForEach-Object {
@@ -68,6 +70,7 @@ function Invoke-DownloadArtifactCore {
 
         # Download from given URL
         if (Test-Path "$tempArchive" -ErrorAction SilentlyContinue) { Remove-Item "$tempArchive" -Force -ErrorAction SilentlyContinue }
+        $tempFile = ""
 
         $artifactRequest = $null
         $sourceUri = $url
@@ -148,17 +151,21 @@ function Invoke-DownloadArtifactCore {
 
                         # Determine file type based on Content-Disposition header or content signature
                         $fileType = ''
+                        $fileExtension = ''
                         $contentDisposition = $response.Headers["Content-Disposition"]
                         if ($contentDisposition -is [string[]]) {
                             # If it's an array, take the first element. This is required for compatibility with PowerShell 5.1. Headers are return as array in pwsh 7 and return as string in Windows PowerShell 5.1
                             $contentDisposition = $contentDisposition[0]
                         }
+                        if ("$contentDisposition" -match 'filename\*?="?([^";]+)') {
+                            $fileExtension = [System.IO.Path]::GetExtension($Matches[1].Trim()).ToLower()
+                        }
                         switch ($true) {
-                            { $contentDisposition -and $contentDisposition.EndsWith(".zip") } {
+                            { $fileExtension -eq ".zip" } {
                                 $fileType = 'zip'
                                 break
                             }
-                            { $contentDisposition -and $contentDisposition.EndsWith(".app") } {
+                            { $fileExtension -eq ".app" } {
                                 $fileType = 'app'
                                 break
                             }
@@ -170,6 +177,15 @@ function Invoke-DownloadArtifactCore {
                                 $fileType = 'zip'
                                 break
                             }
+                            { $singleFileTargets.Values -contains $fileExtension } {
+                                $fileType = 'file'
+                                break
+                            }
+                            { $singleFileTargets.ContainsKey("$target".ToLower()) } { #fallback to target
+                                $fileType = 'file'
+                                $fileExtension = $singleFileTargets["$target".ToLower()]
+                                break
+                            }
                             Default {
                                 New-ArtifactsLogEntry -Message "Unknown file type detected" -Severity Warn
                                 $fileType = 'unknown'
@@ -178,6 +194,12 @@ function Invoke-DownloadArtifactCore {
                         switch ($fileType) {
                             'app' {
                                 $destinationPath = $tempApp
+                                $isArchive = $false
+                            }
+                            'file' {
+                                New-ArtifactsLogEntry -Message "Detected single file artifact ($fileExtension)" -Severity Debug
+                                $tempFile = Join-Path ([System.IO.Path]::GetTempPath()) "$([guid]::NewGuid())$fileExtension"
+                                $destinationPath = $tempFile
                                 $isArchive = $false
                             }
                             Default {
@@ -339,6 +361,9 @@ function Invoke-DownloadArtifactCore {
             finally {
                 if (Test-Path $tempArchive) {
                     Remove-Item -Path $tempArchive -Force -ErrorAction SilentlyContinue
+                }
+                if ($tempFile -and (Test-Path $tempFile)) {
+                    Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
                 }
                 $sourceUri = ""
             }
