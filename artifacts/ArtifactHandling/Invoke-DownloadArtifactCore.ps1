@@ -169,16 +169,16 @@ function Invoke-DownloadArtifactCore {
                                 $fileType = 'app'
                                 break
                             }
+                            { $singleFileTargets.Values -contains $fileExtension } {
+                                $fileType = 'file'
+                                break
+                            }
                             { [string]::new([char[]]($response.Content[0..3])) -eq "NAVX" } {
                                 $fileType = 'app'
                                 break
                             }
                             { [string]::new([char[]]($response.Content[0..1])) -eq "PK" } {
                                 $fileType = 'zip'
-                                break
-                            }
-                            { $singleFileTargets.Values -contains $fileExtension } {
-                                $fileType = 'file'
                                 break
                             }
                             { $singleFileTargets.ContainsKey("$target".ToLower()) } {
