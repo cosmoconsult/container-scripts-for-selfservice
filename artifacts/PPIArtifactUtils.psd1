@@ -72,7 +72,7 @@
     FunctionsToExport = 'Get-TelemetryClient', 'Invoke-LogEvent', 'Invoke-LogOperation', 'Invoke-LogError',
     'New-EventTelemetry', 'New-ExceptionTelemetry', 'New-RequestTelemetry', 'Push-Telemetry',
     'Invoke-DownloadArtifact', 'Resolve-DownloadArtifact', 'Invoke-DownloadArtifactAsync', 'Wait-DownloadArtifactAsync', 'Get-AppFilesSortedByDependencies', 'Get-ArtifactsFromEnvironment',
-    'Import-FOBArtifact', 'Import-AppArtifact', 'Import-RIMArtifact', 'Import-Artifacts', 'Import-Fonts', 'Get-ArtifactJson', 'Get-SafeArtifactUri', 'Sync-AppDependencies',
+    'Import-FOBArtifact', 'Import-AppArtifact', 'Import-RIMArtifact', 'Import-Artifacts', 'Import-Fonts', 'Get-ArtifactJson', 'Sync-AppDependencies', 'Get-SafeArtifactUri',
     'Get-AzureDevOpsAccessToken', 'Get-AzureDevOpsApiFeatures',
     'Get-NAVServiceTierFolder', 'Get-NAVRoleTailoredClientFolder', 'Import-NAVModules', 'Wait-NAVTenantReady',
     'Get-ArtifactsLog', 'Add-ArtifactsLog', 'New-ArtifactsLogEntry',
