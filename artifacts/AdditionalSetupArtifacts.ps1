@@ -368,8 +368,8 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
     if ($bak -match '^https?://') {
         $backupUrl = $bak
         $bak = Join-Path -Path $databaseFolder -ChildPath 'saas.bak'
-        Write-Host " - Downloading SaaS DB from $backupUrl to $bak"
-        (New-Object System.Net.WebClient).DownloadFile($backupUrl, $bak)
+        Write-Host " - Downloading SaaS DB from $(Get-SafeArtifactUri -Uri $backupUrl) to $bak"
+        Invoke-WebRequest -Uri $backupUrl -OutFile $bak
     }
 
     if (!(Test-Path -LiteralPath $bak -PathType Leaf) -or (Get-Item -LiteralPath $bak).Length -eq 0) {

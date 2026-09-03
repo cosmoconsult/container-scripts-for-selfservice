@@ -98,7 +98,7 @@ function Invoke-DownloadArtifactCore {
         $isDownload = "$sourceUri".StartsWith("http")
         $isArchive = "$sourceUri".EndsWith(".zip")
         if ($sourceUri -or $isNuGet) {
-            $safeUri = "$sourceUri" -replace '([?&]pat=)[^&]*', '$1***REDACTED***' # hide pat in logs
+            $safeUri = Get-SafeArtifactUri -Uri $sourceUri
             if ($isNuGet) {
                 Write-Host "##[section]Download Artifact from NuGet package $name"
                 New-ArtifactsLogEntry -Message "Download Artifact from NuGet package $name"
