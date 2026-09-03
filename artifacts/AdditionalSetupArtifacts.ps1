@@ -461,6 +461,7 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         Write-Host "   - Sync run $syncCount"
         foreach ($unsyncedApp in $unsyncedApps) {
             Write-Host "Sync $($unsyncedApp.Publisher)_$($unsyncedApp.Name)_$($unsyncedApp.Version) .."
+            Sync-AppDependencies -App $unsyncedApp -ServerInstance $ServerInstance -Tenant $tenantId -SyncMode $SyncMode
             Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue -WarningAction Continue -AppId $($unsyncedApp.AppId)
         }
         $syncCount++;
