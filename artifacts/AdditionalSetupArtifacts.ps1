@@ -365,11 +365,15 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         New-Item -Path $databaseFolder -itemtype Directory | Out-Null
     }
 
-    if ($bak.StartsWith("http")) {
-        $uri = New-Object System.Uri($bak)
-        $bak = Join-Path -Path $databaseFolder -ChildPath $uri.Segments[-1]
-        Write-Host " - Downloading SaaS DB from $bak"
-        Invoke-WebRequest -Uri $uri -OutFile $bak
+    if ($bak -match '^https?://') {
+        $backupUrl = $bak
+        $bak = Join-Path -Path $databaseFolder -ChildPath 'saas.bak'
+        Write-Host " - Downloading SaaS DB from $(Get-SafeArtifactUri -Uri $backupUrl) to $bak"
+        Invoke-WebRequest -Uri $backupUrl -OutFile $bak
+    }
+
+    if (!(Test-Path -LiteralPath $bak -PathType Leaf) -or (Get-Item -LiteralPath $bak).Length -eq 0) {
+        throw "SaaS backup file '$bak' does not exist or is empty."
     }
     
     Write-Host " - Restoring SaaS DB to $databaseFolder"
