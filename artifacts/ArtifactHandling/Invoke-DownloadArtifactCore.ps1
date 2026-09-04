@@ -95,7 +95,7 @@ function Invoke-DownloadArtifactCore {
         }
 
         $isNuGet = $type.ToLower() -eq "nuget"
-        $isDownload = "$sourceUri".StartsWith("http")
+        $isDownload = "$sourceUri" -match '^https?://'
         $isArchive = "$sourceUri".EndsWith(".zip")
         if ($sourceUri -or $isNuGet) {
             $safeUri = Get-SafeArtifactUri -Uri $sourceUri
