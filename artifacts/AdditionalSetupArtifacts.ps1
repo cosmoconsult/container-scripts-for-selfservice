@@ -455,22 +455,31 @@ if (($env:cosmoServiceRestart -eq $false) -and ![string]::IsNullOrEmpty($env:saa
         -Force
 
     Write-Host " - Syncing all apps"
+    $syncCount = 0
     do {
+        $syncCount++
         $unsyncedApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.SyncState -ne "Synced" }
+        Write-Host "   - Sync run $syncCount"
         $unsyncedApps | Sync-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue -WarningAction Continue
-    } while ($unsyncedApps.Count -gt 0)
+    } while ($unsyncedApps.Count -gt 0 -and $syncCount -lt 10)
 
     Write-Host " - Upgrading all apps"
+    $upgradeCount = 0
     do {
+        $upgradeCount++
         $upgradeableApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.NeedsUpgrade -eq $true }
+        Write-Host "   - Upgrade run $upgradeCount"
         $upgradeableApps | Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue
-    } while ($upgradeableApps.Count -gt 0)
+    } while ($upgradeableApps.Count -gt 0 -and $upgradeCount -lt 10)
 
     Write-Host " - Installing all apps"
+    $installCount = 0
     do {
+        $installCount++
         $uninstalledApps = Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $tenantId -TenantSpecificProperties | Where-Object { $_.IsInstalled -eq $false }
+        Write-Host "   - Install run $installCount"
         $uninstalledApps | Install-NAVApp -ServerInstance $ServerInstance -Tenant $tenantId -ErrorAction Continue
-    } while ($uninstalledApps.Count -gt 0)
+    } while ($uninstalledApps.Count -gt 0 -and $installCount -lt 10)
 
     Write-Host " - Syncing new tenant"
     Sync-NavTenant `
