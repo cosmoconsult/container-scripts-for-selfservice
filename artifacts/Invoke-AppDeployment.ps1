@@ -15,7 +15,7 @@ c:\run\prompt.ps1
 try {
     $started = Get-Date -Format "o"
 
-    if ($AppToDeploy -match '^https?://') {
+    if ($AppToDeploy.StartsWith("http")) {
         # given a URL, so need to download
         $basePath = "c:\downloadedBuildArtifacts"
         $headers = @{}

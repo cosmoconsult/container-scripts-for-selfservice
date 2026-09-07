@@ -36,7 +36,7 @@ try {
     $AppsToDeployAsArray = $AppsToDeploy -split ","
     $AppsToDeployAsArray | % {
         $AppToDeploy = $_
-        if ($AppToDeploy -match '^https?://') {
+        if ($AppToDeploy.StartsWith("http")) {
             # given a URL, so need to download
             $basePath = "c:\downloadedBuildArtifacts"
             $headers = @{}
