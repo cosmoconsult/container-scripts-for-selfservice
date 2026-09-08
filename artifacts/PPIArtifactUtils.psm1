@@ -23,6 +23,7 @@
 . (Join-Path $PSScriptRoot "ArtifactHandling/Import-Fonts.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-ArtifactJson.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Sync-AppDependencies.ps1")
+. (Join-Path $PSScriptRoot "ArtifactHandling/Get-SafeArtifactUri.ps1")
 
 # Artifact Azure DevOps functions
 . (Join-Path $PSScriptRoot "ArtifactHandling/AzureDevOps/Get-AzureDevOpsAccessToken.ps1")
