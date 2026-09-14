@@ -23,7 +23,8 @@ function Backup-BCDatabases {
     Param ( 
         [string] $bakFolder,
         [string[]] $tenant,
-        [pscredential] $databasecredential,
+        [string] $serverInstance = "BC",
+        [pscredential] $databaseCredential,
         [switch] $compress
     )
 
@@ -49,29 +50,23 @@ function Backup-BCDatabases {
 
     if ($multitenant) {
         Import-Module (Join-Path (Get-Item "C:\Program Files\Microsoft Dynamics NAV\*\Service").FullName "NavAdminTool.ps1")
-        if (!($tenant)) {
-            $tenant = @(get-navtenant $serverInstance | % { $_.Id }) + "tenant"
+        $tenantInfo = @(Get-NAVTenant -ServerInstance $serverInstance -ErrorAction Stop)
+        if ($tenant) {
+            $requestedTenants = @($tenant)
+            $tenantInfo = @($tenantInfo | Where-Object { $_.Id -in $requestedTenants })
+            $missingTenants = @($requestedTenants | Where-Object { $_ -notin $tenantInfo.Id })
+            if ($missingTenants) {
+                throw "Tenant(s) not found on server instance '$serverInstance': $($missingTenants -join ', ')"
+            }
         }
-        Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "app" -databasecredential $databasecredential -compress:$compress
-        $tenant | ForEach-Object {
-            $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance $_ -ErrorAction SilentlyContinue
-            if ($tenantInfo) {
-                $dbName = $tenantInfo.DatabaseName
-            }
-            else {
-                $tenantInfo = Get-NAVTenant -ServerInstance $serverInstance default -ErrorAction SilentlyContinue
-                if ($tenantInfo) {
-                    $dbName = $tenantInfo.DatabaseName.replace('default', $_)
-                }
-                else {
-                    $dbName = $_
-                }
-            }
-            Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $dbName -bakFolder $bakFolder -bakName $_ -databasecredential $databasecredential -compress:$compress
+        Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "app" -databasecredential $databaseCredential -compress:$compress
+        $tenantInfo | ForEach-Object {
+            $bakName = if ($_.Id -eq "default") { "tenant" } else { $_.Id }
+            Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $_.DatabaseName -bakFolder $bakFolder -bakName $bakName -databasecredential $databaseCredential -compress:$compress
         }
     }
     else {
-        Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database" -databasecredential $databasecredential -compress:$compress
+        Backup-BCDatabaseHelper -ServerInstance $databaseServerInstance -database $DatabaseName -bakFolder $bakFolder -bakName "database" -databasecredential $databaseCredential -compress:$compress
     }
     Write-Host 'backup finished'
 }
