@@ -8,8 +8,10 @@
   The folder to which the .bak files are exported (needs to be shared with the container)
  .Parameter tenant
   The tenant database(s) to export, only applies to multi-tenant containers. Omit to export all tenants.
+ .Parameter serverInstance
+  The SQL Server instance name (default is "BC")
  .Parameter databaseCredential
-  database credentials if using an external sQL Server
+  database credentials if using an external SQL Server
  .Parameter compress
   Compress the database backup. SQL Express doesn't support compression.
  .Example
@@ -23,8 +25,8 @@ function Backup-BCDatabases {
     Param ( 
         [string] $bakFolder,
         [string[]] $tenant,
-        [pscredential] $databaseCredential,
         [string] $serverInstance = "BC",
+        [pscredential] $databaseCredential,
         [switch] $compress
     )
 
