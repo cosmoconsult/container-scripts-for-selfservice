@@ -9,7 +9,7 @@
  .Parameter tenant
   The tenant database(s) to export, only applies to multi-tenant containers. Omit to export all tenants.
  .Parameter serverInstance
-  The SQL Server instance name (default is "BC")
+  The NAV/Business Central service instance name (default is "BC")
  .Parameter databaseCredential
   database credentials if using an external SQL Server
  .Parameter compress
