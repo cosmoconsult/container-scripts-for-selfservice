@@ -23,8 +23,8 @@ function Backup-BCDatabases {
     Param ( 
         [string] $bakFolder,
         [string[]] $tenant,
-        [string] $serverInstance = "BC",
         [pscredential] $databaseCredential,
+        [string] $serverInstance = "BC",
         [switch] $compress
     )
 
