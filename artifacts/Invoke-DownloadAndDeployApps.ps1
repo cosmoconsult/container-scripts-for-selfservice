@@ -5,50 +5,15 @@ param (
     [string]$Type,
     [string]$Name = "",
     [string]$Version = "",
-    [long]$InputLength = 0,
+    [string]$ArtifactPath = "",
     [ValidateSet('Global', 'Tenant')]
     [string]$DeployScope = "Tenant"
 )
 
 c:\run\prompt.ps1
 $targetDir = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName())
-
-function Save-StandardInputToFile {
-    param (
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-        [Parameter(Mandatory = $true)]
-        [long]$Length
-    )
-
-    if ($Length -le 0) {
-        throw "Input length must be greater than zero"
-    }
-
-    $inputStream = [Console]::OpenStandardInput()
-    $outputStream = $null
-    try {
-        $outputStream = [System.IO.File]::Open($Path, [System.IO.FileMode]::CreateNew,
-            [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
-        $buffer = [byte[]]::new(81920)
-        [long]$remaining = $Length
-        while ($remaining -gt 0) {
-            $bytesToRead = [int][Math]::Min($buffer.Length, $remaining)
-            $bytesRead = $inputStream.Read($buffer, 0, $bytesToRead)
-            if ($bytesRead -le 0) {
-                throw "Stream ended with $remaining bytes remaining"
-            }
-
-            $outputStream.Write($buffer, 0, $bytesRead)
-            $remaining -= $bytesRead
-        }
-    }
-    finally {
-        if ($outputStream) {
-            $outputStream.Dispose()
-        }
-    }
-}
+$maxExtractedSize = 1GB
+$maxArchiveEntries = 1000
 
 try {
     $artifactDir = $targetDir
@@ -56,13 +21,36 @@ try {
 
     switch ($Type) {
         'app' {
-            Save-StandardInputToFile -Path (Join-Path $targetDir 'artifact.app') -Length $InputLength
+            if (-not $ArtifactPath) {
+                throw "ArtifactPath is required for app deployments"
+            }
+            $targetPath = Join-Path $targetDir 'artifact.app'
+            Copy-Item -LiteralPath $ArtifactPath -Destination $targetPath -ErrorAction Stop
             break
         }
         'zip' {
+            if (-not $ArtifactPath) {
+                throw "ArtifactPath is required for ZIP deployments"
+            }
             $archivePath = Join-Path $targetDir 'artifact.zip'
-            Save-StandardInputToFile -Path $archivePath -Length $InputLength
-
+            Copy-Item -LiteralPath $ArtifactPath -Destination $archivePath -ErrorAction Stop
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $archive = [System.IO.Compression.ZipFile]::OpenRead($archivePath)
+            try {
+                if ($archive.Entries.Count -gt $maxArchiveEntries) {
+                    throw "ZIP contains more than $maxArchiveEntries entries"
+                }
+                [long]$expandedSize = 0
+                foreach ($entry in $archive.Entries) {
+                    $expandedSize += $entry.Length
+                    if ($expandedSize -gt $maxExtractedSize) {
+                        throw "ZIP expands beyond the $maxExtractedSize byte limit"
+                    }
+                }
+            }
+            finally {
+                $archive.Dispose()
+            }
             $artifactDir = Join-Path $targetDir 'extracted'
             Expand-Archive -Path $archivePath -DestinationPath $artifactDir -Force
             break
@@ -87,8 +75,7 @@ try {
 
     if ($appFiles.Count -eq 0) {
         $artifactName = if ($Name) { "'$Name'" } else { $Type }
-        Write-Host "No .app file found in downloaded artifact $artifactName"
-        return
+        throw "No .app file found in downloaded artifact $artifactName"
     }
 
     $appPaths = ($appFiles | ForEach-Object { $_.FullName }) -join ','
@@ -108,4 +95,7 @@ catch {
 }
 finally {
     Remove-Item -Path $targetDir -Recurse -Force -ErrorAction SilentlyContinue
+    if ($ArtifactPath) {
+        Remove-Item -LiteralPath $ArtifactPath -Force -ErrorAction SilentlyContinue
+    }
 }
