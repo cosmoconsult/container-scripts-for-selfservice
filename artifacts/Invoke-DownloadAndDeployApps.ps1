@@ -6,7 +6,7 @@ param (
     [string]$Name = "",
     [string]$Version = "",
     [string]$ArtifactPath = "",
-    [ValidateSet('Global', 'Tenant')]
+    [ValidateSet('Global', 'Tenant', 'Dev')]
     [string]$DeployScope = "Tenant",
     [ValidateSet('Add', 'ForceSync')]
     [string]$SyncMode = "Add"
