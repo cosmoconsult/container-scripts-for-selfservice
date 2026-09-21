@@ -7,7 +7,9 @@ param (
     [string]$Version = "",
     [string]$ArtifactPath = "",
     [ValidateSet('Global', 'Tenant')]
-    [string]$DeployScope = "Tenant"
+    [string]$DeployScope = "Tenant",
+    [ValidateSet('Add', 'ForceSync')]
+    [string]$SyncMode = "Add"
 )
 
 c:\run\prompt.ps1
@@ -79,7 +81,7 @@ try {
     }
 
     $appPaths = ($appFiles | ForEach-Object { $_.FullName }) -join ','
-    & c:\run\Invoke-AppListDeployment.ps1 -AppsToDeploy $appPaths -Scope $DeployScope
+    & c:\run\Invoke-AppListDeployment.ps1 -AppsToDeploy $appPaths -Scope $DeployScope -SyncMode $SyncMode
 
     $allInstalled = $true
     foreach ($appFile in $appFiles) {

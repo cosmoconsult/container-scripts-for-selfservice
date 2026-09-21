@@ -8,6 +8,8 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet('Global', 'Tenant', 'Dev')]
     [string] $Scope = "Tenant",
+    [ValidateSet('Add', 'ForceSync')]
+    [string] $SyncMode = "Add",
     [string] $ContainerId
 )
 
@@ -117,8 +119,8 @@ try {
             try {
                 $started2 = Get-Date -Format "o"
                 Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
-                Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant "default" -SyncMode "Add"
-                Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant "default" -SyncMode $SyncMode
+                Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                 $info | foreach { Write-Host "$_" }
                 $warn | foreach { Write-Host "$_" }
                 $err  | foreach { Write-Host "$_" }

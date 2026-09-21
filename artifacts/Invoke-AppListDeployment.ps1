@@ -8,6 +8,8 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet('Global', 'Tenant', 'Dev')]
     [string] $Scope = "Tenant",
+    [ValidateSet('Add', 'ForceSync')]
+    [string] $SyncMode = "Add",
     [string] $ContainerId
 )
 
@@ -79,6 +81,8 @@ try {
     # now deploy them
     $orderedApps | % {
         #Write-Host $_
+        c:\run\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -SyncMode $SyncMode -ContainerId $ContainerId 2>&1
+        continue
         c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -Username $Username -Password $Password -ContainerId $ContainerId 2>&1
     }
 }
