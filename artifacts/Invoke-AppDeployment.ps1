@@ -121,7 +121,7 @@ try {
             try {
                 $started2 = Get-Date -Format "o"
                 Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Mode $SyncMode -Force"
-                Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant "default" -SyncMode $SyncMode
+                Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant "default" -SyncMode "Add" #syncmode here should stay Add always for the dependecies, right?
                 Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                 $info | foreach { Write-Host "$_" }
                 $warn | foreach { Write-Host "$_" }
