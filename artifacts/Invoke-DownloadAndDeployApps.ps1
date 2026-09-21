@@ -13,16 +13,19 @@ param (
 )
 
 c:\run\prompt.ps1
+Write-Host "[Deploy] Start Type=$Type Name='$Name' Version='$Version' ArtifactPath='$ArtifactPath' Scope=$DeployScope SyncMode=$SyncMode"
 $targetDir = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName())
 $maxExtractedSize = 1GB
 $maxArchiveEntries = 1000
 
 try {
     $artifactDir = $targetDir
+    Write-Host "[Deploy] Preparing artifact directory '$targetDir'"
     New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
 
     switch ($Type) {
         'app' {
+            Write-Host "[Deploy] Staging APP artifact from '$ArtifactPath'"
             if (-not $ArtifactPath) {
                 throw "ArtifactPath is required for app deployments"
             }
@@ -31,6 +34,7 @@ try {
             break
         }
         'zip' {
+            Write-Host "[Deploy] Staging and extracting ZIP artifact from '$ArtifactPath'"
             if (-not $ArtifactPath) {
                 throw "ArtifactPath is required for ZIP deployments"
             }
@@ -58,6 +62,7 @@ try {
             break
         }
         'nuget' {
+            Write-Host "[Deploy] Downloading NuGet artifact Name='$Name' Version='$Version'"
             Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
             . "c:\run\my\ExtendedEnvironment.ps1"
             try {
@@ -74,6 +79,7 @@ try {
     }
 
     $appFiles = @(Get-ChildItem -Path $artifactDir -Filter *.app -Recurse)
+    Write-Host "[Deploy] Found $($appFiles.Count) app file(s)"
 
     if ($appFiles.Count -eq 0) {
         $artifactName = if ($Name) { "'$Name'" } else { $Type }
@@ -81,6 +87,7 @@ try {
     }
 
     $appPaths = ($appFiles | ForEach-Object { $_.FullName }) -join ','
+    Write-Host "[Deploy] Starting ordered deployment Scope=$DeployScope SyncMode=$SyncMode"
     & c:\run\Invoke-AppListDeployment.ps1 -AppsToDeploy $appPaths -Scope $DeployScope -SyncMode $SyncMode
 
     $allInstalled = $true
@@ -89,7 +96,8 @@ try {
         $deployed = Get-NAVAppInfo -ServerInstance BC -Name $info.Name -Publisher $info.Publisher -Version $info.Version -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue | Select-Object -First 1
         if (-not ($deployed -and $deployed.IsInstalled)) { $allInstalled = $false }
     }
-    if ($allInstalled) { Write-Host 'app deployment verified' }
+    if ($allInstalled) { Write-Host "[Deploy] App deployment verified successfully" }
+    else { Write-Host "[Deploy] App deployment verification failed" }
 }
 catch {
     Write-Host "App deployment failed: $($_.Exception.Message)"

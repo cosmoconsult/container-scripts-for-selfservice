@@ -14,6 +14,7 @@ param (
 )
 
 c:\run\prompt.ps1
+Write-Host "[AppDeployment] Start AppToDeploy='$AppToDeploy' Scope=$Scope SyncMode=$SyncMode ContainerId='$ContainerId'"
 try {
     $started = Get-Date -Format "o"
 
@@ -55,6 +56,7 @@ try {
     $ServerInstance = "BC"
     $Path = $AppToDeploy
     $app = (Get-NAVAppInfo -Path $Path) 
+    Write-Host "[AppDeployment] App='$($app.Name)' Publisher='$($app.Publisher)' Version='$($app.Version)' Scope=$Scope SyncMode=$SyncMode"
 
     if ($Scope -ne 'Dev') {
         # Check if app is already published with another version
@@ -118,7 +120,7 @@ try {
             $skipInstall = ! $success
             try {
                 $started2 = Get-Date -Format "o"
-                Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
+                Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Mode $SyncMode -Force"
                 Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant "default" -SyncMode $SyncMode
                 Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                 $info | foreach { Write-Host "$_" }
