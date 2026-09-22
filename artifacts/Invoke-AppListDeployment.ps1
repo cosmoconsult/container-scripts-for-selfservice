@@ -10,6 +10,7 @@ param (
     [string] $Scope = "Tenant",
     [ValidateSet('Add', 'ForceSync')]
     [string] $SyncMode = "Add",
+    [string] $PublicDnsName = "",
     [string] $ContainerId
 )
 
@@ -84,6 +85,8 @@ try {
     $orderedApps | % {
         #Write-Host $_
         Write-Host "[AppList] Deploying '$($_.Path)' with Scope=$Scope SyncMode=$SyncMode"
+        c:\run\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -SyncMode $SyncMode -PublicDnsName $PublicDnsName -ContainerId $ContainerId 2>&1
+        continue
         c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -SyncMode $SyncMode -Username $Username -Password $Password -ContainerId $ContainerId 2>&1
     }
 }

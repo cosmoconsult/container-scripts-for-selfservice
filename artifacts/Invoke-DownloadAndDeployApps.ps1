@@ -9,7 +9,8 @@ param (
     [ValidateSet('Global', 'Tenant', 'Dev')]
     [string]$DeployScope = "Tenant",
     [ValidateSet('Add', 'ForceSync')]
-    [string]$SyncMode = "Add"
+    [string]$SyncMode = "Add",
+    [string]$PublicDnsName = ""
 )
 
 c:\run\prompt.ps1
@@ -28,6 +29,13 @@ try {
             Write-Host "[Deploy] Staging APP artifact from '$ArtifactPath'"
             if (-not $ArtifactPath) {
                 throw "ArtifactPath is required for app deployments"
+            }
+            $artifactFolder = Split-Path -Parent $ArtifactPath
+            New-Item -ItemType Directory -Force -Path $artifactFolder | Out-Null
+            Write-Host "[Deploy] Ensured artifact directory '$artifactFolder'"
+            for ($attempt = 1; $attempt -le 10 -and -not (Test-Path -LiteralPath $ArtifactPath); $attempt++) {
+                Write-Host "[Deploy] Waiting for staged artifact (attempt $attempt/10)"
+                Start-Sleep -Milliseconds 500
             }
             $targetPath = Join-Path $targetDir 'artifact.app'
             Copy-Item -LiteralPath $ArtifactPath -Destination $targetPath -ErrorAction Stop
@@ -88,7 +96,7 @@ try {
 
     $appPaths = ($appFiles | ForEach-Object { $_.FullName }) -join ','
     Write-Host "[Deploy] Starting ordered deployment Scope=$DeployScope SyncMode=$SyncMode"
-    & c:\run\Invoke-AppListDeployment.ps1 -AppsToDeploy $appPaths -Scope $DeployScope -SyncMode $SyncMode
+    & c:\run\Invoke-AppListDeployment.ps1 -AppsToDeploy $appPaths -Scope $DeployScope -SyncMode $SyncMode -PublicDnsName $PublicDnsName
 
     $allInstalled = $true
     foreach ($appFile in $appFiles) {

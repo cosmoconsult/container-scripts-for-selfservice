@@ -10,6 +10,7 @@ param (
     [string] $Scope = "Tenant",
     [ValidateSet('Add', 'ForceSync')]
     [string] $SyncMode = "Add",
+    [string] $PublicDnsName = "",
     [string] $ContainerId
 )
 
@@ -198,7 +199,7 @@ try {
         $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64)
         $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
         $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
-        $devServerUrl = "https://fps-alpaca.westeurope.cloudapp.azure.com/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+        $devServerUrl = "https://$PublicDnsName/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
 
         $appName = [System.IO.Path]::GetFileName($Path)      
         $multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
