@@ -8,10 +8,14 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet('Global', 'Tenant', 'Dev')]
     [string] $Scope = "Tenant",
+    [ValidateSet('Add', 'ForceSync')]
+    [string] $SyncMode = "Add",
+    [string] $PublicDnsName = "",
     [string] $ContainerId
 )
 
 c:\run\prompt.ps1
+Write-Host "[AppList] Start Scope=$Scope SyncMode=$SyncMode ContainerId='$ContainerId'"
 $ppiau = Get-Module -Name PPIArtifactUtils
 if (-not $ppiau) {
     if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
@@ -75,11 +79,15 @@ try {
 
     # all apps should be in the folder, now order
     $orderedApps = Get-AppFilesSortedByDependencies -Path $tempFullPath
+    Write-Host "[AppList] Ordered $($orderedApps.Count) app(s) for deployment"
 
     # now deploy them
     $orderedApps | % {
         #Write-Host $_
-        c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -Username $Username -Password $Password -ContainerId $ContainerId 2>&1
+        Write-Host "[AppList] Deploying '$($_.Path)' with Scope=$Scope SyncMode=$SyncMode"
+        c:\run\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -SyncMode $SyncMode -PublicDnsName $PublicDnsName -ContainerId $ContainerId 2>&1
+        continue
+        c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -SyncMode $SyncMode -Username $Username -Password $Password -ContainerId $ContainerId 2>&1
     }
 }
 catch {

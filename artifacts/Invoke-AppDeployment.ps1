@@ -8,10 +8,14 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet('Global', 'Tenant', 'Dev')]
     [string] $Scope = "Tenant",
+    [ValidateSet('Add', 'ForceSync')]
+    [string] $SyncMode = "Add",
+    [string] $PublicDnsName = "",
     [string] $ContainerId
 )
 
 c:\run\prompt.ps1
+Write-Host "[AppDeployment] Start AppToDeploy='$AppToDeploy' Scope=$Scope SyncMode=$SyncMode ContainerId='$ContainerId'"
 try {
     $started = Get-Date -Format "o"
 
@@ -53,6 +57,7 @@ try {
     $ServerInstance = "BC"
     $Path = $AppToDeploy
     $app = (Get-NAVAppInfo -Path $Path) 
+    Write-Host "[AppDeployment] App='$($app.Name)' Publisher='$($app.Publisher)' Version='$($app.Version)' Scope=$Scope SyncMode=$SyncMode"
 
     if ($Scope -ne 'Dev') {
         # Check if app is already published with another version
@@ -116,9 +121,9 @@ try {
             $skipInstall = ! $success
             try {
                 $started2 = Get-Date -Format "o"
-                Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
-                Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant "default" -SyncMode "Add"
-                Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Mode $SyncMode -Force"
+                Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant "default" -SyncMode "Add" #syncmode here should stay Add always for the dependecies, right?
+                Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                 $info | foreach { Write-Host "$_" }
                 $warn | foreach { Write-Host "$_" }
                 $err  | foreach { Write-Host "$_" }
@@ -194,7 +199,7 @@ try {
         $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64)
         $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
         $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
-        $devServerUrl = "https://fps-alpaca.westeurope.cloudapp.azure.com/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
+        $devServerUrl = "https://$PublicDnsName/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
 
         $appName = [System.IO.Path]::GetFileName($Path)      
         $multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
