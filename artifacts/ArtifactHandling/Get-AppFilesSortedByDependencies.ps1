@@ -3,7 +3,7 @@ function Get-AppFilesSortedByDependencies {
     param(
         [string] $Path,
         [string] $Filter = "*.app",
-        [string[]] $ExcludeExpr = $env:AppExcludeExpr,        
+        [string[]] $ExcludeExpr = $env:AppExcludeExpr,
         [bool] $Distinct = $true,
         [Parameter(Mandatory = $false)]
         $Depth
@@ -106,7 +106,9 @@ function Get-AppFilesSortedByDependencies {
             $FinalResult = AddToDependencyTree -App $_ -DependencyArray $FinalResult -AppCollection $AllApps -Order $AllApps.Count
         }
 
-        $FinalResult = $FinalResult | Sort-Object ProcessOrder
+        # Sort the final result by the process order and keep original order within each group
+        $FinalResult = $FinalResult | Group-Object ProcessOrder | Sort-Object { [int]$_.Name } | Select-Object -ExpandProperty Group
+        # Update the Application app's AppId to the original one after sorting
         $FinalResult | Where-Object { $_.Name -eq "Application" } | Foreach-Object { $_.AppId = $ApplicationAppId }
         return $FinalResult
     }
