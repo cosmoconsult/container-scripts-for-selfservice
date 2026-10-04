@@ -36,7 +36,9 @@ function Get-TenantAppInfo {
 function Invoke-DevelopmentDeployment {
     param (
         [Parameter(Mandatory = $true)]
-        [string]$Path
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [object]$PackageApp
     )
 
     if ([string]::IsNullOrWhiteSpace($PublicDnsName) -or [string]::IsNullOrWhiteSpace($ContainerId) -or
@@ -47,7 +49,10 @@ function Invoke-DevelopmentDeployment {
     $schemaUpdateMode = if ($SyncMode -eq 'ForceSync') { 'forcesync' } else { 'synchronize' }
     $endpoint = "https://$PublicDnsName/$($ContainerId)dev/dev/apps?SchemaUpdateMode=$schemaUpdateMode&tenant=$tenant"
     Write-Host "[AppDeploymentV2] Publishing to the development endpoint with schema mode '$schemaUpdateMode'"
-    $handler = [System.Net.Http.HttpClientHandler]::new()
+
+    Import-Module 'C:\run\helper\k8s-bc-helper.psd1'
+    Add-Type -AssemblyName System.Net.Http -ErrorAction Stop
+    $handler = New-Object System.Net.Http.HttpClientHandler
     $client = [System.Net.Http.HttpClient]::new($handler)
     $fileStream = [System.IO.File]::OpenRead($Path)
     $content = [System.Net.Http.MultipartFormDataContent]::new()
@@ -85,7 +90,7 @@ try {
     Write-Host "[AppDeploymentV2] Deploying '$($packageApp.Name)' $($packageApp.Version) with scope '$Scope'"
 
     if ($Scope -eq 'Dev') {
-        Invoke-DevelopmentDeployment -Path $AppPath
+        Invoke-DevelopmentDeployment -Path $AppPath -PackageApp $packageApp
         Write-Host "[AppDeploymentV2] Dev deployment of '$($packageApp.Name)' succeeded"
         return
     }

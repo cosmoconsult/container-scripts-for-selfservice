@@ -72,8 +72,13 @@ try {
             Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force
             . 'C:\run\my\ExtendedEnvironment.ps1'
             Write-Host "[DeployV2] Downloading NuGet package '$Name' version '$Version'"
-            Install-NuGetTools
-            Initialize-NuGetFeeds
+            try {
+                Install-NuGetTools
+                Initialize-NuGetFeeds
+            }
+            catch {
+                Write-Host "[DeployV2] NuGet feed initialization warning: $($_.Exception.Message)"
+            }
             Invoke-DownloadArtifact -Name $Name -Version $Version -Type nuget -Destination $workingDirectory
         }
         'app' {
