@@ -13,6 +13,8 @@ param (
     [string]$ContainerPassword = ''
 )
 
+C:\run\prompt.ps1
+
 $serverInstance = 'BC'
 $tenant = 'default'
 

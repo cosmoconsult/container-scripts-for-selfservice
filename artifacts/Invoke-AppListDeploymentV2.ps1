@@ -13,6 +13,8 @@ param (
     [string]$ContainerPassword = ''
 )
 
+C:\run\prompt.ps1
+
 try {
     if (-not (Test-Path -LiteralPath $AppDirectory -PathType Container)) {
         throw "App directory '$AppDirectory' does not exist"

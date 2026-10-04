@@ -16,6 +16,8 @@ param (
     [string]$ContainerPassword = ''
 )
 
+C:\run\prompt.ps1
+
 $maximumArchiveEntries = 1000
 $maximumExtractedSize = 1GB
 $workingDirectory = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName())
