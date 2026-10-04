@@ -22,15 +22,15 @@ function Sync-AppDependencies {
         }
 
         foreach ($dependency in @($App.Dependencies)) {
-            $dependencyApp = Get-NAVAppInfo `
+            $dependencyApps = @(Get-NAVAppInfo `
                 -ServerInstance $ServerInstance `
                 -Tenant $Tenant `
                 -TenantSpecificProperties `
                 -Id $dependency.AppId `
                 -ErrorAction SilentlyContinue |
                 Where-Object { [version]$_.Version -ge [version]$dependency.MinVersion } |
-                Sort-Object { [version]$_.Version } -Descending |
-                Select-Object -First 1
+                Sort-Object { [version]$_.Version } -Descending)
+            $dependencyApp = $dependencyApps[0]
 
             if (-not $dependencyApp) {
                 continue

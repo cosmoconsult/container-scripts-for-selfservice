@@ -101,15 +101,21 @@ try {
     $allInstalled = $true
     foreach ($appFile in $appFiles) {
         $info = Get-NAVAppInfo -Path $appFile.FullName
-        $deployed = Get-NAVAppInfo -ServerInstance BC -Name $info.Name -Publisher $info.Publisher -Version $info.Version -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue | Select-Object -First 1
-        if (-not ($deployed -and $deployed.IsInstalled)) { $allInstalled = $false }
+        $deployed = Get-NAVAppInfo -ServerInstance BC -Id $info.AppId -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue |
+            Where-Object { $_.IsInstalled -and [System.Version]$_.Version -ge [System.Version]$info.Version } |
+            Sort-Object { [System.Version]$_.Version } -Descending |
+            Select-Object -First 1
+        if (-not $deployed) {
+            Write-Host "[Deploy] App '$($info.Name)' version $($info.Version) is not installed for tenant 'default'"
+            $allInstalled = $false
+        }
     }
     if ($allInstalled) { Write-Host "[Deploy] App deployment verified successfully" }
-    else { Write-Host "[Deploy] App deployment verification failed" }
+    else { throw "[Deploy] App deployment verification failed: one or more apps are not installed" }
 }
 catch {
     Write-Host "App deployment failed: $($_.Exception.Message)"
-    throw
+    exit 1
 }
 finally {
     Remove-Item -Path $targetDir -Recurse -Force -ErrorAction SilentlyContinue

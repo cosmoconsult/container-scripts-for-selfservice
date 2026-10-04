@@ -82,16 +82,14 @@ try {
     Write-Host "[AppList] Ordered $($orderedApps.Count) app(s) for deployment"
 
     # now deploy them
-    $orderedApps | % {
-        #Write-Host $_
-        Write-Host "[AppList] Deploying '$($_.Path)' with Scope=$Scope SyncMode=$SyncMode"
-        c:\run\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -SyncMode $SyncMode -PublicDnsName $PublicDnsName -ContainerId $ContainerId 2>&1
-        continue
-        c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -SyncMode $SyncMode -Username $Username -Password $Password -ContainerId $ContainerId 2>&1
+    foreach ($orderedApp in $orderedApps) {
+        Write-Host "[AppList] Deploying '$($orderedApp.Path)' with Scope=$Scope SyncMode=$SyncMode"
+        & c:\run\Invoke-AppDeployment.ps1 -AppToDeploy $orderedApp.Path -Scope $Scope -SyncMode $SyncMode -PublicDnsName $PublicDnsName -ContainerId $ContainerId 2>&1
     }
 }
 catch {
-    Write-Host "$_"
+    Write-Host "[AppList] App deployment failed: $_"
+    throw
 }
 finally {
     if (Test-Path $tempFullPath) {
