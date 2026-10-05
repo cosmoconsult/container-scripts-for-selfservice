@@ -34,8 +34,8 @@ $moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
 
 $forEachOutputScriptBlock = { $_ }
 
-if ($bcVersion -and $bcVersion.Major -ge 28) {
-    # For BC28 and higher, we also override Get-NAVAppInfo to handle deserialized values in its output
+if ($bcVersion -and $bcVersion.Major -ge 27) {
+    # For BC27 and higher, we also override Get-NAVAppInfo to handle deserialized values in its output
     # The returned deserialized object for the AppId can not be passed directly to other NAV App cmdlets because they expect a Guid
     $commandNamesForAppManagement += 'Get-NAVAppInfo'
 
