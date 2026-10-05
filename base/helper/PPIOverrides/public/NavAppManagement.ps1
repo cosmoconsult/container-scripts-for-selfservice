@@ -34,10 +34,8 @@ $moduleImportScriptBlock = { c:\run\prompt.ps1 -silent }
 
 $forEachOutputScriptBlock = { $_ }
 
-if ($bcVersion.Major -ge 29) {
-    $commandNamesForManagement += 'Sync-NAVTenant'
-
-    # For BC29 and higher, we will also override Get-NAVAppInfo to handle issues with the returned AppId
+if ($bcVersion -and $bcVersion.Major -ge 28) {
+    # For BC28 and higher, we also override Get-NAVAppInfo to handle deserialized values in its output
     # The returned deserialized object for the AppId can not be passed directly to other NAV App cmdlets because they expect a Guid
     $commandNamesForAppManagement += 'Get-NAVAppInfo'
 
@@ -60,6 +58,10 @@ if ($bcVersion.Major -ge 29) {
 
         return $object
     }
+}
+
+if ($bcVersion.Major -ge 29) {
+    $commandNamesForManagement += 'Sync-NAVTenant'
 }
 
 $commandNamesForAppManagement | ForEach-Object {
