@@ -133,6 +133,7 @@ try {
     Write-Host "[AppDeployment] Synchronizing schema with mode '$SyncMode'"
     $syncErrors = @()
     try {
+        Sync-AppDependencies -App $packageApp -ServerInstance $serverInstance -Tenant $tenant -SyncMode $SyncMode
         Sync-NAVApp -ServerInstance $serverInstance -Name $packageApp.Name -Publisher $packageApp.Publisher `
             -Version $packageApp.Version -Tenant $tenant -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable syncErrors
     }
