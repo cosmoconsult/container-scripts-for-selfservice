@@ -14,9 +14,11 @@ $directory = Split-Path -Path $Path -Parent
 New-Item -Path $directory -ItemType Directory -Force | Out-Null
 
 $inputStream = [Console]::OpenStandardInput()
+$outputCreated = $false
 try {
     $outputStream = [System.IO.File]::Open($Path, [System.IO.FileMode]::CreateNew,
             [System.IO.FileAccess]::Write, [System.IO.FileShare]::None)
+    $outputCreated = $true
     try {
         $buffer = [byte[]]::new(81920)
         [long]$remaining = $Length
@@ -36,6 +38,8 @@ try {
     }
 }
 catch {
-    Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+    if ($outputCreated) {
+        Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+    }
     throw
 }
