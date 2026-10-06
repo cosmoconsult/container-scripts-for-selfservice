@@ -98,7 +98,10 @@ try {
     $existingApps = @(Get-TenantAppInfo -AppId $packageApp.AppId)
     $installedApps = @($existingApps | Where-Object { $_.IsInstalled } | Sort-Object { [Version]$_.Version } -Descending)
     $installedApp = $installedApps[0]
-    if ($installedApp -and [Version]$installedApp.Version -ge [Version]$packageApp.Version) {
+    $hasPendingDataUpgrade = $installedApp -and ($installedApp.NeedsUpgrade -or
+        ($installedApp.ExtensionDataVersion -and [Version]$installedApp.ExtensionDataVersion -lt [Version]$installedApp.Version))
+    if ($installedApp -and ([Version]$installedApp.Version -gt [Version]$packageApp.Version -or
+        ([Version]$installedApp.Version -eq [Version]$packageApp.Version -and -not $hasPendingDataUpgrade))) {
         Write-Host "[AppDeployment] '$($packageApp.Name)' version $($installedApp.Version) is already installed"
         return
     }
@@ -142,7 +145,9 @@ try {
         throw "App '$($packageApp.Name)' version $($packageApp.Version) was not synchronized"
     }
 
-    $requiresDataUpgrade = $installedApp -and [Version]$installedApp.Version -lt [Version]$packageApp.Version
+    $requiresDataUpgrade = $installedApp -and (
+        [Version]$installedApp.Version -lt [Version]$packageApp.Version -or
+        ([Version]$installedApp.Version -eq [Version]$packageApp.Version -and $hasPendingDataUpgrade))
 
     if ($requiresDataUpgrade) {
         Write-Host "[AppDeployment] Starting data upgrade from version $($installedApp.Version)"
