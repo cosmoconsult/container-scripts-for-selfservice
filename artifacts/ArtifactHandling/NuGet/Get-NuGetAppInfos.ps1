@@ -96,7 +96,7 @@ function Get-NuGetAppInfos {
             $pwshCoreAppInfos = @(Invoke-CommandInPwshCore `
                 -ScriptBlock $pwshCoreScriptBlock `
                 -ArgumentList $AppFilesPath `
-                -UseRemoteSession ($bcVersion.Major -lt 28)) # see /base/helper/PPIOverrides/public/NavAppManagement.ps1
+                -UseRemoteSession ($bcVersion.Major -lt 27)) # see /base/helper/PPIOverrides/public/NavAppManagement.ps1
             foreach ($appInfo in $pwshCoreAppInfos) {
                 $pwshCoreAppInfoObjs[[string]$appInfo.Path] = $appInfo
             }
