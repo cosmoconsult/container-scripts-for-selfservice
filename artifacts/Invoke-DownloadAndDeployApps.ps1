@@ -3,122 +3,142 @@ param (
     [Parameter(Mandatory = $true)]
     [ValidateSet('nuget', 'app', 'zip')]
     [string]$Type,
-    [string]$Name = "",
-    [string]$Version = "",
-    [string]$ArtifactPath = "",
+    [string]$Name = '',
+    [string]$Version = '',
+    [string]$ArtifactPath = '',
     [ValidateSet('Global', 'Tenant', 'Dev')]
-    [string]$DeployScope = "Tenant",
+    [string]$DeployScope = 'Tenant',
     [ValidateSet('Add', 'ForceSync')]
-    [string]$SyncMode = "Add",
-    [string]$PublicDnsName = ""
+    [string]$SyncMode = 'Add',
+    [string]$PublicDnsName = '',
+    [string]$ContainerId = '',
+    [string]$ContainerUser = '',
+    [string]$ContainerPassword = ''
 )
 
-c:\run\prompt.ps1
-Write-Host "[Deploy] Start Type=$Type Name='$Name' Version='$Version' ArtifactPath='$ArtifactPath' Scope=$DeployScope SyncMode=$SyncMode"
-$targetDir = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName())
-$maxExtractedSize = 1GB
-$maxArchiveEntries = 1000
+C:\run\prompt.ps1
+
+$maximumArchiveEntries = 1000
+$maximumExtractedSize = 1GB
+$workingDirectory = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName())
+
+function Expand-AppArchive {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$ArchivePath,
+        [Parameter(Mandatory = $true)]
+        [string]$DestinationPath
+    )
+
+    Add-Type -AssemblyName System.IO.Compression.FileSystem
+    $archive = [System.IO.Compression.ZipFile]::OpenRead($ArchivePath)
+    try {
+        if ($archive.Entries.Count -gt $maximumArchiveEntries) {
+            throw "ZIP contains more than $maximumArchiveEntries entries"
+        }
+
+        [long]$expandedSize = 0
+        $destinationRoot = [System.IO.Path]::GetFullPath($DestinationPath).TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+        foreach ($entry in $archive.Entries) {
+            $expandedSize += $entry.Length
+            if ($expandedSize -gt $maximumExtractedSize) {
+                throw "ZIP expands beyond the $maximumExtractedSize byte limit"
+            }
+
+            $entryPath = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $entry.FullName))
+            if (-not $entryPath.StartsWith($destinationRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+                throw "ZIP entry '$($entry.FullName)' is outside the destination directory"
+            }
+        }
+    }
+    finally {
+        $archive.Dispose()
+    }
+
+    Expand-Archive -LiteralPath $ArchivePath -DestinationPath $DestinationPath -Force
+}
 
 try {
-    $artifactDir = $targetDir
-    Write-Host "[Deploy] Preparing artifact directory '$targetDir'"
-    New-Item -Path $targetDir -ItemType Directory -Force | Out-Null
+    New-Item -Path $workingDirectory -ItemType Directory -Force | Out-Null
+    $appDirectory = $workingDirectory
+    Write-Host "[Deploy] Preparing $Type deployment with scope '$DeployScope'"
 
     switch ($Type) {
-        'app' {
-            Write-Host "[Deploy] Staging APP artifact from '$ArtifactPath'"
-            if (-not $ArtifactPath) {
-                throw "ArtifactPath is required for app deployments"
-            }
-            $artifactFolder = Split-Path -Parent $ArtifactPath
-            New-Item -ItemType Directory -Force -Path $artifactFolder | Out-Null
-            Write-Host "[Deploy] Ensured artifact directory '$artifactFolder'"
-            for ($attempt = 1; $attempt -le 10 -and -not (Test-Path -LiteralPath $ArtifactPath); $attempt++) {
-                Write-Host "[Deploy] Waiting for staged artifact (attempt $attempt/10)"
-                Start-Sleep -Milliseconds 500
-            }
-            $targetPath = Join-Path $targetDir 'artifact.app'
-            Copy-Item -LiteralPath $ArtifactPath -Destination $targetPath -ErrorAction Stop
-            break
-        }
-        'zip' {
-            Write-Host "[Deploy] Staging and extracting ZIP artifact from '$ArtifactPath'"
-            if (-not $ArtifactPath) {
-                throw "ArtifactPath is required for ZIP deployments"
-            }
-            $archivePath = Join-Path $targetDir 'artifact.zip'
-            Copy-Item -LiteralPath $ArtifactPath -Destination $archivePath -ErrorAction Stop
-            Add-Type -AssemblyName System.IO.Compression.FileSystem
-            $archive = [System.IO.Compression.ZipFile]::OpenRead($archivePath)
-            try {
-                if ($archive.Entries.Count -gt $maxArchiveEntries) {
-                    throw "ZIP contains more than $maxArchiveEntries entries"
-                }
-                [long]$expandedSize = 0
-                foreach ($entry in $archive.Entries) {
-                    $expandedSize += $entry.Length
-                    if ($expandedSize -gt $maxExtractedSize) {
-                        throw "ZIP expands beyond the $maxExtractedSize byte limit"
-                    }
-                }
-            }
-            finally {
-                $archive.Dispose()
-            }
-            $artifactDir = Join-Path $targetDir 'extracted'
-            Expand-Archive -Path $archivePath -DestinationPath $artifactDir -Force
-            break
-        }
         'nuget' {
-            Write-Host "[Deploy] Downloading NuGet artifact Name='$Name' Version='$Version'"
-            Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
-            . "c:\run\my\ExtendedEnvironment.ps1"
+            if ([string]::IsNullOrWhiteSpace($Name)) {
+                throw 'Name is required for NuGet deployments'
+            }
+
+            Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force
+            . 'C:\run\my\ExtendedEnvironment.ps1'
+            Write-Host "[Deploy] Downloading NuGet package '$Name' version '$Version'"
             try {
                 Install-NuGetTools
                 Initialize-NuGetFeeds
             }
             catch {
-                Write-Host "NuGet feed initialization warning: $($_.Exception.Message)"
+                Write-Host "[Deploy] NuGet feed initialization warning: $($_.Exception.Message)"
+            }
+            Invoke-DownloadArtifact -Name $Name -Version $Version -Type nuget -Destination $workingDirectory
+        }
+        'app' {
+            if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
+                throw "App artifact '$ArtifactPath' does not exist"
             }
 
-            Invoke-DownloadArtifact -Name $Name -Version $Version -Type nuget -Destination $targetDir
-            break
+            Write-Host '[Deploy] Copying staged app artifact'
+            Copy-Item -LiteralPath $ArtifactPath -Destination (Join-Path $workingDirectory 'artifact.app') -ErrorAction Stop
+        }
+        'zip' {
+            if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
+                throw "ZIP artifact '$ArtifactPath' does not exist"
+            }
+
+            $archivePath = Join-Path $workingDirectory 'artifact.zip'
+            $appDirectory = Join-Path $workingDirectory 'apps'
+            Write-Host '[Deploy] Validating and extracting staged ZIP artifact'
+            Copy-Item -LiteralPath $ArtifactPath -Destination $archivePath -ErrorAction Stop
+            Expand-AppArchive -ArchivePath $archivePath -DestinationPath $appDirectory
         }
     }
 
-    $appFiles = @(Get-ChildItem -Path $artifactDir -Filter *.app -Recurse)
-    Write-Host "[Deploy] Found $($appFiles.Count) app file(s)"
-
+    $appFiles = @(Get-ChildItem -LiteralPath $appDirectory -Filter '*.app' -Recurse -File)
     if ($appFiles.Count -eq 0) {
-        $artifactName = if ($Name) { "'$Name'" } else { $Type }
-        throw "No .app file found in downloaded artifact $artifactName"
+        throw "No .app files found for $Type deployment"
     }
 
-    $appPaths = ($appFiles | ForEach-Object { $_.FullName }) -join ','
-    Write-Host "[Deploy] Starting ordered deployment Scope=$DeployScope SyncMode=$SyncMode"
-    & c:\run\Invoke-AppListDeployment.ps1 -AppsToDeploy $appPaths -Scope $DeployScope -SyncMode $SyncMode -PublicDnsName $PublicDnsName
+    Write-Host "[Deploy] Found $($appFiles.Count) app(s); starting ordered deployment with sync mode '$SyncMode'"
+    & 'C:\run\Invoke-AppListDeployment.ps1' `
+        -AppDirectory $appDirectory `
+        -Scope $DeployScope `
+        -SyncMode $SyncMode `
+        -PublicDnsName $PublicDnsName `
+        -ContainerId $ContainerId `
+        -ContainerUser $ContainerUser `
+        -ContainerPassword $ContainerPassword
 
-    $allInstalled = $true
-    foreach ($appFile in $appFiles) {
-        $info = Get-NAVAppInfo -Path $appFile.FullName
-        $deployed = Get-NAVAppInfo -ServerInstance BC -Id $info.AppId -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue |
-            Where-Object { $_.IsInstalled -and [System.Version]$_.Version -ge [System.Version]$info.Version } |
-            Sort-Object { [System.Version]$_.Version } -Descending |
-            Select-Object -First 1
-        if (-not $deployed) {
-            Write-Host "[Deploy] App '$($info.Name)' version $($info.Version) is not installed for tenant 'default'"
-            $allInstalled = $false
+    if ($DeployScope -ne 'Dev') {
+        Write-Host '[Deploy] Verifying installed app state'
+        foreach ($appFile in $appFiles) {
+            $packageApp = Get-NAVAppInfo -Path $appFile.FullName
+            $installedApps = @(Get-NAVAppInfo -ServerInstance BC -Id $packageApp.AppId -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue |
+                Where-Object { $_.IsInstalled -and [System.Version]$_.Version -ge [System.Version]$packageApp.Version } |
+                Sort-Object { [System.Version]$_.Version } -Descending)
+            if (-not $installedApps[0]) {
+                throw "App '$($packageApp.Name)' version $($packageApp.Version) is not installed for tenant 'default'"
+            }
         }
     }
-    if ($allInstalled) { Write-Host "[Deploy] App deployment verified successfully" }
-    else { throw "[Deploy] App deployment verification failed: one or more apps are not installed" }
+
+    Write-Host 'App deployment verified successfully'
 }
 catch {
     Write-Host "App deployment failed: $($_.Exception.Message)"
-    exit 1
+    throw
 }
 finally {
-    Remove-Item -Path $targetDir -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Host '[Deploy] Cleaning up deployment files'
+    Remove-Item -LiteralPath $workingDirectory -Recurse -Force -ErrorAction SilentlyContinue
     if ($ArtifactPath) {
         Remove-Item -LiteralPath $ArtifactPath -Force -ErrorAction SilentlyContinue
     }

@@ -1,273 +1,172 @@
 [CmdletBinding()]
 param (
-    [string]$AppToDeploy,
-    [string]$Username,
-    [string]$Password,
-    [string]$BearerToken = "",
-    [string]$PathInZip = "",
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $true)]
+    [ValidateNotNullOrEmpty()]
+    [string]$AppPath,
     [ValidateSet('Global', 'Tenant', 'Dev')]
-    [string] $Scope = "Tenant",
+    [string]$Scope = 'Tenant',
     [ValidateSet('Add', 'ForceSync')]
-    [string] $SyncMode = "Add",
-    [string] $PublicDnsName = "",
-    [string] $ContainerId
+    [string]$SyncMode = 'Add',
+    [string]$PublicDnsName = '',
+    [string]$ContainerId = '',
+    [string]$ContainerUser = '',
+    [string]$ContainerPassword = ''
 )
 
-c:\run\prompt.ps1
-Write-Host "[AppDeployment] Start AppToDeploy='$AppToDeploy' Scope=$Scope SyncMode=$SyncMode ContainerId='$ContainerId'"
-try {
-    $started = Get-Date -Format "o"
+C:\run\prompt.ps1
 
-    if ($AppToDeploy -match '^https?://') {
-        # given a URL, so need to download
-        $basePath = "c:\downloadedBuildArtifacts"
-        $headers = @{}
-        $headers.Add("authorization", "Bearer $BearerToken")
-        if (-not (Test-Path $basePath)) {
-            New-Item "$basePath" -ItemType Directory | Out-Null
-        }
-        $subfolder = $([convert]::tostring((get-random 65535), 16).padleft(8, '0'))
-        $folder = Join-Path $basePath $subfolder
-        New-Item "$folder" -ItemType Directory | Out-Null
-        $filename = "downloadedapp.app"
-        if ($AppToDeploy.EndsWith("zip")) {
-            $filename = "downloadedapp.zip"
-        }
-        $fullPath = Join-Path $folder $filename
-        Invoke-WebRequest -Uri $AppToDeploy -Method GET -Headers $headers -OutFile $fullPath
-        if (-not (Test-Path $fullPath)) {
-            Write-Host "Failed to download the file from $AppToDeploy"
-            exit
-        }
+$serverInstance = 'BC'
+$tenant = 'default'
 
-        if ($AppToDeploy.EndsWith("zip")) {
-            Expand-Archive $fullPath -DestinationPath $folder
-            $AppToDeploy = Join-Path $folder $PathInZip
-            if (-not (Test-Path $AppToDeploy)) {
-                Write-Host "Couldn't find $PathInZip in $AppToDeploy"
-                exit
-            }
-        }
-        else {
-            $AppToDeploy = $fullPath
+function Get-TenantAppInfo {
+    param (
+        [Parameter(Mandatory = $true)]
+        [Guid]$AppId,
+        [Version]$Version
+    )
+
+    $apps = @(Get-NAVAppInfo -ServerInstance $serverInstance -Id $AppId -Tenant $tenant -TenantSpecificProperties -ErrorAction SilentlyContinue)
+    if ($Version) {
+        return @($apps | Where-Object { [Version]$_.Version -eq $Version })[0]
+    }
+
+    return $apps
+}
+
+function Invoke-DevelopmentDeployment {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$Path,
+        [Parameter(Mandatory = $true)]
+        [object]$PackageApp
+    )
+
+    if ([string]::IsNullOrWhiteSpace($PublicDnsName) -or [string]::IsNullOrWhiteSpace($ContainerId) -or
+        [string]::IsNullOrWhiteSpace($ContainerUser) -or [string]::IsNullOrWhiteSpace($ContainerPassword)) {
+        throw 'Dev deployment requires PublicDnsName, ContainerId, ContainerUser, and ContainerPassword'
+    }
+
+    $schemaUpdateMode = if ($SyncMode -eq 'ForceSync') { 'forcesync' } else { 'synchronize' }
+    $endpoint = "https://$PublicDnsName/$($ContainerId)dev/dev/apps?SchemaUpdateMode=$schemaUpdateMode&tenant=$tenant"
+    Write-Host "[AppDeployment] Publishing to the development endpoint with schema mode '$schemaUpdateMode'"
+
+    Import-Module 'C:\run\helper\k8s-bc-helper.psd1'
+    Add-Type -AssemblyName System.Net.Http -ErrorAction Stop
+    $handler = New-Object System.Net.Http.HttpClientHandler
+    $client = [System.Net.Http.HttpClient]::new($handler)
+    $fileStream = [System.IO.File]::OpenRead($Path)
+    $content = [System.Net.Http.MultipartFormDataContent]::new()
+    try {
+        $credentials = [System.Text.Encoding]::ASCII.GetBytes("${ContainerUser}:$ContainerPassword")
+        $client.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new('Basic', [Convert]::ToBase64String($credentials))
+        $client.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+
+        $fileContent = [System.Net.Http.StreamContent]::new($fileStream)
+        $fileContent.Headers.ContentDisposition = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new('form-data')
+        $fileContent.Headers.ContentDisposition.Name = [System.IO.Path]::GetFileName($Path)
+        $fileContent.Headers.ContentDisposition.FileName = [System.IO.Path]::GetFileName($Path)
+        $content.Add($fileContent)
+
+        $response = $client.PostAsync($endpoint, $content).GetAwaiter().GetResult()
+        if (-not $response.IsSuccessStatusCode) {
+            $responseBody = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+            throw "Dev endpoint returned $([int]$response.StatusCode) ($($response.ReasonPhrase)): $responseBody"
         }
     }
-    
-    $ServerInstance = "BC"
-    $Path = $AppToDeploy
-    $app = (Get-NAVAppInfo -Path $Path) 
-    Write-Host "[AppDeployment] App='$($app.Name)' Publisher='$($app.Publisher)' Version='$($app.Version)' Scope=$Scope SyncMode=$SyncMode"
+    finally {
+        $content.Dispose()
+        $fileStream.Dispose()
+        $client.Dispose()
+        $handler.Dispose()
+    }
+}
 
-    if ($Scope -ne 'Dev') {
-        & {
-            $success = $false
+try {
+    if (-not (Test-Path -LiteralPath $AppPath -PathType Leaf)) {
+        throw "App '$AppPath' does not exist"
+    }
 
-            # Check if app is already published with another version
-            $existingApps = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Id $app.AppId -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue)
-            $installedApp = $existingApps |
-            Where-Object { $_.IsInstalled } |
-            Sort-Object { [System.Version]$_.Version } -Descending |
-            Select-Object -First 1
-            $publishedApp = $existingApps |
-            Where-Object { $_.IsPublished -and $_.Version -eq $app.Version } |
-            Select-Object -First 1
-        
-            # Uninstall old NAVApp, when present
-            if ($installedApp) {
-                if ([System.Version]$installedApp.Version -ge [System.Version]$app.Version) {
-                    Write-Host "Skipping installation of App $($app.Name) $($app.Publisher) $($app.Version) as version $($installedApp.Version) is already installed."
-                    return
-                }
-                else {
-                    $success = $true
-                    try {
-                        $started1 = Get-Date -Format "o"
-                        Write-Host "Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $($installedApp.Name) -Publisher $($installedApp.Publisher) -Version $($installedApp.Version) -Force"
-                        Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $installedApp.Name -Publisher $installedApp.Publisher -Version $installedApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-                        $info | foreach { Write-Host "$_" }
-                        $warn | foreach { Write-Host "$_" }
-                        $err  | foreach { Write-Host "$_" }
-                        $success = ! $err
-                        if ($success) { Write-Host "Uninstall old App successful" }
-                        $runDataUpgrade = $true
-                    }
-                    catch {
-                        Write-Host "Uninstall old App $($installedApp.Name) $($installedApp.Publisher) $($installedApp.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-                        $success = $false
-                    }
-                }
-            }
-            else {
-                $sameVersionAlreadyPublished = $null -ne $publishedApp
-                $runDataUpgrade = $false
-                $success = $true
-            }
+    $packageApp = Get-NAVAppInfo -Path $AppPath
+    Write-Host "[AppDeployment] Deploying '$($packageApp.Name)' $($packageApp.Version) with scope '$Scope'"
 
-            # Publish NAVApp
-            if ($success) {
-                if ($sameVersionAlreadyPublished) {
-                    Write-Host "Skipping publishing of App $($app.Name) $($app.Publisher) $($app.Version) as this version is already published."
-                }
-                else {
-                    try {
-                        $started2 = Get-Date -Format "o"
+    if ($Scope -eq 'Dev') {
+        Invoke-DevelopmentDeployment -Path $AppPath -PackageApp $packageApp
+        Write-Host "[AppDeployment] Dev deployment of '$($packageApp.Name)' succeeded"
+        return
+    }
 
-                        if ($Scope -eq "Global") {
-                            Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope"
-                            Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-                        }
-                        elseif ($Scope -eq "Tenant") {
-                            Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default"
-                            Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-                        }
-                        $info | foreach { Write-Host "$_" }
-                        $warn | foreach { Write-Host "$_" }
-                        $err  | foreach { Write-Host "$_" }
-                        $success = ! $err
-                        if ($success) { Write-Host "Publish App successful" }
-                    }
-                    catch {
-                        Write-Host "Publish App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-                        $success = $false
-                    }
-                }
-            }
+    $existingApps = @(Get-TenantAppInfo -AppId $packageApp.AppId)
+    $installedApps = @($existingApps | Where-Object { $_.IsInstalled } | Sort-Object { [Version]$_.Version } -Descending)
+    $installedApp = $installedApps[0]
+    if ($installedApp -and [Version]$installedApp.Version -ge [Version]$packageApp.Version) {
+        Write-Host "[AppDeployment] '$($packageApp.Name)' version $($installedApp.Version) is already installed"
+        return
+    }
 
-            # Sync NAVApp
-            if ($success) {
-                $skipInstall = ! $success
-                try {
-                    $started2 = Get-Date -Format "o"
-                    Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Mode $SyncMode -Force"
-                    Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant "default" -SyncMode "Add" #syncmode here should stay Add always for the dependecies, right?
-                    Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-                    $info | foreach { Write-Host "$_" }
-                    $warn | foreach { Write-Host "$_" }
-                    $appInfo = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue)[0]
-                    $success = $appInfo -and $appInfo.SyncState -eq "Synced"
-                    if (-not $success) {
-                        $err | foreach { Write-Host "$_" }
-                    }
-                    if ($success) { Write-Host "Sync App ... successful" }
-                }
-                catch {
-                    Write-Host "Sync App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-                    $success = $false
-                }
-                $skipInstall = ! $success
-            }
-
-            # If extension data version is older than extension version, that should also trigger the data upgrade
-            if ((! $skipInstall) -and ($appInfo.ExtensionDataVersion) -and [System.Version]$appInfo.ExtensionDataVersion -lt [System.Version]$appInfo.Version) {
-                Write-Host "Identified lower extension data version ($($appInfo.ExtensionDataVersion)) than extension version ($($appInfo.Version)), need to run data upgrade"
-                $runDataUpgrade = $true
-            }
-
-            # Check for Data Upgrade
-            if ((! $skipInstall) -and ($runDataUpgrade)) {
-                try {
-                    $started2 = Get-Date -Format "o"
-                    Write-Host "Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
-                
-                    Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-                    $info | foreach { Write-Host "$_" }
-                    $warn | foreach { Write-Host "$_" }
-                    $err  | foreach { Write-Host "$_" }
-                    $success = ! $err
-                    if ($success) { Write-Host "App Data Upgrade ... successful" }
-                    # Check, if the new App is correct installed
-                    $result = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -ErrorAction SilentlyContinue)[0]
-                    $skipInstall = $result -and $result.IsInstalled
-                }
-                catch {
-                    Write-Host "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-                    $success = $false
-                    $skipInstall = $true
-                }
-            }
-
-            # Install NAVApp
-            if (! $skipInstall) {
-                try {
-                    $started3 = Get-Date -Format "o"
-                    Write-Host "Install-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version)"
-                    Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
-                    $info | foreach { Write-Host "$_" }
-                    $warn | foreach { Write-Host "$_" }
-                    $appInfo = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue)[0]
-                    $success = $appInfo -and $appInfo.IsInstalled
-                    if (-not $success) {
-                        $err | foreach { Write-Host "$_" }
-                    }
-                    if ($success) { Write-Host "Install App ... successful" }
-                }
-                catch {
-                    Write-Host "Install App $($app.Name) $($app.Publisher) $($app.Version) FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)"
-                    $success = $false
-                }
-            }
-
-            if (-not $success) {
-                throw "[AppDeployment] App deployment failed: one or more deployment steps returned errors"
-            }
+    $targetApp = @($existingApps | Where-Object { $_.IsPublished -and [Version]$_.Version -eq [Version]$packageApp.Version })[0]
+    if (-not $targetApp) {
+        Write-Host "[AppDeployment] Publishing version $($packageApp.Version)"
+        $publishParameters = @{
+            ServerInstance = $serverInstance
+            Path = $AppPath
+            Scope = $Scope
+            SkipVerification = $true
+            Force = $true
+            ErrorAction = 'Stop'
         }
+        if ($Scope -eq 'Tenant') {
+            $publishParameters.Tenant = $tenant
+        }
+        Publish-NAVApp @publishParameters
+        $targetApp = Get-TenantAppInfo -AppId $packageApp.AppId -Version $packageApp.Version
     }
     else {
-        # Scope is dev
-        Import-Module (Join-Path $PSScriptRoot "helper\k8s-bc-helper.psd1")
-        Import-Module "c:\run\helper\k8s-bc-helper.psd1"
-
-        $handler = New-Object System.Net.Http.HttpClientHandler
-        $HttpClient = [System.Net.Http.HttpClient]::new($handler)
-        $pair = "$($Username):$Password"
-        $bytes = [System.Text.Encoding]::ASCII.GetBytes($pair)
-        $base64 = [System.Convert]::ToBase64String($bytes)
-        $HttpClient.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue("Basic", $base64)
-        $HttpClient.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
-        $HttpClient.DefaultRequestHeaders.ExpectContinue = $false
-        $devServerUrl = "https://$PublicDnsName/$($ContainerId)dev/dev/apps?SchemaUpdateMode=synchronize&tenant=default"
-
-        $appName = [System.IO.Path]::GetFileName($Path)      
-        $multipartContent = [System.Net.Http.MultipartFormDataContent]::new()
-        $FileStream = [System.IO.FileStream]::new($Path, [System.IO.FileMode]::Open)
-        try {
-            $fileHeader = [System.Net.Http.Headers.ContentDispositionHeaderValue]::new("form-data")
-            $fileHeader.Name = "$appName"
-            $fileHeader.FileName = "$appName"
-            $fileHeader.FileNameStar = "$appName"
-            $fileContent = [System.Net.Http.StreamContent]::new($FileStream)
-            $fileContent.Headers.ContentDisposition = $fileHeader
-            $multipartContent.Add($fileContent)
-            Write-Host "Publishing $appName to $devServerUrl"
-            $result = $HttpClient.PostAsync($devServerUrl, $multipartContent).GetAwaiter().GetResult()
-            if (!$result.IsSuccessStatusCode) {
-                $message = "Status Code $($result.StatusCode) : $($result.ReasonPhrase)"
-                try {
-                    $resultMsg = $result.Content.ReadAsStringAsync().Result
-                    try {
-                        $json = $resultMsg | ConvertFrom-Json
-                        $message += "`n$($json.Message)"
-                    }
-                    catch {
-                        $message += "`n$resultMsg"
-                    }
-                }
-                catch {}
-                throw $message
-            }
-        }
-        catch {
-            Get-ExtendedErrorMessage -errorRecord $_ | Out-Host
-            throw
-        }
-        finally {
-            $FileStream.Close()
-        }
+        Write-Host "[AppDeployment] Version $($packageApp.Version) is already published"
+    }
+    if (-not $targetApp -or -not $targetApp.IsPublished) {
+        throw "App '$($packageApp.Name)' version $($packageApp.Version) was not published"
     }
 
+    Write-Host "[AppDeployment] Synchronizing schema with mode '$SyncMode'"
+    $syncErrors = @()
+    try {
+        Sync-NAVApp -ServerInstance $serverInstance -Name $packageApp.Name -Publisher $packageApp.Publisher `
+            -Version $packageApp.Version -Tenant $tenant -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable syncErrors
+    }
+    catch {
+        $syncErrors += $_
+    }
+    $targetApp = Get-TenantAppInfo -AppId $packageApp.AppId -Version $packageApp.Version
+    if (-not $targetApp -or $targetApp.SyncState -ne 'Synced') {
+        $syncErrors | ForEach-Object { Write-Host $_ }
+        throw "App '$($packageApp.Name)' version $($packageApp.Version) was not synchronized"
+    }
+
+    $requiresDataUpgrade = $installedApp -and [Version]$installedApp.Version -lt [Version]$packageApp.Version
+
+    if ($requiresDataUpgrade) {
+        Write-Host "[AppDeployment] Starting data upgrade from version $($installedApp.Version)"
+        Start-NAVAppDataUpgrade -ServerInstance $serverInstance -Name $packageApp.Name -Publisher $packageApp.Publisher `
+            -Version $packageApp.Version -Tenant $tenant -Force -ErrorAction Stop
+    }
+    elseif (-not $targetApp.IsInstalled) {
+        Write-Host "[AppDeployment] Installing version $($packageApp.Version)"
+        Install-NAVApp -ServerInstance $serverInstance -Name $packageApp.Name -Publisher $packageApp.Publisher `
+            -Version $packageApp.Version -Tenant $tenant -Force -ErrorAction Stop
+    }
+    else {
+        Write-Host "[AppDeployment] Version $($packageApp.Version) is already installed"
+    }
+
+    Write-Host '[AppDeployment] Verifying installed app state'
+    $targetApp = Get-TenantAppInfo -AppId $packageApp.AppId -Version $packageApp.Version
+    if (-not $targetApp -or -not $targetApp.IsInstalled) {
+        throw "App '$($packageApp.Name)' version $($packageApp.Version) was not installed"
+    }
+
+    Write-Host "[AppDeployment] '$($packageApp.Name)' version $($packageApp.Version) is installed"
 }
 catch {
-    Write-Host "$_"
+    Write-Host "[AppDeployment] Deployment failed: $($_.Exception.Message)"
     throw
 }
