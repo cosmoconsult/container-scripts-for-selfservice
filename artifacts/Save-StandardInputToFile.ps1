@@ -11,7 +11,9 @@ if ($Length -le 0) {
 }
 
 $directory = Split-Path -Path $Path -Parent
-New-Item -Path $directory -ItemType Directory -Force | Out-Null
+if (-not [string]::IsNullOrWhiteSpace($directory)) {
+    New-Item -Path $directory -ItemType Directory -Force | Out-Null
+}
 
 $inputStream = [Console]::OpenStandardInput()
 $outputCreated = $false
