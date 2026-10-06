@@ -72,7 +72,7 @@ function Get-AppFilesSortedByDependencies {
                 $App = Get-NAVAppInfo -Path $AppFile.FullName
                 $AppId = $App.AppId
                 if ($App.Name -eq "Application") {
-                    $ApplicationAppId = $App.AppId
+                    $ApplicationAppId = $AppId
                     $AppId = "00000000-0000-0000-0000-000000000000"
                 }
                 if ($Distinct) {
