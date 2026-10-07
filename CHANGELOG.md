@@ -44,4 +44,4 @@
 - Run tenant synchronization for BC29 and higher through the PowerShell Core management override
 - Fix artifact download of single files (e.g. RapidStart packages) being wrongly treated as ZIP archives
 - Add preservation of artifacts order for app files sorted by dependencies with the same process order
-- Support app and zip artifact input types
+- Deploy staged .app files directly or extract ZIP artifacts and deploy their contained apps
