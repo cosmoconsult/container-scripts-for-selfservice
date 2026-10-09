@@ -13,7 +13,7 @@ param (
     [string]$ContainerPassword = ''
 )
 
-C:\run\prompt.ps1
+C:\run\prompt.ps1 -silent
 
 $serverInstance = 'BC'
 $tenant = 'default'
@@ -96,17 +96,16 @@ try {
     }
 
     $existingApps = @(Get-TenantAppInfo -AppId $packageApp.AppId)
-    $installedApps = @($existingApps | Where-Object { $_.IsInstalled } | Sort-Object { [Version]$_.Version } -Descending)
-    $installedApp = $installedApps[0]
-    $hasPendingDataUpgrade = $installedApp -and ($installedApp.NeedsUpgrade -or
-        ($installedApp.ExtensionDataVersion -and [Version]$installedApp.ExtensionDataVersion -lt [Version]$installedApp.Version))
-    if ($installedApp -and ([Version]$installedApp.Version -gt [Version]$packageApp.Version -or
-        ([Version]$installedApp.Version -eq [Version]$packageApp.Version -and -not $hasPendingDataUpgrade))) {
+    $installedApp = $existingApps | Where-Object { $_.IsInstalled } | Select-Object -First 1
+
+    if ($installedApp -and ([Version]$installedApp.Version -gt [Version]$packageApp.Version -or ([Version]$installedApp.Version -eq [Version]$packageApp.Version -and $installedApp.NeedsUpgrade))) {
         Write-Host "[AppDeployment] '$($packageApp.Name)' version $($installedApp.Version) is already installed"
         return
     }
+#
+    $requiresDataUpgrade = $installedApp -and [Version]$installedApp.Version -ne [Version]$packageApp.Version
 
-    $targetApp = @($existingApps | Where-Object { $_.IsPublished -and [Version]$_.Version -eq [Version]$packageApp.Version })[0]
+    $targetApp = $existingApps | Where-Object { $_.IsPublished -and [Version]$_.Version -eq [Version]$packageApp.Version } | Select-Object -First 1
     if (-not $targetApp) {
         Write-Host "[AppDeployment] Publishing version $($packageApp.Version)"
         $publishParameters = @{
@@ -130,28 +129,37 @@ try {
         throw "App '$($packageApp.Name)' version $($packageApp.Version) was not published"
     }
 
-    Write-Host "[AppDeployment] Synchronizing schema with mode '$SyncMode'"
-    $syncErrors = @()
-    try {
+    #here check if data upgrade is required after publishing the app, sync updated the extension data version -> state of the synced app
+    #installedversion ne targetversion (requires data upgrade)
+    #is there dataversion is lower than the app version (requires data upgrade)
+    $requiresDataUpgrade = $requiresDataUpgrade -or ($targetApp.ExtensionDataVersion -and [Version]$targetApp.ExtensionDataVersion -ne [Version]$targetApp.Version)
+    
+    #sync only relevant if data version lower than the app version
+    if($targetApp.SyncState -ne 'Synced') {
+        if([Version]$targetApp.ExtensionDataVersion -gt [Version]$targetApp.Version) {
+            throw "App '$($packageApp.Name)' has an extension data version higher than the app version"
+        }
+        Write-Host "[AppDeployment] Synchronizing schema with mode '$SyncMode'"
+
         Sync-AppDependencies -App $packageApp -ServerInstance $serverInstance -Tenant $tenant -SyncMode $SyncMode
         Sync-NAVApp -ServerInstance $serverInstance -Name $packageApp.Name -Publisher $packageApp.Publisher `
-            -Version $packageApp.Version -Tenant $tenant -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable syncErrors
+        -Version $packageApp.Version -Tenant $tenant -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable syncErrors
+       
+        $targetApp = Get-TenantAppInfo -AppId $packageApp.AppId -Version $packageApp.Version
+    } else {
+        Write-Host "[AppDeployment] No synchronization needed for version $($packageApp.Version)"
     }
-    catch {
-        $syncErrors += $_
-    }
-    $targetApp = Get-TenantAppInfo -AppId $packageApp.AppId -Version $packageApp.Version
-    if (-not $targetApp -or $targetApp.SyncState -ne 'Synced') {
-        $syncErrors | ForEach-Object { Write-Host $_ }
+    if ($targetApp.SyncState -ne 'Synced') {
         throw "App '$($packageApp.Name)' version $($packageApp.Version) was not synchronized"
     }
-
-    $requiresDataUpgrade = $installedApp -and (
-        [Version]$installedApp.Version -lt [Version]$packageApp.Version -or
-        ([Version]$installedApp.Version -eq [Version]$packageApp.Version -and $hasPendingDataUpgrade))
+    
+    #check if the target app requires a data upgrade: is data version lower than the app version 
+    #NeedsUpgrade flag if it is set before sync 
+    #or prop NeedsUpgrade (only after sync?) is set
+    $requiresDataUpgrade = $requiresDataUpgrade -or $targetApp.NeedsUpgrade
 
     if ($requiresDataUpgrade) {
-        Write-Host "[AppDeployment] Starting data upgrade from version $($installedApp.Version)"
+        Write-Host "[AppDeployment] Starting data upgrade for version $($packageApp.Version)" #fromversion not known always
         Start-NAVAppDataUpgrade -ServerInstance $serverInstance -Name $packageApp.Name -Publisher $packageApp.Publisher `
             -Version $packageApp.Version -Tenant $tenant -Force -ErrorAction Stop
     }

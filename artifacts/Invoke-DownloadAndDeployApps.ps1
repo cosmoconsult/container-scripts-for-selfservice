@@ -16,7 +16,7 @@ param (
     [string]$ContainerPassword = ''
 )
 
-C:\run\prompt.ps1
+C:\run\prompt.ps1 -silent
 
 $maximumArchiveEntries = 1000
 $maximumExtractedSize = 1GB

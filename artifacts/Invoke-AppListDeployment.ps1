@@ -13,7 +13,7 @@ param (
     [string]$ContainerPassword = ''
 )
 
-C:\run\prompt.ps1
+C:\run\prompt.ps1 -silent
 
 try {
     if (-not (Test-Path -LiteralPath $AppDirectory -PathType Container)) {
