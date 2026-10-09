@@ -1,92 +1,50 @@
 [CmdletBinding()]
 param (
-    [string]$AppsToDeploy,
-    [string]$Username,
-    [string]$Password,
-    [string]$BearerToken = "",
-    [string]$PathInZip = "",
-    [Parameter(Mandatory = $false)]
+    [Parameter(Mandatory = $true)]
+    [ValidateNotNullOrEmpty()]
+    [string]$AppDirectory,
     [ValidateSet('Global', 'Tenant', 'Dev')]
-    [string] $Scope = "Tenant",
-    [string] $ContainerId
+    [string]$Scope = 'Tenant',
+    [ValidateSet('Add', 'ForceSync')]
+    [string]$SyncMode = 'Add',
+    [string]$PublicDnsName = '',
+    [string]$ContainerId = '',
+    [string]$ContainerUser = '',
+    [string]$ContainerPassword = ''
 )
 
-c:\run\prompt.ps1
-$ppiau = Get-Module -Name PPIArtifactUtils
-if (-not $ppiau) {
-    if (Test-Path "c:\run\PPIArtifactUtils.psd1") {
-        Write-Host "Import PPI Setup Utils from c:\run\PPIArtifactUtils.psd1"
-        Import-Module "c:\run\PPIArtifactUtils.psd1" -Force
-    }
-}
-$parentFolder = [System.IO.Path]::GetTempPath()
-[string] $tempName = [System.Guid]::NewGuid()
-$tempFullPath = (Join-Path $parentFolder $tempname)
+C:\run\prompt.ps1 -silent
 
 try {
-    $started = Get-Date -Format "o"
-
-    if ($Scope -eq 'Dev') {
-        Write-Host "Deployment to the dev endpoint is not yet supported"
-        return
-    }
-    
-    # copy all apps into a folder so that we can order them later
-    New-Item -ItemType Directory -Path $tempFullPath | Out-Null
-    $AppsToDeployAsArray = $AppsToDeploy -split ","
-    $AppsToDeployAsArray | % {
-        $AppToDeploy = $_
-        if ($AppToDeploy -match '^https?://') {
-            # given a URL, so need to download
-            $basePath = "c:\downloadedBuildArtifacts"
-            $headers = @{}
-            $headers.Add("authorization", "Bearer $BearerToken")
-            if (-not (Test-Path $basePath)) {
-                New-Item "$basePath" -ItemType Directory | Out-Null
-            }
-            $subfolder = $([convert]::tostring((get-random 65535), 16).padleft(8, '0'))
-            $folder = Join-Path $basePath $subfolder
-            New-Item "$folder" -ItemType Directory | Out-Null
-            $filename = "downloadedapp.app"
-            if ($AppToDeploy.EndsWith("zip")) {
-                $filename = "downloadedapp.zip"
-            }
-            $fullPath = Join-Path $folder $filename
-            Invoke-WebRequest -Uri $AppToDeploy -Method GET -Headers $headers -OutFile $fullPath
-            if (-not (Test-Path $fullPath)) {
-                Write-Host "Failed to download the file from $AppToDeploy"
-                exit
-            }
-
-            if ($AppToDeploy.EndsWith("zip")) {
-                Expand-Archive $fullPath -DestinationPath $folder
-                $AppToDeploy = Join-Path $folder $PathInZip
-                if (-not (Test-Path $AppToDeploy)) {
-                    Write-Host "Couldn't find $PathInZip in $AppToDeploy"
-                    exit
-                }
-            }
-            else {
-                $AppToDeploy = $fullPath
-            }
-        }
-        Copy-Item $AppToDeploy $tempFullPath
+    if (-not (Test-Path -LiteralPath $AppDirectory -PathType Container)) {
+        throw "App directory '$AppDirectory' does not exist"
     }
 
-    # all apps should be in the folder, now order
-    $orderedApps = Get-AppFilesSortedByDependencies -Path $tempFullPath
+    Write-Host "[AppList] Resolving dependencies for app files in '$AppDirectory'"
+    if (-not (Get-Command Get-AppFilesSortedByDependencies -ErrorAction SilentlyContinue)) {
+        Write-Host '[AppList] Loading app dependency helper'
+        Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force
+    }
 
-    # now deploy them
-    $orderedApps | % {
-        #Write-Host $_
-        c:\\run\\Invoke-AppDeployment.ps1 -AppToDeploy $_.Path -Scope $Scope -Username $Username -Password $Password -ContainerId $ContainerId 2>&1
+    $orderedApps = @(Get-AppFilesSortedByDependencies -Path $AppDirectory)
+    if ($orderedApps.Count -eq 0) {
+        throw "No app files found in '$AppDirectory'"
+    }
+
+    Write-Host "[AppList] Deploying $($orderedApps.Count) app(s) in dependency order"
+    foreach ($orderedApp in $orderedApps) {
+        Write-Host "[AppList] Deploying '$($orderedApp.Name)' version $($orderedApp.Version)"
+        & 'C:\run\Invoke-AppDeployment.ps1' `
+            -AppPath $orderedApp.Path `
+            -Scope $Scope `
+            -SyncMode $SyncMode `
+            -PublicDnsName $PublicDnsName `
+            -ContainerId $ContainerId `
+            -ContainerUser $ContainerUser `
+            -ContainerPassword $ContainerPassword
     }
 }
 catch {
-    Write-Host "$_"
-}
-finally {
-    if (Test-Path $tempFullPath) {
-        Remove-Item -Recurse -Force $tempFullPath
-    }
+    Write-Host "[AppList] App deployment failed: $($_.Exception.Message)"
+    throw
 }
