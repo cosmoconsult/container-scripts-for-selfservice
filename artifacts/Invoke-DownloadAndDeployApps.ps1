@@ -10,12 +10,13 @@ param (
     [string]$DeployScope = 'Tenant',
     [ValidateSet('Add', 'ForceSync')]
     [string]$SyncMode = 'Add',
+    [string]$NuGetSelectMode = '',
+    [bool]$ConsiderInstalledApps = $false
     [string]$PublicDnsName = '',
     [string]$ContainerId = '',
     [string]$ContainerUser = '',
     [string]$ContainerPassword = '',
     [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
-    [string]$NuGetSelectMode = ''
 )
 
 C:\run\prompt.ps1 -silent
@@ -81,25 +82,27 @@ try {
             catch {
                 Write-Host "[Deploy] NuGet feed initialization warning: $($_.Exception.Message)"
             }
-            $installedAppsInfo = @(Get-NAVAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue |
-                Where-Object { $_.IsInstalled } |
-                ForEach-Object {
-                    [PSCustomObject]@{
-                        Package = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
-                        Name = [string]$_.Name
-                        Publisher = [string]$_.Publisher
-                        Id = [string]$_.AppId
-                        Version = [string]$_.Version
-                    }
-                })
-            $downloadParameters = @{
-                Name = $Name
-                Version = $Version
-                Type = 'nuget'
-                Destination = $workingDirectory
-                InstalledAppsInfo = $installedAppsInfo
+            if ($ConsiderInstalledApps) {
+                $installedAppsInfo = @(Get-NAVAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue |
+                    Where-Object { $_.IsInstalled } |
+                    ForEach-Object {
+                        [PSCustomObject]@{
+                            Package   = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
+                            Name      = [string]$_.Name
+                            Publisher = [string]$_.Publisher
+                            Id        = [string]$_.AppId
+                            Version   = [string]$_.Version
+                        }
+                    })
             }
-            if ($NuGetSelectMode) {
+            $downloadParameters = @{
+                Name        = $Name
+                Version     = $Version
+                Type        = 'nuget'
+                Destination = $workingDirectory
+            }
+            if ($ConsiderInstalledApps) {
+                $downloadParameters.InstalledAppsInfo = $installedAppsInfo
                 $downloadParameters.NuGetSelectMode = $NuGetSelectMode
             }
             Invoke-DownloadArtifact @downloadParameters
