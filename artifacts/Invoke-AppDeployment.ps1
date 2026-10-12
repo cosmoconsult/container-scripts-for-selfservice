@@ -95,21 +95,29 @@ try {
         return
     }
 
-    $existingApps = @(Get-TenantAppInfo -AppId $packageApp.AppId)
-    $installedApps = @($existingApps | Where-Object { $_.IsInstalled } | Sort-Object { [Version]$_.Version } -Descending)
-    $installedApp = $installedApps[0]
-    # Matching package versions do not guarantee that tenant data is current. NeedsUpgrade is set by Business Central
-    # when an app upgrade is still pending, while a lower ExtensionDataVersion means the tenant data uses an older
-    # schema. Either state must continue through deployment so that Start-NAVAppDataUpgrade can complete the upgrade.
-    $hasPendingDataUpgrade = $installedApp -and ($installedApp.NeedsUpgrade -or
-        ($installedApp.ExtensionDataVersion -and [Version]$installedApp.ExtensionDataVersion -lt [Version]$installedApp.Version))
-    if ($installedApp -and ([Version]$installedApp.Version -gt [Version]$packageApp.Version -or
-        ([Version]$installedApp.Version -eq [Version]$packageApp.Version -and -not $hasPendingDataUpgrade))) {
-        Write-Host "[AppDeployment] '$($packageApp.Name)' version $($installedApp.Version) is already installed"
-        return
+    $installedApp = Get-TenantAppInfo -AppId $packageApp.AppId |
+        Where-Object { $_.IsInstalled } |
+        Sort-Object { [Version]$_.Version } -Descending |
+        Select-Object -First 1
+
+    if ($installedApp -and [Version]$installedApp.Version -ge [Version]$packageApp.Version) {
+        # Matching package versions do not guarantee that tenant data is current. NeedsUpgrade is set by Business Central
+        # when an app upgrade is still pending, while a lower ExtensionDataVersion means the tenant data uses an older
+        # schema. Either state must continue through deployment so that Start-NAVAppDataUpgrade can complete the upgrade.
+        $hasUnexpectedInstalledAppUpgradeState = $installedApp -and ($installedApp.NeedsUpgrade -or
+            ($installedApp.ExtensionDataVersion -and [Version]$installedApp.ExtensionDataVersion -lt [Version]$installedApp.Version))
+        if ([Version]$installedApp.Version -eq [Version]$packageApp.Version -and $hasUnexpectedInstalledAppUpgradeState) {
+            Write-Host "[AppDeployment] '$($packageApp.Name)' version $($installedApp.Version) is already installed with an unexpected upgrade state. Continuing with deployment."
+        } else {
+            Write-Host "[AppDeployment] '$($packageApp.Name)' version $($installedApp.Version) is already installed"
+            return
+        }
     }
 
-    $targetApp = $existingApps | Where-Object { $_.IsPublished -and [Version]$_.Version -eq [Version]$packageApp.Version } | Select-Object -First 1
+    $targetApp = Get-TenantAppInfo -AppId $packageApp.AppId |
+        Where-Object { $_.IsPublished -and [Version]$_.Version -eq [Version]$packageApp.Version } |
+        Select-Object -First 1
+    
     if (-not $targetApp) {
         Write-Host "[AppDeployment] Publishing version $($packageApp.Version)"
         $publishParameters = @{
@@ -152,14 +160,7 @@ try {
         throw "App '$($packageApp.Name)' version $($packageApp.Version) was not synchronized"
     }
 
-    # The installed app describes the upgrade path: a newer package must migrate tenant data, while an equal
-    # package version only needs migration when a previous data upgrade was left pending.
-    $requiresDataUpgrade = $installedApp -and (
-        [Version]$installedApp.Version -lt [Version]$packageApp.Version -or
-        ([Version]$installedApp.Version -eq [Version]$packageApp.Version -and $hasPendingDataUpgrade))
-    # Sync can change NeedsUpgrade and ExtensionDataVersion, so the refreshed tenant state is authoritative.
-    # Only data behind the app version requires an upgrade; a newer data version is rejected before this point.
-    $requiresDataUpgrade = $requiresDataUpgrade -or $targetApp.NeedsUpgrade -or
+    $requiresDataUpgrade = $installedApp -or $targetApp.NeedsUpgrade -or
         ($targetApp.ExtensionDataVersion -and [Version]$targetApp.ExtensionDataVersion -lt [Version]$targetApp.Version)
 
     if ($requiresDataUpgrade) {
