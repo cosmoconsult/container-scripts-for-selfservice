@@ -103,6 +103,8 @@ try {
             }
             if ($ConsiderInstalledApps) {
                 $downloadParameters.InstalledAppsInfo = $installedAppsInfo
+            }
+            if ($NuGetSelectMode) {
                 $downloadParameters.NuGetSelectMode = $NuGetSelectMode
             }
             Invoke-DownloadArtifact @downloadParameters

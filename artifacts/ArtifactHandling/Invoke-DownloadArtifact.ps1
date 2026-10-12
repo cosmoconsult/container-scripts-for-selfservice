@@ -101,7 +101,9 @@ function Invoke-DownloadArtifact {
             FolderIdx = $FolderIdx
             Retries = $Retries
             InstalledAppsInfo = $InstalledAppsInfo
-            NuGetSelectMode = $NuGetSelectMode
+        }
+        if ($NuGetSelectMode) {
+            $parameters.NuGetSelectMode = $NuGetSelectMode
         }
 
         if (! $PassThru) {
