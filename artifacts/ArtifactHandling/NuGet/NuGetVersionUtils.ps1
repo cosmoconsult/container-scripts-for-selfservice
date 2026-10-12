@@ -8,6 +8,16 @@ function Get-NuGetFeedSelectMode {
     return 'LatestMatching'
 }
 
+function Get-NuGetAllowPrerelease {
+    [CmdletBinding()]
+    param()
+
+    if ($env:nuGetAllowPrerelease) {
+        return $env:nuGetAllowPrerelease -eq "true"
+    }
+    return $false
+}
+
 function Get-NuGetPackageNameInfo {
     [CmdletBinding()]
     param(
@@ -150,14 +160,14 @@ function ConvertTo-NuGetVersionConstraint {
     }
     if ($specification.Kind -eq 'Range') {
         return Normalize-NuGetVersionConstraint -VersionConstraint $Version
-    } 
+    }
 
     # Convert NuGet version to a range (from version, to excl. version + 1)
     # Increment the last version part to create upper bound
     $versionParts = $specification.Version.Split('.')
     $toVersionParts = $versionParts.Clone()
     $toVersionParts[-1] = [string]([int]$toVersionParts[-1] + 1)
-    
+
     # Normalize both from and to versions to ensure at least major.minor format for System.Version compatibility
     $fromVersionNormalized = if ($versionParts.Count -eq 1) { "{0}.0" -f $versionParts[0] } else { $specification.Version }
     $toVersionNormalized = if ($toVersionParts.Count -eq 1) { "{0}.0" -f $toVersionParts[0] } else { $toVersionParts -join '.' }
