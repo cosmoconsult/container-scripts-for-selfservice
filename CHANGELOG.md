@@ -1,4 +1,3 @@
-- Add Invoke-DownloadAndDeployApps.ps1 as an artifact download-and-deploy entry point
 - Add brackets to avoid problems if database names are reserved T-SQL words
 - Support COSMO IP artifacts (see [#1034](https://dev.azure.com/cc-ppi/General/_workitems/edit/1034))
 - Add severity level "debug" to logging (see [1232](https://dev.azure.com/cc-ppi/General/_workitems/edit/1232))
@@ -42,6 +41,8 @@
 - Add a check in SetupLicense.ps1 for a specific image failing for unclear reasons
 - Add support for managing all nuget feeds by backend (and keep it backward compatible)
 - Run tenant synchronization for BC29 and higher through the PowerShell Core management override
+- Add Invoke-DownloadAndDeployApps.ps1 as an artifact download-and-deploy entry point
 - Fix artifact download of single files (e.g. RapidStart packages) being wrongly treated as ZIP archives
 - Add preservation of artifacts order for app files sorted by dependencies with the same process order
+- Fix dependency retrieval when multiple app versions match
 - Deploy staged .app files directly or extract ZIP artifacts and deploy their contained apps
