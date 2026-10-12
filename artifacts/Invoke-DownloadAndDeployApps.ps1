@@ -12,7 +12,7 @@ param (
     [string]$SyncMode = 'Add',
     [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
     [string]$NuGetSelectMode = '',
-    [bool]$ConsiderInstalledApps = $false,
+    [switch]$ConsiderInstalledApps,
     [string]$PublicDnsName = '',
     [string]$ContainerId = '',
     [string]$ContainerUser = '',
