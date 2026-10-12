@@ -117,7 +117,7 @@ function Invoke-NuGetPackageDownload() {
             }
 
             # Determine highest possible version of predefined package
-            $packageVersion = ConvertTo-NuGetMaximumVersion -Version $predefinedPackage.Version -ErrorContext "predefined package '$($predefinedPackage.Package)'"
+            $packageVersion = ConvertTo-NuGetMaximumVersion -Version $predefinedPackage.Version -Select $Select -ErrorContext "predefined package '$($predefinedPackage.Package)'"
 
             # Ignore predefined package if no version could be determined (e.g. version range)
             if (! $packageVersion) {
