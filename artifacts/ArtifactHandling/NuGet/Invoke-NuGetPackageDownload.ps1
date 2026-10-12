@@ -9,6 +9,7 @@ function Invoke-NuGetPackageDownload() {
         [string]$Package,
         [string]$Version,
         [string]$InstalledAppsPath,
+        [PSCustomObject[]]$InstalledAppsInfo = @(),
         [string]$ServiceTierFolder,
         [PSCustomObject[]]$PredefinedPackages = @(),
         [ValidateRange(0, [int]::MaxValue)]
@@ -69,6 +70,21 @@ function Invoke-NuGetPackageDownload() {
         if (($Select -eq 'Exact') -or $Version) {
             $downloadParameters.version = ConvertTo-NuGetVersionConstraint -Version $Version -Select $Select -ErrorContext "package '$Package'"
             Write-Host "Use NuGet version constraint '$($downloadParameters.version)' for select mode '$Select'"
+        }
+
+        if ($InstalledAppsInfo) {
+            foreach ($appInfo in $InstalledAppsInfo) {
+                if ($installedAppsHash.ContainsKey($appInfo.Id)) {
+                    if ([Version]$appInfo.Version -gt [Version]$installedAppsHash[$appInfo.Id].Version) {
+                        $installedAppsHash[$appInfo.Id] = $appInfo
+                        Write-Host "Installed app '$($appInfo.Package)' (id: '$($appInfo.Id)' version: '$($appInfo.Version)')"
+                    }
+                }
+                else {
+                    $installedAppsHash[$appInfo.Id] = $appInfo
+                    Write-Host "Installed app '$($appInfo.Package)' (id: '$($appInfo.Id)' version: '$($appInfo.Version)')"
+                }
+            }
         }
 
         if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {

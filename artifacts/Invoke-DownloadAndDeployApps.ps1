@@ -13,7 +13,9 @@ param (
     [string]$PublicDnsName = '',
     [string]$ContainerId = '',
     [string]$ContainerUser = '',
-    [string]$ContainerPassword = ''
+    [string]$ContainerPassword = '',
+    [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
+    [string]$NuGetSelectMode = ''
 )
 
 C:\run\prompt.ps1 -silent
@@ -79,7 +81,28 @@ try {
             catch {
                 Write-Host "[Deploy] NuGet feed initialization warning: $($_.Exception.Message)"
             }
-            Invoke-DownloadArtifact -Name $Name -Version $Version -Type nuget -Destination $workingDirectory
+            $installedAppsInfo = @(Get-NAVAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties -ErrorAction SilentlyContinue |
+                Where-Object { $_.IsInstalled } |
+                ForEach-Object {
+                    [PSCustomObject]@{
+                        Package = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
+                        Name = [string]$_.Name
+                        Publisher = [string]$_.Publisher
+                        Id = [string]$_.AppId
+                        Version = [string]$_.Version
+                    }
+                })
+            $downloadParameters = @{
+                Name = $Name
+                Version = $Version
+                Type = 'nuget'
+                Destination = $workingDirectory
+                InstalledAppsInfo = $installedAppsInfo
+            }
+            if ($NuGetSelectMode) {
+                $downloadParameters.NuGetSelectMode = $NuGetSelectMode
+            }
+            Invoke-DownloadArtifact @downloadParameters
         }
         'app' {
             if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
