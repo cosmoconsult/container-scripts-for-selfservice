@@ -10,13 +10,13 @@ param (
     [string]$DeployScope = 'Tenant',
     [ValidateSet('Add', 'ForceSync')]
     [string]$SyncMode = 'Add',
+    [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
     [string]$NuGetSelectMode = '',
-    [bool]$ConsiderInstalledApps = $false
+    [bool]$ConsiderInstalledApps = $false,
     [string]$PublicDnsName = '',
     [string]$ContainerId = '',
     [string]$ContainerUser = '',
-    [string]$ContainerPassword = '',
-    [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
+    [string]$ContainerPassword = ''
 )
 
 C:\run\prompt.ps1 -silent
