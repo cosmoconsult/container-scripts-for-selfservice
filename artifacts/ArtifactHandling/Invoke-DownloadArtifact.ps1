@@ -42,7 +42,6 @@ function Invoke-DownloadArtifact {
 
     begin {
         $artifacts = @()
-        #hier installedAppsInfo
 
         if (! $PassThru) {
             if (! $TelemetryClient) {
