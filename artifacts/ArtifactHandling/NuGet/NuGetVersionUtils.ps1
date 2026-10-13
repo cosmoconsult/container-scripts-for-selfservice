@@ -113,8 +113,8 @@ function Get-NuGetVersionSpecification {
     $versionMetadataPattern = '(?:\+[0-9A-Za-z.-]+)?' # [+<metadata>]
     $versionPattern = '^\s*(?<version>{0})(?<prerelease>{1})(?<metadata>{2})\s*$' -f $versionStablePattern, $versionPrereleasePattern, $versionMetadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata>]
 
-    $versionRangeLowerVersionPattern = '(?<versionLower>{0})(?<prereleaseLower>{1})(?<metadataLower>{2})' -f $versionStablePattern, $versionPrereleasePattern, $versionMetadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata]
-    $versionRangeUpperVersionPattern = '(?<versionUpper>{0})(?<prereleaseUpper>{1})(?<metadataUpper>{2})' -f $versionStablePattern, $versionPrereleasePattern, $versionMetadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata]
+    $versionRangeLowerVersionPattern = '(?<versionLower>{0})(?<prereleaseLower>{1})(?<metadataLower>{2})' -f $versionStablePattern, $versionPrereleasePattern, $versionMetadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata>]
+    $versionRangeUpperVersionPattern = '(?<versionUpper>{0})(?<prereleaseUpper>{1})(?<metadataUpper>{2})' -f $versionStablePattern, $versionPrereleasePattern, $versionMetadataPattern # <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>][+<metadata>]
     $versionRangePatterns = @(
         '(?<rangeStart>\[)\s*{0}\s*(?<rangeEnd>\])' -f $versionRangeUpperVersionPattern # Exact -> <[> <major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <]>
         '(?<rangeStart>\()\s*,{0}\s*(?<rangeEnd>\)|\])' -f $versionRangeUpperVersionPattern # Range (upper bound) -> <(> ,<major>[.<minor>[.<patch>[.<revision>]]][-<prerelease>] <)]>
