@@ -93,8 +93,13 @@ function Test-NuGetVersionRangeMatches {
     if ($VersionRangeMatches.versionUpper) {
         $upperBoundVersion = [System.Version]("$($VersionRangeMatches.versionUpper).0.0.0".Split('.')[0..3] -join '.')
     }
-    if ($lowerBoundVersion -and $upperBoundVersion -and $upperBoundVersion -le $lowerBoundVersion) {
-        throw "$($ErrorMessage): Upper bound version must be greater than lower bound version"
+    if ($lowerBoundVersion -and $upperBoundVersion) {
+        if ($upperBoundVersion -lt $lowerBoundVersion) {
+            throw "$($ErrorMessage): Upper bound version must not be less than lower bound version"
+        }
+        if (($VersionRangeMatches.rangeStart -ne '[' -or $VersionRangeMatches.rangeEnd -ne ']') -and $upperBoundVersion -eq $lowerBoundVersion) {
+            throw "$($ErrorMessage): Upper bound version must be greater than lower bound version when either bound is exclusive"
+        }
     }
 }
 
