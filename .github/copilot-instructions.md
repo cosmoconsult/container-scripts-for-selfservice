@@ -1,6 +1,6 @@
 # PowerShell ErrorVariable Handling
 
-After an external command uses `-ErrorVariable err`, normalize the captured records before logging them or deriving success from `$err`:
+After a command uses `-ErrorVariable err`, normalize the captured records before logging them or deriving success from `$err`:
 
 ```powershell
 $err = @($err | Remove-PowerShellFlowControlErrors)
