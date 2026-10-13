@@ -27,4 +27,3 @@ function Remove-PowerShellFlowControlErrors {
         }
     }
 }
-Export-ModuleMember -Function Remove-PowerShellFlowControlErrors

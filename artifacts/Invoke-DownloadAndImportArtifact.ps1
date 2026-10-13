@@ -7,8 +7,6 @@ param (
     [string]$ppiArtifactSettings = "c:\run\ArtifactSettings.ps1"
 )
 
-& "c:\run\my\PPIPowershellUtils.ps1" -Silent
-
 try {
     if (Test-Path $ppiArtifactUtils) { Import-Module $ppiArtifactUtils -Force -ErrorAction SilentlyContinue }
     . "c:\run\ArtifactSettings.ps1"
