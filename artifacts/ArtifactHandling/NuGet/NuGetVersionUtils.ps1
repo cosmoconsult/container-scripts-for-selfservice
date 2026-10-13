@@ -170,9 +170,11 @@ function ConvertTo-NuGetVersionConstraint {
 
     $specification = Get-NuGetVersionSpecification -Version $Version -Select $Select -ErrorContext $ErrorContext
     if ($Select -eq 'Exact') {
+        # If the selection mode is 'Exact', normalize and return the exact version constraint
         return Normalize-NuGetVersionConstraint -VersionConstraint $Version
     }
     if ($specification.Kind -eq 'Range') {
+        # If the specification is a version range, normalize and return the range constraint
         return Normalize-NuGetVersionConstraint -VersionConstraint $Version
     }
 
@@ -212,8 +214,8 @@ function ConvertTo-NuGetMaximumVersion {
         # If the selection mode is 'Exact', return the normalized version constraint immediately
         return Normalize-NuGetVersionConstraint -VersionConstraint $Version
     }
-    # If a specific version is specified, use the upper limit of this version (e.g. 1.2-beta -> 1.2.<max>.<max>-beta)
     if ($specification.Kind -eq 'Version') {
+        # If a specific version is specified, use the upper limit of this version (e.g. 1.2 -> 1.2.<max>.<max>)
         $versionParts = $specification.Version.Split('.') + $versionParts
         return $versionParts[0..3] -join '.'
     }
