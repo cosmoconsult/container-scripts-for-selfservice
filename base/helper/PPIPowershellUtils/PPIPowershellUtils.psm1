@@ -1,0 +1,1 @@
+. (Join-Path $PSScriptRoot "public\Remove-PowerShellFlowControlErrors.ps1")
