@@ -6,7 +6,7 @@ After a command uses `-ErrorVariable err`, normalize the captured records before
 $err = @($err | Remove-PowerShellFlowControlErrors)
 ```
 
-`Remove-PowerShellFlowControlErrors` removes only PowerShell flow-control exceptions, including BC29's `StopUpstreamCommandsException` caused by `Select-Object -First` inside the NAV management module. Do not discard other error records or use a successful postcondition to ignore unrelated errors.
+`Remove-PowerShellFlowControlErrors` removes only PowerShell flow-control exceptions, including BC29's `StopUpstreamCommandsException` caused by `Select-Object -First 1` inside the BC management powershell module. Do not discard other error records or use a successful postcondition to ignore unrelated errors.
 
 Import or define `Remove-PowerShellFlowControlErrors` before using it in standalone scripts. It is exported by `PPIPowershellUtils`.
 
