@@ -87,7 +87,7 @@ function Invoke-NuGetPackageDownload() {
                 }
             }
             if ($relevantInstalledAppsInfo) {
-                Write-Host "Installed apps:$([System.Environment]::NewLine)$($relevantInstalledAppsInfo | Select-Object Package, Id, Version | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)"
+                Write-Host "Installed apps:$([System.Environment]::NewLine)$($relevantInstalledAppsInfo | Sort-Object Package | Select-Object Package, Id, Version | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)"
             }
         }
 
