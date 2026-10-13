@@ -145,6 +145,11 @@ function Import-AppArtifact {
                     Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
+                    $syncedApp = Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue | Select-Object -First 1
+                    if ($err -and $syncedApp.SyncState -eq "Synced") {
+                        $err | foreach { Add-ArtifactsLog -kind App -message "Sync App reported an error, but the app status is Synced: $_" -severity Warn -data $app }
+                        $err = $null
+                    }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Sync App ... successful" -data $app -success success }
