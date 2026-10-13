@@ -11,7 +11,7 @@ param (
 )
 
 c:\run\prompt.ps1
-. "c:\run\my\PPIPowershellUtils.ps1" -Silent
+Import-Module "c:\run\helper\PPIPowershellUtils\PPIPowershellUtils.psm1" -DisableNameChecking -Global -ErrorAction Stop
 $targetDir = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName())
 
 try {

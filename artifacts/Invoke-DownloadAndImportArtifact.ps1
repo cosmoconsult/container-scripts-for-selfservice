@@ -7,7 +7,7 @@ param (
     [string]$ppiArtifactSettings = "c:\run\ArtifactSettings.ps1"
 )
 
-. "c:\run\my\PPIPowershellUtils.ps1" -Silent
+Import-Module "c:\run\helper\PPIPowershellUtils\PPIPowershellUtils.psm1" -DisableNameChecking -Global -ErrorAction Stop
 
 try {
     if (Test-Path $ppiArtifactUtils) { Import-Module $ppiArtifactUtils -Force -ErrorAction SilentlyContinue }
