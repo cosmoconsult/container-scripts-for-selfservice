@@ -73,25 +73,29 @@ function Invoke-NuGetPackageDownload() {
         }
 
         if ($InstalledAppsInfo) {
+            $relevantInstalledAppsInfo = @()
             foreach ($appInfo in $InstalledAppsInfo) {
                 if ($installedAppsHash.ContainsKey($appInfo.Id)) {
                     if ([Version]$appInfo.Version -gt [Version]$installedAppsHash[$appInfo.Id].Version) {
                         $installedAppsHash[$appInfo.Id] = $appInfo
-                        Write-Host "Installed app '$($appInfo.Package)' (id: '$($appInfo.Id)' version: '$($appInfo.Version)')"
+                        $relevantInstalledAppsInfo += $appInfo
                     }
                 }
                 else {
                     $installedAppsHash[$appInfo.Id] = $appInfo
-                    Write-Host "Installed app '$($appInfo.Package)' (id: '$($appInfo.Id)' version: '$($appInfo.Version)')"
+                    $relevantInstalledAppsInfo += $appInfo
                 }
+            }
+            if ($relevantInstalledAppsInfo) {
+                Write-Host "Installed apps:$([System.Environment]::NewLine)$($relevantInstalledAppsInfo | Select-Object Package, Id, Version | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)"
             }
         }
 
         if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
             Write-Host "Collecting app files from '$InstalledAppsPath'"
-            $installedAppInfos = @(Get-NuGetAppInfos -AppFilesPath $InstalledAppsPath -ServiceTierFolder $ServiceTierFolder)
+            $installedAppFilesInfos = @(Get-NuGetAppInfos -AppFilesPath $InstalledAppsPath -ServiceTierFolder $ServiceTierFolder)
 
-            if ($installedAppInfos) {
+            if ($installedAppFilesInfos) {
                 Write-Host "Collecting apps infos from app files (only highest version per app id)"
                 foreach ($appInfo in $installedAppInfos) {
                     if ($installedAppsHash.ContainsKey($appInfo.Id)) {
