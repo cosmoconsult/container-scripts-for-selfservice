@@ -12,6 +12,7 @@ param (
 )
 
 c:\run\prompt.ps1
+. c:\run\my\PPIPowershellUtils.ps1
 try {
     $started = Get-Date -Format "o"
 
