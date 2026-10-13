@@ -12,7 +12,7 @@ param (
 )
 
 c:\run\prompt.ps1
-Import-Module "c:\run\helper\PPIPowershellUtils\PPIPowershellUtils.psm1" -DisableNameChecking -Global -ErrorAction Stop
+& "c:\run\my\PPIPowershellUtils.ps1" -Silent
 try {
     $started = Get-Date -Format "o"
 
