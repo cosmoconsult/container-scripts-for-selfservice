@@ -10,4 +10,4 @@ if (!$Silent) {
     Write-Host ("Import PPI Powershell Utils from {0}" -f $path)
 }
 
-Import-Module $path -DisableNameChecking -Global -Force
+Import-Module $path -DisableNameChecking -Global -Force -ErrorAction Stop

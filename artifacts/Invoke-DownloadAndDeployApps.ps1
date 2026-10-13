@@ -11,6 +11,7 @@ param (
 )
 
 c:\run\prompt.ps1
+. "c:\run\my\PPIPowershellUtils.ps1" -Silent
 $targetDir = Join-Path $env:TEMP ([System.IO.Path]::GetRandomFileName())
 
 try {
