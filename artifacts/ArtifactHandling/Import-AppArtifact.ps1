@@ -234,6 +234,11 @@ function Import-AppArtifact {
                     Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
+                    $installedApp = Get-NAVAppInfo -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -TenantSpecificProperties -Tenant $Tenant -ErrorAction SilentlyContinue | Select-Object -First 1
+                    if ($err -and $installedApp.IsInstalled) {
+                        $err | foreach { Add-ArtifactsLog -kind App -message "Install App reported an error, but the app status is installed: $_" -severity Warn -data $app }
+                        $err = $null
+                    }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
                     $success = ! $err
                     if ($success) { Add-ArtifactsLog -kind App -message "Install App ... successful" -data $app -success success }
