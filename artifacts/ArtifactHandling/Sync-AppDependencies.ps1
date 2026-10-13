@@ -13,7 +13,8 @@ function Sync-AppDependencies {
         [string]$Tenant = "default",
         [Parameter(Mandatory = $false)]
         [ValidateSet("Add", "ForceSync")]
-        [string]$SyncMode = "Add"
+        [string]$SyncMode = "Add",
+        [bool]$throwErrors = $false
     )
 
     process {
@@ -22,12 +23,13 @@ function Sync-AppDependencies {
         }
 
         foreach ($dependency in @($App.Dependencies)) {
+            $queryErrorAction = if ($throwErrors) { "Stop" } else { "SilentlyContinue" }
             $dependencyApps = @(Get-NAVAppInfo `
                 -ServerInstance $ServerInstance `
                 -Tenant $Tenant `
                 -TenantSpecificProperties `
                 -Id $dependency.AppId `
-                -ErrorAction SilentlyContinue |
+                -ErrorAction $queryErrorAction |
                 Where-Object { [version]$_.Version -ge [version]$dependency.MinVersion } |
                 Sort-Object { [version]$_.Version } -Descending)
             $dependencyApp = $dependencyApps[0]
@@ -50,6 +52,7 @@ function Sync-AppDependencies {
                 }
                 catch {
                     Write-Host "Failed to sync dependency '$($dependencyApp.Name)' ($($dependencyApp.Publisher) $($dependencyApp.Version)) for app '$($App.Name)' ($($App.Publisher) $($App.Version)) on server '$ServerInstance', tenant '$Tenant': $($_.Exception.Message)"
+                    if ($throwErrors) { throw }
                 }
             }
         }

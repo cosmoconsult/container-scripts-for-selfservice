@@ -16,7 +16,8 @@ param (
     [string]$PublicDnsName = '',
     [string]$ContainerId = '',
     [string]$ContainerUser = '',
-    [string]$ContainerPassword = ''
+    [string]$ContainerPassword = '',
+    [bool]$SkipVerification = $true
 )
 
 C:\run\prompt.ps1 -silent
@@ -136,10 +137,21 @@ try {
     }
 
     Write-Host "[Deploy] Found $($appFiles.Count) app(s); starting ordered deployment with sync mode '$SyncMode'"
-    & 'C:\run\Invoke-AppListDeployment.ps1' `
-        -AppDirectory $appDirectory `
+    Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force -ErrorAction Stop
+    Import-Artifacts `
+        -Path $appDirectory `
+        -NavServiceName 'BC' `
+        -ServerInstance 'BC' `
+        -Tenant 'default' `
         -Scope $DeployScope `
         -SyncMode $SyncMode `
+        -AppsOnly `
+        -ExcludeApps $false `
+        -UseArtifactImportSettings $false `
+        -Depth ([int]::MaxValue) `
+        -throwErrors $true `
+        -SkipVerification $SkipVerification `
+        -SkipServiceRestartCheck `
         -PublicDnsName $PublicDnsName `
         -ContainerId $ContainerId `
         -ContainerUser $ContainerUser `
@@ -154,6 +166,10 @@ try {
                 Sort-Object { [System.Version]$_.Version } -Descending)
             if (-not $installedApps[0]) {
                 throw "App '$($packageApp.Name)' version $($packageApp.Version) is not installed for tenant 'default'"
+            }
+            if ($installedApps[0].SyncState -ne 'Synced' -or $installedApps[0].NeedsUpgrade -or
+                ($installedApps[0].ExtensionDataVersion -and [System.Version]$installedApps[0].ExtensionDataVersion -lt [System.Version]$installedApps[0].Version)) {
+                throw "App '$($packageApp.Name)' has an incomplete synchronization or data upgrade for tenant 'default'"
             }
         }
     }
