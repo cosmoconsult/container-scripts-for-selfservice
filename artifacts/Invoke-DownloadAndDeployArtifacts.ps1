@@ -119,6 +119,7 @@ try {
             if ($extension -ne '.app') {
                 throw "Artifact '$ArtifactPath' does not match type '$Type'"
             }
+            Get-NAVAppInfo -Path $ArtifactPath -ErrorAction Stop | Out-Null
             Write-Host '[Deploy] Copying staged artifact'
             Copy-Item -LiteralPath $ArtifactPath -Destination (Join-Path $workingDirectory ([System.IO.Path]::GetFileName($ArtifactPath))) -ErrorAction Stop
         }
