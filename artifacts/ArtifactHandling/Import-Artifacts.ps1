@@ -34,8 +34,6 @@ function Import-Artifacts {
         [string]$ContainerId = "",
         [string]$ContainerUser = "",
         [string]$ContainerPassword = "",
-        [bool]$SkipVerification = $true,
-        [switch]$AppsOnly,
         [bool]$UseArtifactImportSettings = $true,
         [ValidateRange(0, 2147483647)]
         [int]$Depth = 4,
@@ -55,7 +53,7 @@ function Import-Artifacts {
         
         # Import FOBs
         $items = @()
-        if (-not $AppsOnly -and (Test-Path -LiteralPath "$Path")) {
+        if (Test-Path -LiteralPath "$Path") {
             $items = @() + (Get-ChildItem -LiteralPath "$Path" -Filter "*.fob" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
         }
         if ($items) {
@@ -64,7 +62,7 @@ function Import-Artifacts {
                 Write-Host "Import $($items.Length) FOBs..."
 
                 # Import all FOBs
-                $items | Import-FobArtifact -NavServiceName $NavServiceName -ServerInstance $ServerInstance -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                $items | Import-FobArtifact -NavServiceName $NavServiceName -ServerInstance $ServerInstance -Tenant $Tenant -DatabaseServer $DatabaseServer -telemetryClient $telemetryClient -throwErrors $throwErrors -SkipServiceRestartCheck:$SkipServiceRestartCheck
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import FOBs" -started $started -telemetryClient $telemetryClient -properties $properties
@@ -156,7 +154,6 @@ function Import-Artifacts {
                         ContainerId = $ContainerId
                         ContainerUser = $ContainerUser
                         ContainerPassword = $ContainerPassword
-                        SkipVerification = $SkipVerification
                         SkipServiceRestartCheck = $SkipServiceRestartCheck
                     }
                     @($item) | Import-AppArtifact @importParameters
@@ -177,14 +174,11 @@ function Import-Artifacts {
         }
         else {
             Write-Host "No Apps to import."
-            if ($AppsOnly -and $throwErrors) {
-                throw "No app files found in '$Path'"
-            }
         }
 
         # Import RapidStart packages
         $items = @()
-        if (-not $AppsOnly -and (Test-Path -LiteralPath "$Path")) {
+        if (Test-Path -LiteralPath "$Path") {
             $items = @() + (Get-ChildItem -LiteralPath "$Path" -Depth $maxDepth -Filter "*.rapidstart" -Recurse -ErrorAction SilentlyContinue)
         }
         if ($items) {
@@ -193,7 +187,7 @@ function Import-Artifacts {
                 Write-Host "Import $($items.Length) RapidStart packages..."
 
                 # Import all RIMs
-                $items | Import-RIMArtifact -ServerInstance $ServerInstance -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                $items | Import-RIMArtifact -ServerInstance $ServerInstance -Tenant $Tenant -telemetryClient $telemetryClient -throwErrors $throwErrors -SkipServiceRestartCheck:$SkipServiceRestartCheck
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import RapidStart Packages" -started $started -telemetryClient $telemetryClient -properties $properties
@@ -214,15 +208,16 @@ function Import-Artifacts {
 
         # Import Fonts
         $items = @()
-        if ((-not $AppsOnly) -and (-not $SkipFontImport) -and (Test-Path -LiteralPath "c:/fonts")) {
-            $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
+        $FontPath = "c:/fonts"
+        if ((-not $SkipFontImport) -and (Test-Path -LiteralPath $FontPath)) {
+            $items = @() + (Get-ChildItem -LiteralPath $FontPath -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
         }
         if ($items) {
             try {
                 $started = Get-Date -Format "o"
                 Write-Host "Import $($items.Length) Fonts..."
                 # Import all Fonts
-                Import-Fonts -NavServiceName $NavServiceName -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                Import-Fonts -Path $FontPath -NavServiceName $NavServiceName -ServerInstance $ServerInstance -Tenant $Tenant -telemetryClient $telemetryClient -throwErrors $throwErrors
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import Fonts" -started $started -telemetryClient $telemetryClient -properties $properties

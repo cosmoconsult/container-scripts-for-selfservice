@@ -18,7 +18,6 @@ function Import-AppArtifact {
         [string]$ContainerId = "",
         [string]$ContainerUser = "",
         [string]$ContainerPassword = "",
-        [bool]$SkipVerification = $true,
         [bool]$throwErrors = $false,
         [switch]$SkipServiceRestartCheck
     )
@@ -67,6 +66,7 @@ function Import-AppArtifact {
         $properties = @{ Path = $Path; ServerInstance = $ServerInstance; Tenant = $Tenant; SyncMode = $SyncMode; Scope = $Scope }
         $groupStarted = $false
         $success = $false
+        $installedApp = $null
         try {
             if (-not (Test-Path -LiteralPath $Path -PathType Leaf)) {
                 throw "App '$Path' does not exist"
@@ -85,6 +85,9 @@ function Import-AppArtifact {
             $properties["AppId"] = $appId
             $properties["Version"] = $app.Version
 
+            if ($SyncMode -eq "ForceSync") {
+                Write-Warning "ForceSync is intended only for development and testing and can cause data loss."
+            }
             if ($Scope -eq "Dev") {
                 Invoke-AppImportStep -Name "Publish App to development endpoint" -Action {
                     if ([string]::IsNullOrWhiteSpace($PublicDnsName) -or [string]::IsNullOrWhiteSpace($ContainerId) -or
@@ -105,6 +108,7 @@ function Import-AppArtifact {
                     try {
                         $client = [System.Net.Http.HttpClient]::new($handler)
                         $client.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
+                        $client.DefaultRequestHeaders.ExpectContinue = $false
                         $credentials = [System.Text.Encoding]::UTF8.GetBytes("${ContainerUser}:$ContainerPassword")
                         $client.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Basic", [Convert]::ToBase64String($credentials))
                         $fileStream = [System.IO.File]::OpenRead($Path)
@@ -137,8 +141,12 @@ function Import-AppArtifact {
                 $needsUpgrade = $installedApp.NeedsUpgrade -or
                     ($installedApp.ExtensionDataVersion -and [Version]$installedApp.ExtensionDataVersion -lt [Version]$installedApp.Version)
                 $hasNewerData = $installedApp.ExtensionDataVersion -and [Version]$installedApp.ExtensionDataVersion -gt [Version]$installedApp.Version
-                if ([Version]$installedApp.Version -gt [Version]$app.Version -or
-                    (-not $needsUpgrade -and -not $hasNewerData -and $installedApp.SyncState -eq "Synced" -and $SyncMode -ne "ForceSync")) {
+                if ([Version]$installedApp.Version -gt [Version]$app.Version -and
+                    ($needsUpgrade -or $hasNewerData -or $installedApp.SyncState -ne "Synced")) {
+                    throw "Newer installed version $($installedApp.Version) of app '$($app.Name)' has an incomplete synchronization or data upgrade"
+                }
+                if (-not $needsUpgrade -and -not $hasNewerData -and $installedApp.SyncState -eq "Synced" -and
+                    ([Version]$installedApp.Version -gt [Version]$app.Version -or $SyncMode -ne "ForceSync")) {
                     Add-ArtifactsLog -kind App -message "Skipping App $($app.Name) $($app.Version): version $($installedApp.Version) is already installed." -data $app
                     $success = $true
                     return
@@ -159,7 +167,7 @@ function Import-AppArtifact {
                     if ($Scope -eq "Tenant" -and $commandInfo.Parameters.Tenant) {
                         $optionalParameters.Tenant = $Tenant
                     }
-                    Publish-NAVApp -ServerInstance $ServerInstance -Path $Path @optionalParameters -SkipVerification:$SkipVerification -ErrorAction Stop
+                    Publish-NAVApp -ServerInstance $ServerInstance -Path $Path @optionalParameters -SkipVerification -ErrorAction Stop
                 }
                 $targetApp = Get-ImportTenantAppInfo -AppId $appId -Version $app.Version
             }
@@ -172,13 +180,13 @@ function Import-AppArtifact {
 
             if ($SyncMode -eq "ForceSync" -or $targetApp.SyncState -ne "Synced") {
                 if ($SyncMode -eq "ForceSync" -and $installedApp) {
-                    Write-Warning "ForceSync is intended only for development and testing and can cause data loss."
                     Invoke-AppImportStep -Name "Uninstall App for ForceSync" -Action {
                         Uninstall-NAVApp -ServerInstance $ServerInstance -Name $installedApp.Name -Publisher $installedApp.Publisher -Version $installedApp.Version -Tenant $Tenant -Force -ErrorAction Stop
                     }
                 }
                 Invoke-AppImportStep -Name "Sync App" -Action {
-                    Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant $Tenant -SyncMode $SyncMode -throwErrors $throwErrors
+                    # The sync of dependencies with mode Add as standard - Forcesync could damage the schema of dependencies - is this right Ole?
+                    Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant $Tenant -SyncMode Add -throwErrors $throwErrors
                     Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Mode $SyncMode -Force -ErrorAction Stop
                 }
                 $targetApp = Get-ImportTenantAppInfo -AppId $appId -Version $app.Version
@@ -218,7 +226,7 @@ function Import-AppArtifact {
         }
         finally {
             if ($success -and $IsModifiedBaseApp) {
-                $env:cosmoBaseAppVersion = $app.Version
+                $env:cosmoBaseAppVersion = if ($installedApp -and [Version]$installedApp.Version -gt [Version]$app.Version) { $installedApp.Version } else { $app.Version }
             }
             Invoke-LogOperation -name "Import App Artifact" -started $started -properties $properties -success $success -telemetryClient $telemetryClient
             if ($groupStarted) { Write-Host "##[endgroup]" }

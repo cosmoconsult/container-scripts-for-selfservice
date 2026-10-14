@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $true)]
-    [ValidateSet('nuget', 'app', 'fob', 'rapidstart', 'font', 'zip')]
+    [ValidateSet('nuget', 'app', 'zip')]
     [string]$Type,
     [string]$Name = '',
     [string]$Version = '',
@@ -16,12 +16,7 @@ param (
     [string]$PublicDnsName = '',
     [string]$ContainerId = '',
     [string]$ContainerUser = '',
-    [string]$ContainerPassword = '',
-    [bool]$SkipVerification = $true,
-    [string]$ServerInstance = 'BC',
-    [string]$Tenant = 'default',
-    [string]$NavServiceName = 'MicrosoftDynamicsNavServer$BC',
-    [string]$DatabaseServer = 'localhost\sqlexpress'
+    [string]$ContainerPassword = ''
 )
 
 C:\run\prompt.ps1 -silent
@@ -30,8 +25,6 @@ $ErrorActionPreference = 'Stop'
 $maximumArchiveEntries = 1000
 $maximumExtractedSize = 1GB
 $workingDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
-$fontExtensions = @('.fon', '.fnt', '.ttf', '.ttc', '.otf')
-$supportedExtensions = @('.app', '.fob', '.rapidstart') + $fontExtensions
 
 function Expand-ArtifactArchive {
     param (
@@ -91,7 +84,7 @@ try {
                 Write-Host "[Deploy] NuGet feed initialization warning: $($_.Exception.Message)"
             }
             if ($ConsiderInstalledApps) {
-                $installedAppsInfo = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Tenant $Tenant -TenantSpecificProperties -ErrorAction Stop |
+                $installedAppsInfo = @(Get-NAVAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties -ErrorAction Stop |
                     Where-Object { $_.IsInstalled } |
                     ForEach-Object {
                         [PSCustomObject]@{
@@ -117,14 +110,13 @@ try {
             }
             Invoke-DownloadArtifact @downloadParameters
         }
-        { $_ -in @('app', 'fob', 'rapidstart', 'font') } {
+        'app' {
             if (-not (Test-Path -LiteralPath $ArtifactPath -PathType Leaf)) {
                 throw "Artifact '$ArtifactPath' does not exist"
             }
 
             $extension = [System.IO.Path]::GetExtension($ArtifactPath).ToLowerInvariant()
-            if (($Type -eq 'font' -and $extension -notin $fontExtensions) -or
-                ($Type -ne 'font' -and $extension -ne ".$Type")) {
+            if ($extension -ne '.app') {
                 throw "Artifact '$ArtifactPath' does not match type '$Type'"
             }
             Write-Host '[Deploy] Copying staged artifact'
@@ -143,68 +135,27 @@ try {
         }
     }
 
-    $artifactFiles = @(Get-ChildItem -LiteralPath $artifactDirectory -Recurse -File -ErrorAction Stop |
-        Where-Object { $_.Extension.ToLowerInvariant() -in $supportedExtensions })
-    if ($artifactFiles.Count -eq 0) {
-        throw "No supported artifacts found for $Type deployment"
-    }
-    if ($DeployScope -eq 'Dev' -and @($artifactFiles | Where-Object { $_.Extension -ne '.app' }).Count -gt 0) {
-        throw 'Dev scope supports only .app artifacts; use Global or Tenant for other artifact types'
-    }
-    $fontDirectory = Join-Path $workingDirectory 'fonts'
-    $fontFiles = @($artifactFiles | Where-Object { $_.Extension.ToLowerInvariant() -in $fontExtensions })
-    if ($fontFiles.Count -gt 0) {
-        New-Item -Path $fontDirectory -ItemType Directory -Force | Out-Null
-        foreach ($fontFile in $fontFiles) {
-            $fontDestination = Join-Path $fontDirectory $fontFile.Name
-            if (Test-Path -LiteralPath $fontDestination) {
-                throw "Duplicate font filename '$($fontFile.Name)' in artifact package"
-            }
-            Copy-Item -LiteralPath $fontFile.FullName -Destination $fontDestination -ErrorAction Stop
+    $devParameters = @{}
+    if ($DeployScope -eq 'Dev') {
+        $devParameters = @{
+            PublicDnsName = $PublicDnsName
+            ContainerId = $ContainerId
+            ContainerUser = $ContainerUser
+            ContainerPassword = $ContainerPassword
         }
     }
 
-    $appFiles = @($artifactFiles | Where-Object { $_.Extension -eq '.app' })
-    Write-Host "[Deploy] Found $($artifactFiles.Count) artifact(s); starting import with sync mode '$SyncMode'"
+    Write-Host "[Deploy] Importing artifacts with scope '$DeployScope' and sync mode '$SyncMode'"
     Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force -ErrorAction Stop
     Import-Artifacts `
         -Path $artifactDirectory `
-        -NavServiceName $NavServiceName `
-        -ServerInstance $ServerInstance `
-        -Tenant $Tenant `
-        -DatabaseServer $DatabaseServer `
-        -FontPath $fontDirectory `
+        -NavServiceName 'MicrosoftDynamicsNavServer$BC' `
+        -ServerInstance BC `
         -Scope $DeployScope `
         -SyncMode $SyncMode `
-        -ExcludeApps $false `
-        -UseArtifactImportSettings $false `
-        -Depth ([int]::MaxValue) `
-        -throwErrors $true `
-        -SkipVerification $SkipVerification `
-        -SkipServiceRestartCheck `
-        -PublicDnsName $PublicDnsName `
-        -ContainerId $ContainerId `
-        -ContainerUser $ContainerUser `
-        -ContainerPassword $ContainerPassword
+        @devParameters
 
-    if ($DeployScope -ne 'Dev' -and $appFiles.Count -gt 0) {
-        Write-Host '[Deploy] Verifying installed app state'
-        foreach ($appFile in $appFiles) {
-            $packageApp = Get-NAVAppInfo -Path $appFile.FullName
-            $installedApps = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Id $packageApp.AppId -Tenant $Tenant -TenantSpecificProperties -ErrorAction Stop |
-                Where-Object { $_.IsInstalled -and [System.Version]$_.Version -ge [System.Version]$packageApp.Version } |
-                Sort-Object { [System.Version]$_.Version } -Descending)
-            if (-not $installedApps[0]) {
-                throw "App '$($packageApp.Name)' version $($packageApp.Version) is not installed for tenant '$Tenant'"
-            }
-            if ($installedApps[0].SyncState -ne 'Synced' -or $installedApps[0].NeedsUpgrade -or
-                ($installedApps[0].ExtensionDataVersion -and [System.Version]$installedApps[0].ExtensionDataVersion -lt [System.Version]$installedApps[0].Version)) {
-                throw "App '$($packageApp.Name)' has an incomplete synchronization or data upgrade for tenant '$Tenant'"
-            }
-        }
-    }
-
-    Write-Host 'Artifact deployment completed successfully'
+    Write-Host 'Artifact import finished'
 }
 catch {
     Write-Host "Artifact deployment failed: $($_.Exception.Message)"
@@ -212,5 +163,12 @@ catch {
 }
 finally {
     Write-Host '[Deploy] Cleaning up deployment files'
-    Remove-Item -LiteralPath $workingDirectory -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $workingDirectory) {
+        try {
+            Remove-Item -LiteralPath $workingDirectory -Recurse -Force -ErrorAction Stop
+        }
+        catch {
+            Write-Warning "Could not clean up deployment files in '$workingDirectory': $($_.Exception.Message)"
+        }
+    }
 }
