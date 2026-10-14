@@ -153,6 +153,7 @@ try {
         -ServerInstance BC `
         -Scope $DeployScope `
         -SyncMode $SyncMode `
+        -throwErrors $true `
         @devParameters
 
     Write-Host 'Artifact import finished'
