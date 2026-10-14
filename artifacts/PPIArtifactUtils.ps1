@@ -4,4 +4,4 @@ Remove-Module PPIArtifactUtils -ErrorAction Ignore
 Uninstall-module PPIArtifactUtils -ErrorAction Ignore
 
 $modulePath = Join-Path $PSScriptRoot "PPIArtifactUtils.psm1"
-Import-Module $modulePath -ErrorAction Stop
+Import-Module $modulePath
