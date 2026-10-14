@@ -41,7 +41,7 @@ function Import-FobArtifact {
             Stop-Service -Name $NavServiceName -WarningAction Ignore
             $databaseName = ((Get-NAVServerConfiguration -ServerInstance $ServerInstance -ErrorAction SilentlyContinue) | Where-Object { $_.key -eq "DatabaseName" }).value
         }
-        
+
         $properties = @{"path" = $Path; "DatabaseName" = $DatabaseName; "NavServiceName" = $NavServiceName; "ServerInstance" = $ServerInstance }
         try {
             $started = Get-Date -Format "o"

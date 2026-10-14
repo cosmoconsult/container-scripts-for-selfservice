@@ -9,6 +9,7 @@ function Invoke-NuGetPackageDownload() {
         [string]$Package,
         [string]$Version,
         [string]$InstalledAppsPath,
+        [PSCustomObject[]]$InstalledAppsInfo = @(),
         [string]$ServiceTierFolder,
         [PSCustomObject[]]$PredefinedPackages = @(),
         [ValidateRange(0, [int]::MaxValue)]
@@ -71,13 +72,32 @@ function Invoke-NuGetPackageDownload() {
             Write-Host "Use NuGet version constraint '$($downloadParameters.version)' for select mode '$Select'"
         }
 
+        if ($InstalledAppsInfo) {
+            $relevantInstalledAppsInfo = @()
+            foreach ($appInfo in $InstalledAppsInfo) {
+                if ($installedAppsHash.ContainsKey($appInfo.Id)) {
+                    if ([Version]$appInfo.Version -gt [Version]$installedAppsHash[$appInfo.Id].Version) {
+                        $installedAppsHash[$appInfo.Id] = $appInfo
+                        $relevantInstalledAppsInfo += $appInfo
+                    }
+                }
+                else {
+                    $installedAppsHash[$appInfo.Id] = $appInfo
+                    $relevantInstalledAppsInfo += $appInfo
+                }
+            }
+            if ($relevantInstalledAppsInfo) {
+                Write-Host "Installed apps:$([System.Environment]::NewLine)$($relevantInstalledAppsInfo | Sort-Object Package | Select-Object Package, Id, Version | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)"
+            }
+        }
+
         if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
             Write-Host "Collecting app files from '$InstalledAppsPath'"
-            $installedAppInfos = @(Get-NuGetAppInfos -AppFilesPath $InstalledAppsPath -ServiceTierFolder $ServiceTierFolder)
+            $installedAppFilesInfos = @(Get-NuGetAppInfos -AppFilesPath $InstalledAppsPath -ServiceTierFolder $ServiceTierFolder)
 
-            if ($installedAppInfos) {
+            if ($installedAppFilesInfos) {
                 Write-Host "Collecting apps infos from app files (only highest version per app id)"
-                foreach ($appInfo in $installedAppInfos) {
+                foreach ($appInfo in $installedAppFilesInfos) {
                     if ($installedAppsHash.ContainsKey($appInfo.Id)) {
                         if ([Version]$appInfo.Version -gt [Version]$installedAppsHash[$appInfo.Id].Version) {
                             $installedAppsHash[$appInfo.Id] = $appInfo

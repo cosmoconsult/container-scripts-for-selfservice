@@ -31,6 +31,9 @@ function Invoke-DownloadArtifact {
         [string]  $ServiceTierFolder,
         [int]     $FolderIdx         = 0,
         [int]     $Retries           = 3,
+        [PSCustomObject[]]$InstalledAppsInfo = @(),
+        [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
+        [string]  $NuGetSelectMode,
 
         # Control Parameters
         [switch]$PassThru,
@@ -96,6 +99,10 @@ function Invoke-DownloadArtifact {
             ServiceTierFolder = $ServiceTierFolder
             FolderIdx = $FolderIdx
             Retries = $Retries
+            InstalledAppsInfo = $InstalledAppsInfo
+        }
+        if ($NuGetSelectMode) {
+            $parameters.NuGetSelectMode = $NuGetSelectMode
         }
 
         if (! $PassThru) {

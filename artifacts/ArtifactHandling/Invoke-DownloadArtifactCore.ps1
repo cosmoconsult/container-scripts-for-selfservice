@@ -31,7 +31,10 @@ function Invoke-DownloadArtifactCore {
         [string]  $serviceTierFolder,
         [int]     $folderIdx,
         [ValidateRange(0, [int]::MaxValue)]
-        [int]     $retries
+        [int]     $retries,
+        [PSCustomObject[]]$installedAppsInfo = @(),
+        [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
+        [string]  $nuGetSelectMode
     )
 
     begin {
@@ -269,7 +272,11 @@ function Invoke-DownloadArtifactCore {
                             InstalledAppsPath  = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
                             ServiceTierFolder  = $serviceTierFolder
                             PredefinedPackages = $predefinedNuGetPackages
+                            InstalledAppsInfo  = $installedAppsInfo
                             Retries            = $retries
+                        }
+                        if ($nuGetSelectMode) {
+                            $nuGetParameters.Select = $nuGetSelectMode
                         }
                         Invoke-NuGetPackageDownload @nuGetParameters *>&1 |
                             Where-Object { $_ -ne $null } |
