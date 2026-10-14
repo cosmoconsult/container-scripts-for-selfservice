@@ -97,7 +97,7 @@ function Invoke-NuGetPackageDownload() {
 
             if ($installedAppFilesInfos) {
                 Write-Host "Collecting apps infos from app files (only highest version per app id)"
-                foreach ($appInfo in $installedAppInfos) {
+                foreach ($appInfo in $installedAppFilesInfos) {
                     if ($installedAppsHash.ContainsKey($appInfo.Id)) {
                         if ([Version]$appInfo.Version -gt [Version]$installedAppsHash[$appInfo.Id].Version) {
                             $installedAppsHash[$appInfo.Id] = $appInfo
