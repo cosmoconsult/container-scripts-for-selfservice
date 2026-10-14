@@ -66,6 +66,8 @@ function Invoke-4PSArtifactHandling {
             Write-Host "  app database name is: $appDatabaseName"
             $isModifiedBaseAppInstalled = ![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)
             $isSaaSBak = ![string]::IsNullOrEmpty($env:saasbakfile)
+            $use4PSContainerInitializer = $env:AZP_SERVICE_DISPLAYNAME -notlike "*Skip4PSContainerInitializer*"
+            $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
             if ($isModifiedBaseAppInstalled -and !$isSaaSBak) {
                 Write-Host "  modified base app was installed, therefore this is not a microsoft standard database"
             }
@@ -76,7 +78,10 @@ function Invoke-4PSArtifactHandling {
             elseif ($isSaaSBak) {
                 Write-Host "4PS initialization skipped as this seems to be a SaaS backup restore"
             }
-            elseif (("CRONUS" -eq $appDatabaseName) -or ("default" -eq $appDatabaseName) -and !$isModifiedBaseAppInstalled) {
+            elseif (($sysAppInfoFS.Version.Major -ge 29) -and !(Get-NAVAppInfo -ServerInstance BC -ErrorAction Stop | Where-Object { $_.Publisher -eq "4PS B.V." })) {
+                Write-Host "4PS initialization skipped as no extension published by 4PS B.V. was found"
+            }
+            elseif (($sysAppInfoFS.Version.Major -lt 29) -and (("CRONUS" -eq $appDatabaseName) -or ("default" -eq $appDatabaseName)) -and !$isModifiedBaseAppInstalled) {
                 Write-Host "4PS initialization skipped as this seems to be a Microsoft standard database"
             }
             else {
@@ -106,9 +111,6 @@ function Invoke-4PSArtifactHandling {
                 }
                 New-NAVServerUserPermissionSet -ServerInstance BC -Username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 1
-
-                $use4PSContainerInitializer = $env:AZP_SERVICE_DISPLAYNAME -notlike "*Skip4PSContainerInitializer*"
-                $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
 
                 if ($use4PSContainerInitializer) {    
                     $initializerVersion = ''
