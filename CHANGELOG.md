@@ -45,3 +45,5 @@
 - Fix artifact download of single files (e.g. RapidStart packages) being wrongly treated as ZIP archives
 - Add preservation of artifacts order for app files sorted by dependencies with the same process order
 - Fix dependency retrieval when multiple app versions match
+- Fix NuGet artifact version checks and conversions
+- Add support for prerelease NuGet packages
