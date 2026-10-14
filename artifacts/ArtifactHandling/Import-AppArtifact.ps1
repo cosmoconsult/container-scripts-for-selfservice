@@ -186,7 +186,7 @@ function Import-AppArtifact {
                 }
                 Invoke-AppImportStep -Name "Sync App" -Action {
                     # The sync of dependencies with mode Add as standard - Forcesync could damage the schema of dependencies - is this right Ole?
-                    Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant $Tenant -SyncMode Add -throwErrors $throwErrors
+                    Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant $Tenant -SyncMode Add
                     Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Mode $SyncMode -Force -ErrorAction Stop
                 }
                 $targetApp = Get-ImportTenantAppInfo -AppId $appId -Version $app.Version

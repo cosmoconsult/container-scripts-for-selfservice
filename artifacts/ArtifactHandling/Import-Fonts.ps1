@@ -8,9 +8,7 @@ function Import-Fonts {
         [Parameter(Mandatory = $false)]
         [string]$Tenant = "default",
         [Parameter(Mandatory = $false)]
-        [System.Object]$telemetryClient = $null,
-        [string]$ServerInstance = "NAV",
-        [bool]$throwErrors = $false
+        [System.Object]$telemetryClient = $null
     )
     
     begin {
@@ -19,7 +17,6 @@ function Import-Fonts {
         }
 
         $importFiles = $false
-        $importErrorAction = if ($throwErrors) { "Stop" } else { "SilentlyContinue" }
         $started = Get-Date -Format "o"
     }
     
@@ -55,9 +52,7 @@ namespace FontResource
 }
 '@
 
-            if (-not ("FontResource.AddRemoveFonts" -as [type])) {
-                Add-Type $fontCSharpCode -ErrorAction $importErrorAction
-            }
+            Add-Type $fontCSharpCode
                     
             # Create hashtable containing valid font file extensions and text to append to Registry entry name.
             $hashFontFileTypes = @{}
@@ -84,11 +79,10 @@ namespace FontResource
             
             if ($retVal -eq 0) {
                 Write-Host -ForegroundColor Red "Font `'$($path)`'`' installation failed"
-                if ($throwErrors) { throw "Font '$path' installation failed" }
             }
             else {
                 Write-Host -ForegroundColor Green "Font `'$($path)`' installed successfully"
-                Set-ItemProperty -path "$($fontRegistryPath)" -name "$($fontName)$($hashFontFileTypes.item($fileExt))" -value "$($fileName)" -type STRING -ErrorAction $importErrorAction
+                Set-ItemProperty -path "$($fontRegistryPath)" -name "$($fontName)$($hashFontFileTypes.item($fileExt))" -value "$($fileName)" -type STRING
             }
         }
 
@@ -99,10 +93,10 @@ namespace FontResource
         }
 
         $fontsFolderPath = "C:\Windows\Fonts"
-        $ExistingFonts = @(Get-ChildItem -LiteralPath $fontsFolderPath -ErrorAction $importErrorAction | % { $_.Name })
+        $ExistingFonts = Get-ChildItem -LiteralPath $fontsFolderPath | % { $_.Name }
         
-        Get-ChildItem -LiteralPath $Path -File -ErrorAction $importErrorAction | Where-Object { $_.Extension.ToLowerInvariant() -in @(".fon", ".fnt", ".ttf", ".ttc", ".otf") } | % {
-            if ($_.Name -notin $ExistingFonts) {
+        Get-ChildItem -LiteralPath $Path -Exclude @("*.zip", "*.txt", "*.ini") -ErrorAction Ignore | % {
+            if (! $ExistingFonts.Contains($_.Name) -and $_.Extension -ne ".ini") {
                 
                 $properties = @{"path" = $Path; "Font" = $_.Name; "FontPath" = $_.FullName; }
 
@@ -111,10 +105,10 @@ namespace FontResource
                     $fullName = $_.FullName
                 
                     # Copy font to destination
-                    Copy-item -LiteralPath $fullName -Destination $WindowsFontPath -ErrorAction $importErrorAction
+                    Copy-item -Path $fullName -Destination $WindowsFontPath
     
                     # Import the font
-                    Import-Font $WindowsFontPath -ErrorAction $importErrorAction -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    Import-Font $WindowsFontPath -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
 
                     $info | foreach { Add-ArtifactsLog -kind Font -message "$_" -severity Info  -data $properties }
                     $warn | foreach { Add-ArtifactsLog -kind Font -message "$_" -severity Warn  -data $properties }
@@ -125,7 +119,6 @@ namespace FontResource
                 catch {
                     Add-ArtifactsLog -kind Font -message "Import FONT FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $properties -severity Error -success fail
                     Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import Font Artifact"
-                    if ($throwErrors) { throw }
                 }
                 Invoke-LogOperation -name "Import Font" -started $started -properties $properties -telemetryClient $telemetryClient -success $success
                 Add-ArtifactsLog -message " "
@@ -137,8 +130,8 @@ namespace FontResource
     end {
         if ($importFiles) {
             Write-Host "Restart NAV service"
-            Restart-Service -Name $NavServiceName -ErrorAction $importErrorAction
-            Wait-NAVTenantReady -ServerInstance $ServerInstance -Tenant $Tenant -OutputPrefix " - "
+            Restart-Service -Name $NavServiceName
+            Wait-NAVTenantReady -ServerInstance $NavServiceName -Tenant $Tenant -OutputPrefix " - "
             Add-ArtifactsLog "Import Fonts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
         }
     }
