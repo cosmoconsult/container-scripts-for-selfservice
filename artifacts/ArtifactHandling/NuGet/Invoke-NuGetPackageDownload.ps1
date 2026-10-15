@@ -14,7 +14,8 @@ function Invoke-NuGetPackageDownload() {
         [ValidateRange(0, [int]::MaxValue)]
         [int]$Retries = 0,
         [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
-        [string]$Select = $( Get-NuGetFeedSelectMode )
+        [string]$Select = $( Get-NuGetFeedSelectMode ),
+        [bool]$AllowPrerelease = $( Get-NuGetAllowPrerelease )
     )
 
     $maxAttempts = $Retries + 1
@@ -36,9 +37,10 @@ function Invoke-NuGetPackageDownload() {
             folder               = $Destination
             installedApps        = @()
             select               = $Select
+            allowPrerelease      = $AllowPrerelease
             downloadDependencies = 'allButMicrosoft'
         }
-        $installedAppsHash = @{}       
+        $installedAppsHash = @{}
 
         $systemApplicationId = '63ca2fa4-4f03-4f2b-a480-172fef340d3f'
         $applicationId = 'c1335042-3002-4257-bf8a-75c898ccb1b8'
@@ -59,7 +61,7 @@ function Invoke-NuGetPackageDownload() {
             Write-Host "Detected Platform version '$platformVersion' from Microsoft.Dynamics.Nav.Server.exe"
         }
         $downloadParameters.installedPlatform = $platformVersion
-            
+
         $applicationAppInfo = $applicationPlatformAppInfos | Where-Object { $_.Id.ToString() -eq $applicationId } | Select-Object -First 1
         if ($applicationAppInfo) {
             Write-Host "Add $($applicationAppInfo.Publisher) $($applicationAppInfo.Name) with version '$($applicationAppInfo.Version)' as installed app"
@@ -115,7 +117,7 @@ function Invoke-NuGetPackageDownload() {
             }
 
             # Determine highest possible version of predefined package
-            $packageVersion = ConvertTo-NuGetMaximumVersion -Version $predefinedPackage.Version -ErrorContext "predefined package '$($predefinedPackage.Package)'"
+            $packageVersion = ConvertTo-NuGetMaximumVersion -Version $predefinedPackage.Version -Select $Select -ErrorContext "predefined package '$($predefinedPackage.Package)'"
 
             # Ignore predefined package if no version could be determined (e.g. version range)
             if (! $packageVersion) {
