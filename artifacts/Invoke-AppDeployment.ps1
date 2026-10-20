@@ -12,6 +12,7 @@ param (
 )
 
 c:\run\prompt.ps1
+. (Join-Path $PSScriptRoot "helper/Remove-PowerShellFlowControlErrors.ps1")
 try {
     $started = Get-Date -Format "o"
 
@@ -64,6 +65,7 @@ try {
                 $started1 = Get-Date -Format "o"
                 Write-Host "Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $($oldApp.Name) -Publisher $($oldApp.Publisher) -Version $($oldApp.Version) -Force"
                 Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant default -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                $err = @($err | Remove-PowerShellFlowControlErrors)
                 $info | foreach { Write-Host "$_" }
                 $warn | foreach { Write-Host "$_" }
                 $err  | foreach { Write-Host "$_" }
@@ -94,10 +96,12 @@ try {
                 if ($Scope -eq "Global") {
                     Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope"
                     Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    $err = @($err | Remove-PowerShellFlowControlErrors)
                 }
                 elseif ($Scope -eq "Tenant") {
                     Write-Host "Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default"
                     Publish-NavApp -ServerInstance $ServerInstance -Path $Path -SkipVerification -Scope $Scope -Tenant default -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    $err = @($err | Remove-PowerShellFlowControlErrors)
                 }
                 $info | foreach { Write-Host "$_" }
                 $warn | foreach { Write-Host "$_" }
@@ -119,6 +123,7 @@ try {
                 Write-Host "Sync-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
                 Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant "default" -SyncMode "Add"
                 Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                $err = @($err | Remove-PowerShellFlowControlErrors)
                 $info | foreach { Write-Host "$_" }
                 $warn | foreach { Write-Host "$_" }
                 $err  | foreach { Write-Host "$_" }
@@ -146,6 +151,7 @@ try {
                 Write-Host "Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version) -Force"
                 
                 Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                $err = @($err | Remove-PowerShellFlowControlErrors)
                 $info | foreach { Write-Host "$_" }
                 $warn | foreach { Write-Host "$_" }
                 $err  | foreach { Write-Host "$_" }
@@ -168,6 +174,7 @@ try {
                 $started3 = Get-Date -Format "o"
                 Write-Host "Install-NAVApp -ServerInstance $ServerInstance -Name $($app.Name) -Publisher $($app.Publisher) -Version $($app.Version)"
                 Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                $err = @($err | Remove-PowerShellFlowControlErrors)
                 $info | foreach { Write-Host "$_" }
                 $warn | foreach { Write-Host "$_" }
                 $err  | foreach { Write-Host "$_" }

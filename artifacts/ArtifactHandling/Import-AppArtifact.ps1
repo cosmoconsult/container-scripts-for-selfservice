@@ -73,6 +73,7 @@ function Import-AppArtifact {
                     $started1 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Uninstall old App $($oldApp.Name) $($oldApp.Publisher) $($oldApp.Version) ..." -data $app
                     Uninstall-NAVApp -ServerInstance $ServerInstance -Tenant $Tenant -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    $err = @($err | Remove-PowerShellFlowControlErrors)
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
@@ -119,6 +120,7 @@ function Import-AppArtifact {
                         }
 
                         Publish-NavApp -ServerInstance $ServerInstance -Path $Path @optionalParameters -SkipVerification -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                        $err = @($err | Remove-PowerShellFlowControlErrors)
                         $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                         $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                         $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
@@ -143,6 +145,7 @@ function Import-AppArtifact {
                     Add-ArtifactsLog -kind App -message "Sync App $($app.Name) $($app.Publisher) $($app.Version) Mode: $($SyncMode) ..." -data $app
                     Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant $Tenant -SyncMode $SyncMode
                     Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Mode $SyncMode -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    $err = @($err | Remove-PowerShellFlowControlErrors)
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
@@ -173,6 +176,7 @@ function Import-AppArtifact {
                     Add-ArtifactsLog -kind App -message "Start App Data Upgrade $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
 
                     Start-NAVAppDataUpgrade -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    $err = @($err | Remove-PowerShellFlowControlErrors)
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
@@ -193,6 +197,7 @@ function Import-AppArtifact {
                             }
 
                             Unpublish-NAVApp -ServerInstance $ServerInstance -Name $oldApp.Name -Publisher $oldApp.Publisher -Version $oldApp.Version @optionalParameters -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                            $err = @($err | Remove-PowerShellFlowControlErrors)
                             $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                             $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                             $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
@@ -227,6 +232,7 @@ function Import-AppArtifact {
                     $started3 = Get-Date -Format "o"
                     Add-ArtifactsLog -kind App -message "Install App $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
                     Install-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Force -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
+                    $err = @($err | Remove-PowerShellFlowControlErrors)
                     $info | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Info  -data $app }
                     $warn | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Warn  -data $app }
                     $err  | foreach { Add-ArtifactsLog -kind App -message "$_" -severity Error -data $app }
