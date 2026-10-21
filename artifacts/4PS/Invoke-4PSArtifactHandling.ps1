@@ -139,6 +139,7 @@ function Invoke-4PSArtifactHandling {
                         }
                         else {
                             Write-Warning "No demo data files found, skipping demo data initalization."
+                            return
                         }
                     }
                     Publish-NAVApp -ServerInstance BC -Path $initializerPath -SkipVerification -Scope Tenant
