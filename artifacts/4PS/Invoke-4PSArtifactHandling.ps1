@@ -327,7 +327,17 @@ function Invoke-4PSArtifactHandling {
                 New-NAVAddin -ServerInstance BC -AddinName 'Microsoft.Dynamics.Nav.Client.WelcomeWizard' -PublicKeyToken 31bf3856ad364e35 -ResourceFile "$serviceTierFolder\Add-ins\WelcomeWizard\Microsoft.Dynamics.Nav.Client.WelcomeWizard.zip" -ErrorAction SilentlyContinue
                 Restart-NAVServerInstance BC
                 
+                
                 Write-Host "Moving all published apps to dev scope when possible"
+                foreach ($variableName in @("UseDevScope", "IsBuildContainer")) {
+                    $variableValue = [Environment]::GetEnvironmentVariable($variableName)
+                    if ([string]::IsNullOrEmpty($variableValue)) {
+                        Write-Host "  ${variableName}: <unset or empty>"
+                    }
+                    else {
+                        Write-Host "  ${variableName}: '$variableValue'"
+                    }
+                }
                 if (($env:UseDevScope -eq "true") -and -not $env:IsBuildContainer) {
                     Invoke-4PSMoveExtensionToDevScope `
                         -databaseName $DatabaseName `
