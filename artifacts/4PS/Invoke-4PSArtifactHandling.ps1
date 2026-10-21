@@ -329,7 +329,7 @@ function Invoke-4PSArtifactHandling {
                 
 
                 Write-Host "Moving all published apps to dev scope when possible"
-                foreach ($variableName in @("modeConfig", "IsBuildContainer")) {
+                foreach ($variableName in @("modeConfig", "mode")) {
                     $variableValue = [Environment]::GetEnvironmentVariable($variableName)
                     if ([string]::IsNullOrEmpty($variableValue)) {
                         Write-Host "  ${variableName}: <unset or empty>"
