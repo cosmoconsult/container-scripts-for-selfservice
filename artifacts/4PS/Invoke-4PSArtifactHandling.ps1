@@ -328,13 +328,11 @@ function Invoke-4PSArtifactHandling {
                 Restart-NAVServerInstance BC
                 
                 Write-Host "Moving all published apps to dev scope when possible"
-                if (-not $env:IsBuildContainer) {
-                    if ($null -ne (Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL')) {
-                        Invoke-4PSMoveExtensionToDevScope `
-                            -databaseName $DatabaseName `
-                            -databaseServer $DatabaseServer `
-                            -databaseInstance $DatabaseInstance   
-                    }
+                if (($env:UseDevScope -eq "true") -and -not $env:IsBuildContainer) {
+                    Invoke-4PSMoveExtensionToDevScope `
+                        -databaseName $DatabaseName `
+                        -databaseServer $DatabaseServer `
+                        -databaseInstance $DatabaseInstance   
                 }
 
                 $timespent4PS = [Math]::Round([DateTime]::Now.Subtract($startTime4PS).Totalseconds)
