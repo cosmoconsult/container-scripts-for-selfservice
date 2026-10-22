@@ -112,6 +112,8 @@ function Invoke-4PSArtifactHandling {
                 New-NAVServerUserPermissionSet -ServerInstance BC -Username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 1
 
+                $files = Get-DemoDataFiles
+
                 if ($use4PSContainerInitializer) {    
                     $initializerVersion = ''
                     if ($sysAppInfoFS.Version.Major -eq 21) {
@@ -132,7 +134,13 @@ function Invoke-4PSArtifactHandling {
 
                     $initializerPath = "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app"
                     if (-not (Test-Path $initializerPath)) {
-                        Write-Error "Couldn't find the expected initializer app at $initializerPath"
+                        if ($files -and $files.Count -gt 0) {
+                            Write-Error "Couldn't find the expected initializer app at $initializerPath"
+                        }
+                        else {
+                            Write-Warning "No demo data files found, skipping demo data initalization."
+                            return
+                        }
                     }
                     Publish-NAVApp -ServerInstance BC -Path $initializerPath -SkipVerification -Scope Tenant
                     Sync-NAVApp -ServerInstance BC -Name 'Container initializer'
@@ -146,7 +154,6 @@ function Invoke-4PSArtifactHandling {
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
                 $firstRun = $true
-                $files = Get-DemoDataFiles
                 foreach ($demoDataFile in $files) {
                     $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
                     "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
