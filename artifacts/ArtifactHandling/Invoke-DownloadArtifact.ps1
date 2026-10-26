@@ -31,12 +31,13 @@ function Invoke-DownloadArtifact {
         [string]  $ServiceTierFolder,
         [int]     $FolderIdx         = 0,
         [int]     $Retries           = 3,
-        [PSCustomObject[]]$InstalledAppsInfo = @(),
-        [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
-        [string]  $NuGetSelectMode,
+        [PSCustomObject[]]$InstalledPackages = @(),
+        [scriptblock]$ValidateArtifact,
 
         # Control Parameters
         [switch]$PassThru,
+        [switch]$SkipServiceRestartCheck,
+        [switch]$ThrowOnError,
         [System.Object]$TelemetryClient = $null
     )
 
@@ -99,10 +100,10 @@ function Invoke-DownloadArtifact {
             ServiceTierFolder = $ServiceTierFolder
             FolderIdx = $FolderIdx
             Retries = $Retries
-            InstalledAppsInfo = $InstalledAppsInfo
-        }
-        if ($NuGetSelectMode) {
-            $parameters.NuGetSelectMode = $NuGetSelectMode
+            InstalledPackages = $InstalledPackages
+            SkipServiceRestartCheck = $SkipServiceRestartCheck
+            ThrowOnError = $ThrowOnError
+            ValidateArtifact = $ValidateArtifact
         }
 
         if (! $PassThru) {

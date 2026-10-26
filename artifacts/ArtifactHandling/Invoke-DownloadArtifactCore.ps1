@@ -32,9 +32,10 @@ function Invoke-DownloadArtifactCore {
         [int]     $folderIdx,
         [ValidateRange(0, [int]::MaxValue)]
         [int]     $retries,
-        [PSCustomObject[]]$installedAppsInfo = @(),
-        [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
-        [string]  $nuGetSelectMode
+        [PSCustomObject[]]$installedPackages = @(),
+        [scriptblock]$ValidateArtifact,
+        [switch]$SkipServiceRestartCheck,
+        [switch]$ThrowOnError
     )
 
     begin {
@@ -66,7 +67,7 @@ function Invoke-DownloadArtifactCore {
 
     process {
         # check restart
-        if (($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
+        if (-not $SkipServiceRestartCheck -and ($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
             New-ArtifactsLogEntry -Message "Skipping $target download because this seems to be a service restart" -Success Skip
             return
         }
@@ -99,7 +100,7 @@ function Invoke-DownloadArtifactCore {
 
         $isNuGet = $type.ToLower() -eq "nuget"
         $isDownload = "$sourceUri" -match '^https?://'
-        $isArchive = "$sourceUri".EndsWith(".zip")
+        $isArchive = "$sourceUri".EndsWith(".zip", [System.StringComparison]::OrdinalIgnoreCase) -or $type -ieq 'zip'
         if ($sourceUri -or $isNuGet) {
             $safeUri = Get-SafeArtifactUri -Uri $sourceUri
             if ($isNuGet) {
@@ -264,19 +265,20 @@ function Invoke-DownloadArtifactCore {
 
                     $versionStr = if ("$version" -ne "") { " v$version" } else { "" }
 
+                    if ($ValidateArtifact -and -not $isNuGet) {
+                        & $ValidateArtifact -Path $sourceUri -DestinationPath $folder
+                    }
+
                     if ($isNuGet) {
                         $nuGetParameters = @{
                             Destination        = $folder
                             Package            = $name
                             Version            = $version
                             InstalledAppsPath  = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
+                            InstalledPackages  = $installedPackages
                             ServiceTierFolder  = $serviceTierFolder
                             PredefinedPackages = $predefinedNuGetPackages
-                            InstalledAppsInfo  = $installedAppsInfo
                             Retries            = $retries
-                        }
-                        if ($nuGetSelectMode) {
-                            $nuGetParameters.Select = $nuGetSelectMode
                         }
                         Invoke-NuGetPackageDownload @nuGetParameters *>&1 |
                             Where-Object { $_ -ne $null } |
@@ -307,7 +309,7 @@ function Invoke-DownloadArtifactCore {
                     else {
                         New-ArtifactsLogEntry -Message "Copy Artifact '$sourceUri' ($name$versionStr) to $($folder)..."
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force | Out-Null
-                        Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
+                        Copy-Item -LiteralPath "$sourceUri" -Destination "$folder" -Recurse -Force
                     }
 
                     if ($appImportScope -or $appImportSyncMode) {
@@ -364,10 +366,16 @@ function Invoke-DownloadArtifactCore {
 
                 New-ArtifactsLogEntry -Message "Download Artifact $($name) failed: $($errorMessage)" -Severity Error -Success Fail
                 New-ExceptionTelemetry -Exception $_.Exception -Properties $properties
+                if ($ThrowOnError) {
+                    throw
+                }
             }
             finally {
                 if (Test-Path $tempArchive) {
                     Remove-Item -Path $tempArchive -Force -ErrorAction SilentlyContinue
+                }
+                if (Test-Path $tempApp) {
+                    Remove-Item -LiteralPath $tempApp -Force -ErrorAction SilentlyContinue
                 }
                 if ($tempFile -and (Test-Path $tempFile)) {
                     Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue
