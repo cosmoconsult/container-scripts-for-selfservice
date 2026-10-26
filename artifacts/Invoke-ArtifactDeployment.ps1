@@ -10,6 +10,7 @@ param (
     [string]$NuGetSelectMode = '',
     [switch]$ConsiderInstalledApps,
     [switch]$KeepUploadedFiles,
+    [switch]$PreserveArtifactOrder,
     [string]$PublicDnsName = '',
     [string]$ContainerId = '',
     [string]$ContainerUser = '',
@@ -36,6 +37,7 @@ try {
     Write-Host "[Deploy] Preparing artifact deployment with scope '$DeployScope'"
     Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force -ErrorAction Stop
 
+    $artifactIndex = 0
     $downloadArtifacts = @(foreach ($artifact in $artifacts) {
         $artifactType = ([string]$artifact.Type).ToLowerInvariant()
         if ($artifactType -notin @('nuget', 'source')) {
@@ -59,6 +61,10 @@ try {
             if (-not $downloadArtifact.Name) {
                 $downloadArtifact | Add-Member -NotePropertyName Name -NotePropertyValue 'artifact' -Force
             }
+        }
+        if ($PreserveArtifactOrder) {
+            $artifactIndex++
+            $downloadArtifact | Add-Member -NotePropertyName TargetFolder -NotePropertyValue ('{0:D3}' -f $artifactIndex) -Force
         }
         $downloadArtifact
     })
@@ -91,18 +97,25 @@ try {
     $downloadArtifacts | Invoke-DownloadArtifact @downloadParameters
 
     Write-Host "[Deploy] Importing artifacts with scope '$DeployScope' and sync mode '$SyncMode'"
-    Import-Artifacts `
-        -Path $workingDirectory `
-        -NavServiceName 'MicrosoftDynamicsNavServer$BC' `
-        -ServerInstance BC `
-        -Scope $DeployScope `
-        -SyncMode $SyncMode `
-        -ErrorAction Stop `
-        -SkipServiceRestartCheck `
-        -PublicDnsName $PublicDnsName `
-        -ContainerId $ContainerId `
-        -ContainerUser $ContainerUser `
-        -ContainerPassword $ContainerPassword
+    $importPaths = @($workingDirectory) # if not preserving artifact order, the working directory is the only path
+    if ($PreserveArtifactOrder) {
+        Write-Host '[Deploy] Using manual artifact order'
+        $importPaths = @($downloadArtifacts | ForEach-Object { Join-Path $workingDirectory $_.TargetFolder })
+    }
+    foreach ($importPath in $importPaths) {
+        Import-Artifacts `
+            -Path $importPath `
+            -NavServiceName 'MicrosoftDynamicsNavServer$BC' `
+            -ServerInstance BC `
+            -Scope $DeployScope `
+            -SyncMode $SyncMode `
+            -ErrorAction Stop `
+            -SkipServiceRestartCheck `
+            -PublicDnsName $PublicDnsName `
+            -ContainerId $ContainerId `
+            -ContainerUser $ContainerUser `
+            -ContainerPassword $ContainerPassword
+    }
 
     Write-Host 'Artifact import finished'
 }
