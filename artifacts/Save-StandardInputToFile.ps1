@@ -45,3 +45,5 @@ catch {
     }
     throw
 }
+
+Write-Output 'artifact staged'

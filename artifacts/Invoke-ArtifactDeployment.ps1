@@ -1,8 +1,7 @@
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $true)]
-    [ValidateNotNullOrEmpty()]
-    [PSCustomObject[]]$Artifacts,
+    [string]$ArtifactsPath,
     [ValidateSet('Global', 'Tenant', 'Dev')]
     [string]$DeployScope = 'Tenant',
     [ValidateSet('Add', 'ForceSync')]
@@ -10,19 +9,25 @@ param (
     [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
     [string]$NuGetSelectMode = '',
     [switch]$ConsiderInstalledApps,
+    [switch]$KeepUploadedFiles,
     [string]$PublicDnsName = '',
     [string]$ContainerId = '',
     [string]$ContainerUser = '',
     [string]$ContainerPassword = ''
 )
 
-C:\run\prompt.ps1 -silent
-
 $ErrorActionPreference = 'Stop'
+$artifacts = @()
 $workingDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
 $previousNuGetFeedSelectMode = $env:nuGetFeedSelectMode
 
 try {
+    $artifacts = @(Get-Content -LiteralPath $ArtifactsPath -Raw | ConvertFrom-Json)
+    if (-not $artifacts.Count) {
+        throw 'Artifacts must not be empty'
+    }
+    C:\run\prompt.ps1 -silent
+
     if ($NuGetSelectMode) {
         $env:nuGetFeedSelectMode = $NuGetSelectMode
     }
@@ -30,7 +35,7 @@ try {
     Write-Host "[Deploy] Preparing artifact deployment with scope '$DeployScope'"
     Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force -ErrorAction Stop
 
-    $downloadArtifacts = @(foreach ($artifact in $Artifacts) {
+    $downloadArtifacts = @(foreach ($artifact in $artifacts) {
         $artifactType = ([string]$artifact.Type).ToLowerInvariant()
         if ($artifactType -notin @('nuget', 'source')) {
             throw "Unsupported artifact type '$($artifact.Type)'"
@@ -111,4 +116,13 @@ finally {
             Write-Warning "Could not clean up deployment files in '$workingDirectory': $($_.Exception.Message)"
         }
     }
+    if (-not $KeepUploadedFiles) {
+        foreach ($artifact in $artifacts) {
+            if ($artifact.Type -eq 'source' -and $artifact.Source -and $artifact.Source -notmatch '^https?://' -and
+                (Test-Path -LiteralPath $artifact.Source -PathType Leaf)) {
+                Remove-Item -LiteralPath $artifact.Source -Force -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    Remove-Item -LiteralPath $ArtifactsPath -Force -ErrorAction SilentlyContinue
 }
