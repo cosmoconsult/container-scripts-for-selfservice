@@ -18,7 +18,6 @@ function Import-AppArtifact {
         [string]$ContainerId = "",
         [string]$ContainerUser = "",
         [string]$ContainerPassword = "",
-        [bool]$throwErrors = $false,
         [switch]$SkipServiceRestartCheck
     )
 
@@ -229,7 +228,7 @@ function Import-AppArtifact {
         catch {
             Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import App Artifact"
             Add-ArtifactsLog -kind App -message "Import App failed: $($_.Exception.Message)" -severity Error -success fail
-            if ($throwErrors) { throw }
+            $PSCmdlet.WriteError($_)
         }
         finally {
             if ($success -and $IsModifiedBaseApp) {

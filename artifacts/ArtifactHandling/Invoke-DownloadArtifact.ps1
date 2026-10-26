@@ -32,7 +32,7 @@ function Invoke-DownloadArtifact {
         [int]     $FolderIdx         = 0,
         [int]     $Retries           = 3,
         [PSCustomObject[]]$InstalledPackages = @(),
-        [scriptblock]$ValidateArtifact,
+        [switch]$ValidateArtifact,
 
         # Control Parameters
         [switch]$PassThru,

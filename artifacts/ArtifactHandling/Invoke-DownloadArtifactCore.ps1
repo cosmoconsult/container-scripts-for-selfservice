@@ -33,7 +33,7 @@ function Invoke-DownloadArtifactCore {
         [ValidateRange(0, [int]::MaxValue)]
         [int]     $retries,
         [PSCustomObject[]]$installedPackages = @(),
-        [scriptblock]$ValidateArtifact,
+        [switch]$ValidateArtifact,
         [switch]$SkipServiceRestartCheck,
         [switch]$ThrowOnError
     )
@@ -63,6 +63,33 @@ function Invoke-DownloadArtifactCore {
         )
 
         $maxAttempts = $retries + 1
+
+        function Test-ArtifactArchive {
+            param ([string]$Path, [string]$DestinationPath)
+
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $archive = [System.IO.Compression.ZipFile]::OpenRead($Path)
+            try {
+                if ($archive.Entries.Count -gt 1000) {
+                    throw 'ZIP contains more than 1000 entries'
+                }
+                [long]$expandedSize = 0
+                $destinationRoot = [System.IO.Path]::GetFullPath($DestinationPath).TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+                foreach ($entry in $archive.Entries) {
+                    $expandedSize += $entry.Length
+                    if ($expandedSize -gt 1GB) {
+                        throw 'ZIP expands beyond the 1 GB limit'
+                    }
+                    $entryPath = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $entry.FullName))
+                    if (-not $entryPath.StartsWith($destinationRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+                        throw "ZIP entry '$($entry.FullName)' is outside the destination directory"
+                    }
+                }
+            }
+            finally {
+                $archive.Dispose()
+            }
+        }
     }
 
     process {
@@ -164,6 +191,9 @@ function Invoke-DownloadArtifactCore {
                         if ("$contentDisposition" -match 'filename\*?="?([^";]+)') {
                             $fileExtension = [System.IO.Path]::GetExtension($Matches[1].Trim()).ToLower()
                         }
+                        if (-not $fileExtension) {
+                            $fileExtension = [System.IO.Path]::GetExtension(([uri]$sourceUri).AbsolutePath).ToLowerInvariant()
+                        }
                         switch ($true) {
                             { $fileExtension -eq ".zip" } {
                                 $fileType = 'zip'
@@ -173,7 +203,7 @@ function Invoke-DownloadArtifactCore {
                                 $fileType = 'app'
                                 break
                             }
-                            { $singleFileTargets.Values -contains $fileExtension } {
+                            { $singleFileTargets.Values -contains $fileExtension -or $fileExtension -in @('.dll', '.fon', '.fnt', '.ttf', '.ttc', '.otf') } {
                                 $fileType = 'file'
                                 break
                             }
@@ -185,7 +215,7 @@ function Invoke-DownloadArtifactCore {
                                 $fileType = 'zip'
                                 break
                             }
-                            { $singleFileTargets.ContainsKey("$target".ToLower()) } {
+                            { $singleFileTargets.ContainsKey("$target".ToLower()) -and -not $isArchive } {
                                 $fileType = 'file'
                                 $fileExtension = $singleFileTargets["$target".ToLower()]
                                 break
@@ -265,10 +295,6 @@ function Invoke-DownloadArtifactCore {
 
                     $versionStr = if ("$version" -ne "") { " v$version" } else { "" }
 
-                    if ($ValidateArtifact -and -not $isNuGet) {
-                        & $ValidateArtifact -Path $sourceUri -DestinationPath $folder
-                    }
-
                     if ($isNuGet) {
                         $nuGetParameters = @{
                             Destination        = $folder
@@ -293,8 +319,11 @@ function Invoke-DownloadArtifactCore {
                                 }
                             }
                     } elseif ($isArchive) {
+                        if ($ValidateArtifact) {
+                            Test-ArtifactArchive -Path $archive -DestinationPath $folder
+                        }
                         New-ArtifactsLogEntry -Message "Extract Artifact $name$versionStr to $($folder)..."
-                        Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force
+                        Expand-Archive -LiteralPath "$archive" -DestinationPath "$folder" -Force
                         if ($cosmoArtifactType.Count -gt 0) {
                             New-ArtifactsLogEntry -Message "Artifact has type selection: $([string]::Join(",", $cosmoArtifactType))"
                             $subfolders = Get-ChildItem -Path "$folder" -Directory
@@ -345,6 +374,7 @@ function Invoke-DownloadArtifactCore {
                 }
                 else {
                     New-ArtifactsLogEntry -Message "No content available from source: '$sourceUri'" -Severity Warn -Success Skip
+                    if ($ThrowOnError) { throw "No content available from source: '$sourceUri'" }
                     $success = $false
                 }
 
