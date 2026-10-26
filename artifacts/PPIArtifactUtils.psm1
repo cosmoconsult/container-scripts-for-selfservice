@@ -1,3 +1,6 @@
+# PowerShell helper functions
+. (Join-Path $PSScriptRoot "helper/Remove-PowerShellFlowControlErrors.ps1")
+
 # Telemetry functions
 . (Join-Path $PSScriptRoot "Telemetry/Invoke-LogEvent.ps1")
 . (Join-Path $PSScriptRoot "Telemetry/Invoke-LogOperation.ps1")

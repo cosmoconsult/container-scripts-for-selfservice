@@ -46,7 +46,14 @@ function Import-AppArtifact {
             $stepSuccess = $false
             try {
                 Add-ArtifactsLog -kind App -message "$Name $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
-                & $Action | Out-Null
+                try {
+                    & $Action | Out-Null
+                }
+                catch {
+                    if ($_ | Remove-PowerShellFlowControlErrors) {
+                        throw
+                    }
+                }
                 $stepSuccess = $true
                 Add-ArtifactsLog -kind App -message "$Name successful" -data $app -success success
             }
