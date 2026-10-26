@@ -22,7 +22,8 @@ $workingDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path
 $previousNuGetFeedSelectMode = $env:nuGetFeedSelectMode
 
 try {
-    $artifacts = @(Get-Content -LiteralPath $ArtifactsPath -Raw | ConvertFrom-Json)
+    $artifacts = Get-Content -LiteralPath $ArtifactsPath -Raw | ConvertFrom-Json
+    $artifacts = @($artifacts)
     if (-not $artifacts.Count) {
         throw 'Artifacts must not be empty'
     }
