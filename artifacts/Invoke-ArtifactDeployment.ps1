@@ -81,8 +81,7 @@ try {
         Install-NuGetTools
         Initialize-NuGetFeeds
         if ($ConsiderInstalledApps) {
-            $downloadParameters.InstalledPackages = @(Get-NAVAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties -ErrorAction Stop |
-                Where-Object { $_.IsInstalled } |
+            $downloadParameters.InstalledPackages = @(Get-InstalledApps -IncludeMicrosoft |
                 ForEach-Object {
                     [PSCustomObject]@{
                         Package   = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
