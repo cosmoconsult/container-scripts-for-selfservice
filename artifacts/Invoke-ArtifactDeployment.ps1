@@ -81,6 +81,7 @@ try {
         Install-NuGetTools
         Initialize-NuGetFeeds
         if ($ConsiderInstalledApps) {
+            . (Join-Path $PSScriptRoot 'ArtifactHandling/Get-InstalledApps.ps1')
             $downloadParameters.InstalledPackages = @(Get-InstalledApps -IncludeMicrosoft |
                 ForEach-Object {
                     [PSCustomObject]@{
