@@ -26,7 +26,7 @@ function Set-BcContainerHelperConfig {
     process {
         Write-Host "Setting $Key"
         if ($config.PSObject.Properties.Name -contains $Key) {
-            $config[$Key] = $Value
+            $config.$Key = $Value
         } else {
             $config | Add-Member -MemberType NoteProperty -Name $Key -Value $Value
         }
@@ -37,7 +37,7 @@ function Set-BcContainerHelperConfig {
         if (! (Test-Path $Path)) {
             New-Item -ItemType File -Path $Path -Force | Out-Null
         }
-        $config | ConvertTo-Json | Set-Content $Path
+        $config | ConvertTo-Json -Depth 10 | Set-Content $Path
     }
 }
 Export-ModuleMember -Function Set-BcContainerHelperConfig

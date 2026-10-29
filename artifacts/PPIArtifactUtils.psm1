@@ -12,6 +12,7 @@
 . (Join-Path $PSScriptRoot "Telemetry/Get-TelemetryClient.ps1")
 
 # Artifact Handling functions
+. (Join-Path $PSScriptRoot "ArtifactHandling/Get-InstalledApps.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Get-AppFilesSortedByDependencies.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifact.ps1")
 . (Join-Path $PSScriptRoot "ArtifactHandling/Invoke-DownloadArtifactCore.ps1")

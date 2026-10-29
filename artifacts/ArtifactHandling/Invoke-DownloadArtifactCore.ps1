@@ -31,7 +31,11 @@ function Invoke-DownloadArtifactCore {
         [string]  $serviceTierFolder,
         [int]     $folderIdx,
         [ValidateRange(0, [int]::MaxValue)]
-        [int]     $retries
+        [int]     $retries,
+        [PSCustomObject[]]$installedPackages = @(),
+        [switch]$ValidateArtifact,
+        [switch]$SkipServiceRestartCheck,
+        [switch]$ThrowOnError
     )
 
     begin {
@@ -59,11 +63,38 @@ function Invoke-DownloadArtifactCore {
         )
 
         $maxAttempts = $retries + 1
+
+        function Test-ArtifactArchive {
+            param ([string]$Path, [string]$DestinationPath)
+
+            Add-Type -AssemblyName System.IO.Compression.FileSystem
+            $archive = [System.IO.Compression.ZipFile]::OpenRead($Path)
+            try {
+                if ($archive.Entries.Count -gt 1000) {
+                    throw 'ZIP contains more than 1000 entries'
+                }
+                [long]$expandedSize = 0
+                $destinationRoot = [System.IO.Path]::GetFullPath($DestinationPath).TrimEnd([System.IO.Path]::DirectorySeparatorChar) + [System.IO.Path]::DirectorySeparatorChar
+                foreach ($entry in $archive.Entries) {
+                    $expandedSize += $entry.Length
+                    if ($expandedSize -gt 1GB) {
+                        throw 'ZIP expands beyond the 1 GB limit'
+                    }
+                    $entryPath = [System.IO.Path]::GetFullPath((Join-Path $DestinationPath $entry.FullName))
+                    if (-not $entryPath.StartsWith($destinationRoot, [System.StringComparison]::OrdinalIgnoreCase)) {
+                        throw "ZIP entry '$($entry.FullName)' is outside the destination directory"
+                    }
+                }
+            }
+            finally {
+                $archive.Dispose()
+            }
+        }
     }
 
     process {
         # check restart
-        if (($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
+        if (-not $SkipServiceRestartCheck -and ($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
             New-ArtifactsLogEntry -Message "Skipping $target download because this seems to be a service restart" -Success Skip
             return
         }
@@ -96,7 +127,7 @@ function Invoke-DownloadArtifactCore {
 
         $isNuGet = $type.ToLower() -eq "nuget"
         $isDownload = "$sourceUri" -match '^https?://'
-        $isArchive = "$sourceUri".EndsWith(".zip")
+        $isArchive = "$sourceUri".EndsWith(".zip", [System.StringComparison]::OrdinalIgnoreCase) -or $type -ieq 'zip'
         if ($sourceUri -or $isNuGet) {
             $safeUri = Get-SafeArtifactUri -Uri $sourceUri
             if ($isNuGet) {
@@ -160,6 +191,9 @@ function Invoke-DownloadArtifactCore {
                         if ("$contentDisposition" -match 'filename\*?="?([^";]+)') {
                             $fileExtension = [System.IO.Path]::GetExtension($Matches[1].Trim()).ToLower()
                         }
+                        if (-not $fileExtension) {
+                            $fileExtension = [System.IO.Path]::GetExtension(([uri]$sourceUri).AbsolutePath).ToLowerInvariant()
+                        }
                         switch ($true) {
                             { $fileExtension -eq ".zip" } {
                                 $fileType = 'zip'
@@ -169,7 +203,7 @@ function Invoke-DownloadArtifactCore {
                                 $fileType = 'app'
                                 break
                             }
-                            { $singleFileTargets.Values -contains $fileExtension } {
+                            { $singleFileTargets.Values -contains $fileExtension -or $fileExtension -in @('.dll', '.fon', '.fnt', '.ttf', '.ttc', '.otf') } {
                                 $fileType = 'file'
                                 break
                             }
@@ -181,7 +215,7 @@ function Invoke-DownloadArtifactCore {
                                 $fileType = 'zip'
                                 break
                             }
-                            { $singleFileTargets.ContainsKey("$target".ToLower()) } {
+                            { $singleFileTargets.ContainsKey("$target".ToLower()) -and -not $isArchive } {
                                 $fileType = 'file'
                                 $fileExtension = $singleFileTargets["$target".ToLower()]
                                 break
@@ -267,6 +301,7 @@ function Invoke-DownloadArtifactCore {
                             Package            = $name
                             Version            = $version
                             InstalledAppsPath  = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
+                            InstalledPackages  = $installedPackages
                             ServiceTierFolder  = $serviceTierFolder
                             PredefinedPackages = $predefinedNuGetPackages
                             Retries            = $retries
@@ -284,8 +319,11 @@ function Invoke-DownloadArtifactCore {
                                 }
                             }
                     } elseif ($isArchive) {
+                        if ($ValidateArtifact) {
+                            Test-ArtifactArchive -Path $archive -DestinationPath $folder
+                        }
                         New-ArtifactsLogEntry -Message "Extract Artifact $name$versionStr to $($folder)..."
-                        Expand-Archive -Path "$archive" -DestinationPath "$folder" -Force
+                        Expand-Archive -LiteralPath "$archive" -DestinationPath "$folder" -Force
                         if ($cosmoArtifactType.Count -gt 0) {
                             New-ArtifactsLogEntry -Message "Artifact has type selection: $([string]::Join(",", $cosmoArtifactType))"
                             $subfolders = Get-ChildItem -Path "$folder" -Directory
@@ -300,7 +338,7 @@ function Invoke-DownloadArtifactCore {
                     else {
                         New-ArtifactsLogEntry -Message "Copy Artifact '$sourceUri' ($name$versionStr) to $($folder)..."
                         New-Item -ItemType Directory -Path "$folder" -ErrorAction SilentlyContinue -Force | Out-Null
-                        Copy-Item -Path "$sourceUri" -Destination "$folder" -Force
+                        Copy-Item -LiteralPath "$sourceUri" -Destination "$folder" -Recurse -Force
                     }
 
                     if ($appImportScope -or $appImportSyncMode) {
@@ -336,6 +374,7 @@ function Invoke-DownloadArtifactCore {
                 }
                 else {
                     New-ArtifactsLogEntry -Message "No content available from source: '$sourceUri'" -Severity Warn -Success Skip
+                    if ($ThrowOnError) { throw "No content available from source: '$sourceUri'" }
                     $success = $false
                 }
 
@@ -357,10 +396,16 @@ function Invoke-DownloadArtifactCore {
 
                 New-ArtifactsLogEntry -Message "Download Artifact $($name) failed: $($errorMessage)" -Severity Error -Success Fail
                 New-ExceptionTelemetry -Exception $_.Exception -Properties $properties
+                if ($ThrowOnError) {
+                    throw
+                }
             }
             finally {
                 if (Test-Path $tempArchive) {
                     Remove-Item -Path $tempArchive -Force -ErrorAction SilentlyContinue
+                }
+                if (Test-Path $tempApp) {
+                    Remove-Item -LiteralPath $tempApp -Force -ErrorAction SilentlyContinue
                 }
                 if ($tempFile -and (Test-Path $tempFile)) {
                     Remove-Item -Path $tempFile -Force -ErrorAction SilentlyContinue

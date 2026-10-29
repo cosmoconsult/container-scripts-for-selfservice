@@ -45,7 +45,7 @@
 - Fix artifact download of single files (e.g. RapidStart packages) being wrongly treated as ZIP archives
 - Add preservation of artifacts order for app files sorted by dependencies with the same process order
 - Fix dependency retrieval when multiple app versions match
+- Deploy staged .app files directly or extract ZIP artifacts and deploy their contained apps
 - Fix NuGet artifact version checks and conversions
 - Add support for prerelease NuGet packages
 - Fix false deployment and artifact import failures caused by PowerShell flow-control exceptions in BC29 while preserving genuine errors
-

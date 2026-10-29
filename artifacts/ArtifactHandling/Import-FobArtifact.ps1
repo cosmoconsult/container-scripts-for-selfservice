@@ -15,7 +15,8 @@ function Import-FobArtifact {
         [Parameter(Mandatory = $false)]
         [string]$Filter = "*.fob",
         [Parameter(Mandatory = $false)]
-        [System.Object]$telemetryClient = $null
+        [System.Object]$telemetryClient = $null,
+        [switch]$SkipServiceRestartCheck
     )
     
     begin {
@@ -29,7 +30,7 @@ function Import-FobArtifact {
     
     process {
         # check restart
-        if ($cosmoServiceRestart -eq $true) {
+        if (-not $SkipServiceRestartCheck -and ($cosmoServiceRestart -eq $true -or $env:cosmoServiceRestart -eq $true)) {
             Add-ArtifactsLog -message "Skipping FOB artifact import because this seems to be a service restart"
             return
         }
@@ -41,7 +42,7 @@ function Import-FobArtifact {
             Stop-Service -Name $NavServiceName -WarningAction Ignore
             $databaseName = ((Get-NAVServerConfiguration -ServerInstance $ServerInstance -ErrorAction SilentlyContinue) | Where-Object { $_.key -eq "DatabaseName" }).value
         }
-        
+
         $properties = @{"path" = $Path; "DatabaseName" = $DatabaseName; "NavServiceName" = $NavServiceName; "ServerInstance" = $ServerInstance }
         try {
             $started = Get-Date -Format "o"
@@ -63,10 +64,11 @@ function Import-FobArtifact {
                 $warn | foreach { Add-ArtifactsLog -kind FOB -message "$_" -severity Warn  -data $properties }
                 $err  | foreach { Add-ArtifactsLog -kind FOB -message "$_" -severity Error -data $properties }
                 $success = ! $err
+                if ($err) { throw $err[0] }
                 if ($success) { Add-ArtifactsLog -kind FOB -message "Import Objects ... successful" -data $properties -success success }                
             }
             else {
-                Add-ArtifactsLog -kind FOB -message "Import Objects from $Path ... SKIPPED" -success "skip" -data $properties
+                throw "FOB artifact '$Path' is empty or missing"
             }
             
             Invoke-LogOperation -name "Import FOB Artifact" -started $started -properties $properties -telemetryClient $telemetryClient -success $success
@@ -75,8 +77,9 @@ function Import-FobArtifact {
         catch {
             Add-ArtifactsLog -kind FOB -message "Import FOB FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $properties -severity Error -success fail
             Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import FOB Artifact"
+            if ($importFiles) { Start-Service -Name $NavServiceName -WarningAction Ignore }
+            $PSCmdlet.WriteError($_)
         }        
-        return $artifacts        
     }
     
     end {
@@ -96,6 +99,7 @@ function Import-FobArtifact {
             catch {
                 Add-ArtifactsLog -kind FOB -message "Sync NAV Tenant failed" -success fail -severity Error
                 Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -operation "Import FOB Artifact"
+                $PSCmdlet.WriteError($_)
             }
             finally {
                 Add-ArtifactsLog "Import Object Files done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"

@@ -10,6 +10,6 @@ $scripts = @(
 
 foreach ($script in $scripts) {
     if (Test-Path -Path $script) {
-        . ($script) -Silent:$silent
+        . ($script) -Silent:([bool]$silent)
     }
 }
