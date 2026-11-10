@@ -43,3 +43,4 @@
 - Add support for managing all nuget feeds by backend (and keep it backward compatible)
 - Run tenant synchronization for BC29 and higher through the PowerShell Core management override
 - Fix artifact download of single files (e.g. RapidStart packages) being wrongly treated as ZIP archives
+- Skip 4PS app removal and System App reinstallation for BC29 and newer Microsoft-based images
