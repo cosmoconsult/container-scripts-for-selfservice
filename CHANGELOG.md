@@ -51,3 +51,4 @@
 - Fix false deployment and artifact import failures caused by PowerShell flow-control exceptions in BC29 while preserving genuine errors
 - Ensure NuGet deployments run during service restarts and propagate import and download failures
 - Return a startup acknowledgment only after an asynchronous worker is registered
+- Prevent ambiguous async launches and empty artifact deployments from being reported as successful, and propagate dependency sync failures

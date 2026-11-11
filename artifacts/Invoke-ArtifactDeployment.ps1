@@ -62,10 +62,8 @@ try {
                 $downloadArtifact | Add-Member -NotePropertyName Name -NotePropertyValue 'artifact' -Force
             }
         }
-        if ($PreserveArtifactOrder) {
-            $artifactIndex++
-            $downloadArtifact | Add-Member -NotePropertyName TargetFolder -NotePropertyValue ('{0:D3}' -f $artifactIndex) -Force
-        }
+        $artifactIndex++
+        $downloadArtifact | Add-Member -NotePropertyName TargetFolder -NotePropertyValue ('{0:D3}' -f $artifactIndex) -Force
         $downloadArtifact
     })
 
@@ -97,6 +95,16 @@ try {
     }
     $downloadArtifacts | Invoke-DownloadArtifact @downloadParameters
 
+    $maxArtifactDepth = if ($PreserveArtifactOrder) { 4 } else { 3 }
+    foreach ($artifact in $downloadArtifacts) {
+        $artifactPath = Join-Path $workingDirectory $artifact.TargetFolder
+        $deployableFiles = @(Get-ChildItem -LiteralPath $artifactPath -Recurse -File -Depth $maxArtifactDepth -ErrorAction Stop |
+            Where-Object { $_.Extension -in @('.app', '.fob', '.rapidstart', '.fon', '.fnt', '.ttf', '.ttc', '.otf') })
+        if (-not $deployableFiles.Count) {
+            throw "Artifact '$($artifact.Name)' contains no deployable files"
+        }
+    }
+
     Write-Host "[Deploy] Importing artifacts with scope '$DeployScope' and sync mode '$SyncMode'"
     $importPaths = @($workingDirectory) # if not preserving artifact order, the working directory is the only path
     if ($PreserveArtifactOrder) {
@@ -112,6 +120,7 @@ try {
             -SyncMode $SyncMode `
             -ErrorAction Stop `
             -SkipServiceRestartCheck `
+            -ExcludeApps $false `
             -PublicDnsName $PublicDnsName `
             -ContainerId $ContainerId `
             -ContainerUser $ContainerUser `
@@ -135,9 +144,19 @@ finally {
         foreach ($artifact in $artifacts) {
             if ($artifact.Type -eq 'source' -and $artifact.Source -and $artifact.Source -notmatch '^https?://' -and
                 (Test-Path -LiteralPath $artifact.Source -PathType Leaf)) {
-                Remove-Item -LiteralPath $artifact.Source -Force -ErrorAction SilentlyContinue
+                try {
+                    Remove-Item -LiteralPath $artifact.Source -Force -ErrorAction Stop
+                }
+                catch {
+                    Write-Warning "Could not remove uploaded artifact '$($artifact.Source)': $($_.Exception.Message)"
+                }
             }
         }
     }
-    Remove-Item -LiteralPath $ArtifactsPath -Force -ErrorAction SilentlyContinue
+    try {
+        Remove-Item -LiteralPath $ArtifactsPath -Force -ErrorAction Stop
+    }
+    catch {
+        Write-Warning "Could not remove artifact manifest '$ArtifactsPath': $($_.Exception.Message)"
+    }
 }

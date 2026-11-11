@@ -52,9 +52,13 @@ function Exit-NotStarted {
 }
 
 function Get-ExecutionStatus {
+    $state = [string](Get-Content -LiteralPath $lockFile -Raw)
+    if ([string]::IsNullOrWhiteSpace($state)) {
+        $state = 'InProgress'
+    }
     $status = [PSCustomObject]@{
         id = $Id
-        state = (Get-Content -LiteralPath $lockFile -Raw).Trim()
+        state = $state.Trim()
     }
     if (Test-Path -LiteralPath $scriptLog) {
         $status | Add-Member -NotePropertyName stdOut -NotePropertyValue (Get-Content -LiteralPath $scriptLog -Raw)
@@ -83,11 +87,18 @@ if ($OnlyGetStatus) {
     return
 }
 
-if ([string]::IsNullOrWhiteSpace($ScriptPath)) {
-    Exit-NotStarted 'ScriptPath is required when starting an execution'
+try {
+    $null = New-Item -Type File -Path $lockFile -Value 'InProgress' -ErrorAction Stop
+}
+catch {
+    [Console]::Error.WriteLine("Could not reserve execution id '$Id'; it may already exist: $($_.Exception.Message)")
+    exit 1
 }
 
 try {
+    if ([string]::IsNullOrWhiteSpace($ScriptPath)) {
+        throw 'ScriptPath is required when starting an execution'
+    }
     $ScriptPath = [System.IO.Path]::GetFullPath($ScriptPath)
     if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
         throw "Script '$ScriptPath' does not exist"
@@ -96,23 +107,7 @@ try {
     if (-not (Test-Path -LiteralPath $monitorScriptPath -PathType Leaf)) {
         throw "Async monitor '$monitorScriptPath' does not exist"
     }
-}
-catch {
-    Exit-NotStarted $_.Exception.Message
-}
 
-try {
-    $null = New-Item -Type File -Path $lockFile -Value 'Started' -ErrorAction Stop
-}
-catch {
-    if (Test-Path -LiteralPath $lockFile) {
-        [Console]::Out.WriteLine((Get-ExecutionStatus))
-        return
-    }
-    Exit-NotStarted "Could not create execution status file '$lockFile': $($_.Exception.Message)"
-}
-
-try {
     foreach ($path in @($scriptLog, $scriptLogErr, $startupResultFile, $monitorLog, $monitorLogErr)) {
         if (Test-Path -LiteralPath $path) {
             Remove-Item -LiteralPath $path -Force -ErrorAction Stop
@@ -144,10 +139,17 @@ try {
     if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
         $monitorStartParameters.WindowStyle = 'Hidden'
     }
+}
+catch {
+    Exit-NotStarted "Could not prepare the async monitor: $($_.Exception.Message)" -RemoveLock
+}
+
+try {
     $monitorProcess = Start-Process @monitorStartParameters
 }
 catch {
-    Exit-NotStarted "Could not start the async monitor: $($_.Exception.Message)" -RemoveLock
+    [Console]::Error.WriteLine("Could not confirm async monitor startup for '$Id'; worker status is unknown: $($_.Exception.Message)")
+    exit 1
 }
 
 $startupDeadline = [DateTime]::UtcNow.AddSeconds(30)

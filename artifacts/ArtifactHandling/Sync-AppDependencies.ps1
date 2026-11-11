@@ -22,12 +22,13 @@ function Sync-AppDependencies {
         }
 
         foreach ($dependency in @($App.Dependencies)) {
+            $lookupErrorAction = if ($ErrorActionPreference -eq 'Stop') { 'Stop' } else { 'SilentlyContinue' }
             $dependencyApp = Get-NAVAppInfo `
                 -ServerInstance $ServerInstance `
                 -Tenant $Tenant `
                 -TenantSpecificProperties `
                 -Id $dependency.AppId `
-                -ErrorAction SilentlyContinue |
+                -ErrorAction $lookupErrorAction |
                 Where-Object { [version]$_.Version -ge [version]$dependency.MinVersion } |
                 Sort-Object { [version]$_.Version } -Descending |
                 Select-Object -First 1
@@ -50,6 +51,7 @@ function Sync-AppDependencies {
                 }
                 catch {
                     Write-Host "Failed to sync dependency '$($dependencyApp.Name)' ($($dependencyApp.Publisher) $($dependencyApp.Version)) for app '$($App.Name)' ($($App.Publisher) $($App.Version)) on server '$ServerInstance', tenant '$Tenant': $($_.Exception.Message)"
+                    if ($ErrorActionPreference -eq 'Stop') { throw }
                 }
             }
         }

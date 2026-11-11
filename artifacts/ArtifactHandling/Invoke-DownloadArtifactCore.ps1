@@ -94,7 +94,7 @@ function Invoke-DownloadArtifactCore {
 
     process {
         # check restart
-        if (-not $SkipServiceRestartCheck -and "$type" -ine "nuget" -and ($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
+        if (-not $SkipServiceRestartCheck -and ($env:cosmoServiceRestart -eq $true) -and @("bak", "saasbak", "fob", "app", "rapidstart", "").Contains("$target".ToLower())) {
             New-ArtifactsLogEntry -Message "Skipping $target download because this seems to be a service restart" -Success Skip
             return
         }

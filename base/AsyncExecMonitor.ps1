@@ -8,7 +8,6 @@ $ErrorActionPreference = 'Stop'
 $request = $null
 $worker = $null
 $workerStartAttempted = $false
-$workerStartFailed = $false
 $startupAcknowledged = $false
 
 function Write-StartupResult {
@@ -36,8 +35,16 @@ try {
     $argumentList = @('-File', "`"$($request.ScriptPath)`"")
     foreach ($arg in @($request.RemainingArgs)) {
         $arg = [string]$arg
-        if ($arg -match '[\s"]') {
-            $argumentList += "`"$($arg -replace '"', '\"')`""
+        if ($arg -eq '' -or $arg -match '[\s"]') {
+            $escaped = [regex]::Replace($arg, '(\\*)("|$)', {
+                param($match)
+                $slashes = '\' * ($match.Groups[1].Length * 2)
+                if ($match.Groups[2].Value -eq '"') {
+                    return $slashes + '\"'
+                }
+                return $slashes
+            })
+            $argumentList += "`"$escaped`""
         }
         else {
             $argumentList += $arg
@@ -56,13 +63,7 @@ try {
         $workerStartParameters.WindowStyle = 'Hidden'
     }
     $workerStartAttempted = $true
-    try {
-        $worker = Start-Process @workerStartParameters
-    }
-    catch {
-        $workerStartFailed = $true
-        throw
-    }
+    $worker = Start-Process @workerStartParameters
     if (-not $worker) {
         throw 'PowerShell did not return a worker process handle'
     }
@@ -77,7 +78,6 @@ try {
 }
 catch {
     $failureMessage = $_.Exception.Message
-    $workerStopped = -not $workerStartAttempted -or $workerStartFailed
     if ($worker) {
         try {
             $worker.Refresh()
@@ -86,21 +86,13 @@ catch {
                 $worker.WaitForExit()
                 $worker.Refresh()
             }
-            $workerStopped = $worker.HasExited
         }
         catch {
             $failureMessage = "$failureMessage; worker cleanup failed: $($_.Exception.Message)"
-            try {
-                $worker.Refresh()
-                $workerStopped = $worker.HasExited
-            }
-            catch {
-                $workerStopped = $false
-            }
         }
     }
 
-    if ($workerStopped -and $request -and $request.Id -and $request.StartupResultFile) {
+    if (-not $workerStartAttempted -and $request -and $request.Id -and $request.StartupResultFile) {
         try {
             Set-Content -LiteralPath $request.LockFile -Value 'CompletedWithError' -ErrorAction Stop
             Write-StartupResult -Path $request.StartupResultFile -Result ([PSCustomObject]@{
@@ -114,7 +106,7 @@ catch {
         }
     }
     else {
-        [Console]::Error.WriteLine("Async monitor could not confirm that execution '$($request.Id)' has no worker: $failureMessage")
+        [Console]::Error.WriteLine("Async monitor could not confirm the launch outcome for execution '$($request.Id)': $failureMessage")
     }
     exit 1
 }
