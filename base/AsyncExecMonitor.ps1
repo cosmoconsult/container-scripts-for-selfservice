@@ -12,15 +12,14 @@ $workerStartAttempted = $false
 function Write-StartupResult {
     param (
         [Parameter(Mandatory = $true)]
-        [string]$Path,
-        [Parameter(Mandatory = $true)]
         $Result
     )
 
-    $temporaryPath = "$Path.$PID.tmp"
+    $path = $request.StartupResultFile
+    $temporaryPath = "$path.$PID.tmp"
     $json = ConvertTo-Json -InputObject $Result -Compress -Depth 10
     [System.IO.File]::WriteAllText($temporaryPath, $json, [System.Text.UTF8Encoding]::new($false))
-    [System.IO.File]::Move($temporaryPath, $Path)
+    [System.IO.File]::Move($temporaryPath, $path)
 }
 
 try {
@@ -69,12 +68,13 @@ try {
     if (-not $worker) {
         throw 'PowerShell did not return a worker process handle'
     }
+    # Keep ExitCode available after a short-lived worker exits.
+    $null = $worker.Handle
 
     Set-Content -LiteralPath $request.LockFile -Value 'InProgress' -ErrorAction Stop
-    Write-StartupResult -Path $request.StartupResultFile -Result ([PSCustomObject]@{
+    Write-StartupResult -Result ([PSCustomObject]@{
         id = $request.Id
         state = 'Started'
-        workerId = $worker.Id
     })
 }
 catch {
@@ -85,7 +85,6 @@ catch {
             if (-not $worker.HasExited) {
                 Stop-Process -Id $worker.Id -Force -ErrorAction Stop
                 $worker.WaitForExit()
-                $worker.Refresh()
             }
         }
         catch {
@@ -96,7 +95,7 @@ catch {
     if (-not $workerStartAttempted -and $request -and $request.Id -and $request.StartupResultFile) {
         try {
             Set-Content -LiteralPath $request.LockFile -Value 'CompletedWithError' -ErrorAction Stop
-            Write-StartupResult -Path $request.StartupResultFile -Result ([PSCustomObject]@{
+            Write-StartupResult -Result ([PSCustomObject]@{
                 id = $request.Id
                 state = 'NotStarted'
                 stdErr = $failureMessage

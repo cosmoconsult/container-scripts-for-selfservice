@@ -56,3 +56,4 @@
 - Include a concise failure summary in on-demand artifact deployment errors
 - Correct ForceSync safety, font-only imports, exported app discovery and async startup argument handling
 - Resolve relative asynchronous script paths against the current PowerShell location
+- Retain the async worker process handle when recording its exit status

@@ -74,16 +74,16 @@ if (-not [Guid]::TryParse($Id, [ref]$parsedId)) {
     Exit-NotStarted "Execution id '$Id' is not a valid GUID"
 }
 
-if ($OnlyGetStatus -and -not (Test-Path -LiteralPath $lockFile)) {
-    Write-JsonLine ([PSCustomObject]@{
-        id = $Id
-        state = 'NotStarted'
-    })
-    return
-}
-
 if ($OnlyGetStatus) {
-    [Console]::Out.WriteLine((Get-ExecutionStatus))
+    if (Test-Path -LiteralPath $lockFile) {
+        [Console]::Out.WriteLine((Get-ExecutionStatus))
+    }
+    else {
+        Write-JsonLine ([PSCustomObject]@{
+            id = $Id
+            state = 'NotStarted'
+        })
+    }
     return
 }
 
@@ -175,13 +175,7 @@ while ($true) {
             exit 0
         }
         if ($startupResult.state -eq 'NotStarted' -and -not [string]::IsNullOrWhiteSpace($startupResult.stdErr)) {
-            [Console]::Error.WriteLine([string]$startupResult.stdErr)
-            Write-JsonLine ([PSCustomObject]@{
-                id = $Id
-                state = 'NotStarted'
-                stdErr = [string]$startupResult.stdErr
-            })
-            exit 1
+            Exit-NotStarted ([string]$startupResult.stdErr)
         }
         [Console]::Error.WriteLine("Async monitor returned an invalid startup state for '$Id'")
         exit 1
