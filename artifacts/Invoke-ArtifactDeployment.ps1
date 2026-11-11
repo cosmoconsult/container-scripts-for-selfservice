@@ -74,6 +74,7 @@ try {
         SkipServiceRestartCheck = $true
         ThrowOnError = $true
         ValidateArtifact = $true
+        DownloadRequestedNuGet = $true
     }
     if ($downloadArtifacts | Where-Object Type -eq 'nuget') {
         . 'C:\run\my\ExtendedEnvironment.ps1'
