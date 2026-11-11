@@ -1,4 +1,4 @@
-# run any PS script async in the background and hold a lock file while it's running. Pipe all output to a log file and return the current status of the execution
+# Start a script asynchronously and return after a detached monitor owns its status and cleanup.
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $false, Position = 0)]
@@ -13,82 +13,191 @@ param (
     [switch]
     $OnlyGetStatus,
 
-    [Parameter(Mandatory = $false, ValueFromRemainingArguments=$true)]
+    [Parameter(Mandatory = $false, ValueFromRemainingArguments = $true)]
     $RemainingArgs
 )
 
-$lockFile = "$Id.lock"  # holds status
-$scriptLog = "$Id.log"
-$scriptLogErr = "$Id.err.log"
+$ErrorActionPreference = 'Stop'
+$workingDirectory = (Get-Location).Path
+$lockFile = Join-Path $workingDirectory "$Id.lock"
+$scriptLog = Join-Path $workingDirectory "$Id.log"
+$scriptLogErr = Join-Path $workingDirectory "$Id.err.log"
+$startupResultFile = Join-Path $workingDirectory "$Id.startup.json"
+$monitorLog = Join-Path $workingDirectory "$Id.monitor.log"
+$monitorLogErr = Join-Path $workingDirectory "$Id.monitor.err.log"
 
-if ($OnlyGetStatus -and (-not (Test-Path $lockFile))) {
-    return [PSCustomObject]@{
-        id = $Id
-        state = "NotStarted"
-    } | ConvertTo-Json
+function Write-JsonLine {
+    param ([Parameter(Mandatory)]$Value)
+
+    [Console]::Out.WriteLine(($Value | ConvertTo-Json -Compress -Depth 10))
 }
 
-# create lock file if it doesn't exist, else return status
-if (-not (New-Item -Type File -Path $lockFile -Value "Started" -ErrorAction SilentlyContinue)) {
-    # lock file exists, return status
-    if (Test-Path $scriptLog) {
-        $stdOut = (Get-Content -Path $scriptLog -Raw).psobject.BaseObject
-        if ($stdOut.Length -le 1) {
-            $stdOut = ""
-        }
-    }
+function Exit-NotStarted {
+    param (
+        [Parameter(Mandatory)]
+        [string]$Message,
+        [switch]$RemoveLock
+    )
 
-    if (Test-Path $scriptLogErr) {
-        $stdErr = (Get-Content -Path $scriptLogErr -Raw).psobject.BaseObject
-        if ($stdErr.Length -le 1) {
-            $stdErr = ""
-        }
+    if ($RemoveLock -and (Test-Path -LiteralPath $lockFile)) {
+        Remove-Item -LiteralPath $lockFile -Force -ErrorAction SilentlyContinue
     }
-
-    return [PSCustomObject]@{
+    [Console]::Error.WriteLine($Message)
+    Write-JsonLine ([PSCustomObject]@{
         id = $Id
-        state = (Get-Content -Path $lockFile -Raw).psobject.BaseObject
-        stdOut = $stdOut
-        stdErr = $stdErr
-    } | ConvertTo-Json
+        state = 'NotStarted'
+        stdErr = $Message
+    })
+    exit 1
+}
+
+function Get-ExecutionStatus {
+    $status = [PSCustomObject]@{
+        id = $Id
+        state = (Get-Content -LiteralPath $lockFile -Raw).Trim()
+    }
+    if (Test-Path -LiteralPath $scriptLog) {
+        $status | Add-Member -NotePropertyName stdOut -NotePropertyValue (Get-Content -LiteralPath $scriptLog -Raw)
+    }
+    if (Test-Path -LiteralPath $scriptLogErr) {
+        $status | Add-Member -NotePropertyName stdErr -NotePropertyValue (Get-Content -LiteralPath $scriptLogErr -Raw)
+    }
+    return ($status | ConvertTo-Json -Compress -Depth 10)
+}
+
+$parsedId = [Guid]::Empty
+if (-not [Guid]::TryParse($Id, [ref]$parsedId)) {
+    Exit-NotStarted "Execution id '$Id' is not a valid GUID"
+}
+
+if ($OnlyGetStatus -and -not (Test-Path -LiteralPath $lockFile)) {
+    Write-JsonLine ([PSCustomObject]@{
+        id = $Id
+        state = 'NotStarted'
+    })
+    return
+}
+
+if ($OnlyGetStatus) {
+    [Console]::Out.WriteLine((Get-ExecutionStatus))
+    return
+}
+
+if ([string]::IsNullOrWhiteSpace($ScriptPath)) {
+    Exit-NotStarted 'ScriptPath is required when starting an execution'
 }
 
 try {
-    # script not already running, start it and collect logs
-    Remove-Item -Path $scriptLog -Force -ErrorAction SilentlyContinue
-    Remove-Item -Path $scriptLogErr -Force -ErrorAction SilentlyContinue
-
-    $ps = "powershell"
-    if ($PSVersionTable.PSEdition -eq "Core") {
-        $ps = "pwsh"
+    $ScriptPath = [System.IO.Path]::GetFullPath($ScriptPath)
+    if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
+        throw "Script '$ScriptPath' does not exist"
     }
-
-    # run script in the background and redirect all output to a log file
-    $argumentList = "-File", "$ScriptPath"
-    foreach ($arg in $RemainingArgs) {
-        # If argument contains spaces, add quotes
-        if ($arg -match '[\s"]') {
-            $argumentList += " `"$($arg -replace '"', '\"')`""
-        } else {
-            $argumentList += " $arg"
-        }
-    }
-    # output the type of variable argumentList
-    $p = Start-Process -FilePath $ps -ArgumentList $argumentList -NoNewWindow -RedirectStandardOutput $scriptLog -RedirectStandardError $scriptLogErr -PassThru
-    $handle = $p.Handle  # cache the handle
-
-    Set-Content -Path $lockFile -Value "InProgress"
-
-    $p.WaitForExit();
-    if ($p.ExitCode -ne 0) {
-        Set-Content -Path $lockFile -Value "CompletedWithError"
-    }
-    else {
-        Set-Content -Path $lockFile -Value "CompletedSuccessfully"
+    $monitorScriptPath = Join-Path $PSScriptRoot 'AsyncExecMonitor.ps1'
+    if (-not (Test-Path -LiteralPath $monitorScriptPath -PathType Leaf)) {
+        throw "Async monitor '$monitorScriptPath' does not exist"
     }
 }
 catch {
-    # remove lock file when something goes wrong
-    Remove-Item -Path $lockFile -Force -ErrorAction SilentlyContinue
+    Exit-NotStarted $_.Exception.Message
 }
 
+try {
+    $null = New-Item -Type File -Path $lockFile -Value 'Started' -ErrorAction Stop
+}
+catch {
+    if (Test-Path -LiteralPath $lockFile) {
+        [Console]::Out.WriteLine((Get-ExecutionStatus))
+        return
+    }
+    Exit-NotStarted "Could not create execution status file '$lockFile': $($_.Exception.Message)"
+}
+
+try {
+    foreach ($path in @($scriptLog, $scriptLogErr, $startupResultFile, $monitorLog, $monitorLogErr)) {
+        if (Test-Path -LiteralPath $path) {
+            Remove-Item -LiteralPath $path -Force -ErrorAction Stop
+        }
+    }
+
+    $request = [PSCustomObject]@{
+        Id = $Id
+        ScriptPath = $ScriptPath
+        WorkingDirectory = $workingDirectory
+        RemainingArgs = @($RemainingArgs)
+        LockFile = $lockFile
+        ScriptLog = $scriptLog
+        ScriptLogErr = $scriptLogErr
+        StartupResultFile = $startupResultFile
+    }
+    $requestJson = ConvertTo-Json -InputObject $request -Compress -Depth 10
+    $requestPayload = [Convert]::ToBase64String([Text.Encoding]::Unicode.GetBytes($requestJson))
+    $powerShell = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh' } else { 'powershell' }
+    $monitorArguments = "-NoProfile -File `"$monitorScriptPath`" -Payload $requestPayload"
+    $monitorStartParameters = @{
+        FilePath = $powerShell
+        ArgumentList = $monitorArguments
+        WorkingDirectory = $workingDirectory
+        RedirectStandardOutput = $monitorLog
+        RedirectStandardError = $monitorLogErr
+        PassThru = $true
+    }
+    if ([Environment]::OSVersion.Platform -eq [PlatformID]::Win32NT) {
+        $monitorStartParameters.WindowStyle = 'Hidden'
+    }
+    $monitorProcess = Start-Process @monitorStartParameters
+}
+catch {
+    Exit-NotStarted "Could not start the async monitor: $($_.Exception.Message)" -RemoveLock
+}
+
+$startupDeadline = [DateTime]::UtcNow.AddSeconds(30)
+while ([DateTime]::UtcNow -lt $startupDeadline) {
+    if (Test-Path -LiteralPath $startupResultFile) {
+        try {
+            $startupResult = Get-Content -LiteralPath $startupResultFile -Raw | ConvertFrom-Json -ErrorAction Stop
+        }
+        catch {
+            [Console]::Error.WriteLine("Async monitor returned an invalid startup result for '$Id': $($_.Exception.Message)")
+            exit 1
+        }
+
+        if ($startupResult.id -ne $Id) {
+            [Console]::Error.WriteLine("Async monitor returned a startup result for unexpected id '$($startupResult.id)'")
+            exit 1
+        }
+        if ($startupResult.state -eq 'Started') {
+            Write-JsonLine ([PSCustomObject]@{
+                id = $Id
+                state = 'Started'
+            })
+            exit 0
+        }
+        if ($startupResult.state -eq 'NotStarted' -and -not [string]::IsNullOrWhiteSpace($startupResult.stdErr)) {
+            [Console]::Error.WriteLine([string]$startupResult.stdErr)
+            Write-JsonLine ([PSCustomObject]@{
+                id = $Id
+                state = 'NotStarted'
+                stdErr = [string]$startupResult.stdErr
+            })
+            exit 1
+        }
+        [Console]::Error.WriteLine("Async monitor returned an invalid startup state for '$Id'")
+        exit 1
+    }
+
+    $monitorProcess.Refresh()
+    if ($monitorProcess.HasExited) {
+        $monitorError = if (Test-Path -LiteralPath $monitorLogErr) {
+            (Get-Content -LiteralPath $monitorLogErr -Raw).Trim()
+        }
+        else {
+            ''
+        }
+        [Console]::Error.WriteLine("Async monitor exited before confirming ownership for '$Id'. Worker status is unknown. $monitorError")
+        exit 1
+    }
+    Start-Sleep -Milliseconds 50
+}
+
+[Console]::Error.WriteLine("Timed out waiting for async monitor startup acknowledgment for '$Id'. Worker status is unknown.")
+exit 1
