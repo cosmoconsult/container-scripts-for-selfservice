@@ -130,6 +130,11 @@ try {
 
     Write-Host 'Artifact import finished'
 }
+catch {
+    $failureMessage = $_.Exception.Message -replace '[\r\n]+', ' '
+    [Console]::Error.WriteLine("Artifact deployment failed: $failureMessage")
+    throw
+}
 finally {
     $env:nuGetFeedSelectMode = $previousNuGetFeedSelectMode
     Write-Host '[Deploy] Cleaning up deployment files'
