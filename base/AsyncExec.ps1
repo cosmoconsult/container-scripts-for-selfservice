@@ -1,4 +1,4 @@
-# Start a script asynchronously and return after a detached monitor owns its status and cleanup.
+# run any PS script async in the background and hold a lock file while it's running. Pipe all output to a log file and return the current status of the execution
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $false, Position = 0)]
@@ -13,7 +13,7 @@ param (
     [switch]
     $OnlyGetStatus,
 
-    [Parameter(Mandatory = $false, ValueFromRemainingArguments = $true)]
+    [Parameter(Mandatory = $false, ValueFromRemainingArguments=$true)]
     $RemainingArgs
 )
 

@@ -71,7 +71,6 @@ try {
     # Keep ExitCode available after a short-lived worker exits.
     $null = $worker.Handle
 
-    Set-Content -LiteralPath $request.LockFile -Value 'InProgress' -ErrorAction Stop
     Write-StartupResult -Result ([PSCustomObject]@{
         id = $request.Id
         state = 'Started'
