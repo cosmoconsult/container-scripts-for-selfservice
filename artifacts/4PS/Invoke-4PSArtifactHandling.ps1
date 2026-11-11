@@ -66,6 +66,8 @@ function Invoke-4PSArtifactHandling {
             Write-Host "  app database name is: $appDatabaseName"
             $isModifiedBaseAppInstalled = ![string]::IsNullOrEmpty($env:cosmoBaseAppVersion)
             $isSaaSBak = ![string]::IsNullOrEmpty($env:saasbakfile)
+            $use4PSContainerInitializer = $env:AZP_SERVICE_DISPLAYNAME -notlike "*Skip4PSContainerInitializer*"
+            $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
             if ($isModifiedBaseAppInstalled -and !$isSaaSBak) {
                 Write-Host "  modified base app was installed, therefore this is not a microsoft standard database"
             }
@@ -76,7 +78,10 @@ function Invoke-4PSArtifactHandling {
             elseif ($isSaaSBak) {
                 Write-Host "4PS initialization skipped as this seems to be a SaaS backup restore"
             }
-            elseif (("CRONUS" -eq $appDatabaseName) -or ("default" -eq $appDatabaseName) -and !$isModifiedBaseAppInstalled) {
+            elseif (($sysAppInfoFS.Version.Major -ge 29) -and !(Get-NAVAppInfo -ServerInstance BC -ErrorAction Stop | Where-Object { $_.Publisher -eq "4PS B.V." })) {
+                Write-Host "4PS initialization skipped as no extension published by 4PS B.V. was found"
+            }
+            elseif (($sysAppInfoFS.Version.Major -lt 29) -and (("CRONUS" -eq $appDatabaseName) -or ("default" -eq $appDatabaseName)) -and !$isModifiedBaseAppInstalled) {
                 Write-Host "4PS initialization skipped as this seems to be a Microsoft standard database"
             }
             else {
@@ -107,8 +112,7 @@ function Invoke-4PSArtifactHandling {
                 New-NAVServerUserPermissionSet -ServerInstance BC -Username $username -PermissionSetId SUPER -Force -ErrorAction SilentlyContinue
                 Start-Sleep -Seconds 1
 
-                $use4PSContainerInitializer = $env:AZP_SERVICE_DISPLAYNAME -notlike "*Skip4PSContainerInitializer*"
-                $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+                $files = Get-DemoDataFiles
 
                 if ($use4PSContainerInitializer) {    
                     $initializerVersion = ''
@@ -130,7 +134,13 @@ function Invoke-4PSArtifactHandling {
 
                     $initializerPath = "C:\AzureFileShare\bc-data\extension\4PS B.V._Container initializer_$initializerVersion.app"
                     if (-not (Test-Path $initializerPath)) {
-                        Write-Error "Couldn't find the expected initializer app at $initializerPath"
+                        if ($files -and $files.Count -gt 0) {
+                            Write-Error "Couldn't find the expected initializer app at $initializerPath"
+                        }
+                        else {
+                            Write-Warning "No demo data files found, skipping demo data initalization."
+                            return
+                        }
                     }
                     Publish-NAVApp -ServerInstance BC -Path $initializerPath -SkipVerification -Scope Tenant
                     Sync-NAVApp -ServerInstance BC -Name 'Container initializer'
@@ -144,7 +154,6 @@ function Invoke-4PSArtifactHandling {
                 $unsecurepassword = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
 
                 $firstRun = $true
-                $files = Get-DemoDataFiles
                 foreach ($demoDataFile in $files) {
                     $demoDataFileName = $demoDataFile | ForEach-Object { $_.Name }
                     "  Using XML file {0}" -f $demoDataFile.FullName | Write-Host 
