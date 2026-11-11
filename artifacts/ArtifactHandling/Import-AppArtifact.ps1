@@ -160,6 +160,9 @@ function Import-AppArtifact {
             }
 
             $targetApp = Get-ImportTenantAppInfo -AppId $appId -Version $app.Version
+            if ($SyncMode -eq "ForceSync" -and $targetApp -and $targetApp.IsPublished) {
+                throw "App '$($app.Name)' version $($app.Version) is already published; ForceSync cannot verify the supplied package. Publish a new version instead."
+            }
             if (-not $targetApp -or -not $targetApp.IsPublished) {
                 Invoke-AppImportStep -Name "Publish App" -Action {
                     $optionalParameters = @{}
@@ -185,7 +188,7 @@ function Import-AppArtifact {
             }
 
             if ($SyncMode -eq "ForceSync" -or $targetApp.SyncState -ne "Synced") {
-                if ($SyncMode -eq "ForceSync" -and $installedApp -and [Version]$installedApp.Version -eq [Version]$app.Version) {
+                if ($SyncMode -eq "ForceSync" -and $installedApp) {
                     Invoke-AppImportStep -Name "Uninstall App for ForceSync" -Action {
                         Uninstall-NAVApp -ServerInstance $ServerInstance -Name $installedApp.Name -Publisher $installedApp.Publisher -Version $installedApp.Version -Tenant $Tenant -Force -ErrorAction Stop
                     }

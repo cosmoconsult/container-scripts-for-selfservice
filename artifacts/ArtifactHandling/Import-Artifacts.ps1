@@ -56,7 +56,6 @@ function Import-Artifacts {
         }
         else {
             Write-Error "Artifact path '$Path' does not exist"
-            return
         }
         
         # Import FOBs

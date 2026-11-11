@@ -34,6 +34,9 @@ try {
     $powerShell = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh' } else { 'powershell' }
     $argumentList = @('-File', "`"$($request.ScriptPath)`"")
     foreach ($arg in @($request.RemainingArgs)) {
+        if ($null -eq $arg) {
+            continue
+        }
         $arg = [string]$arg
         if ($arg -eq '' -or $arg -match '[\s"]') {
             $escaped = [regex]::Replace($arg, '(\\*)("|$)', {

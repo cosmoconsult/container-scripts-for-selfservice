@@ -54,3 +54,4 @@
 - Prevent ambiguous async launches and empty artifact deployments from being reported as successful, and propagate dependency sync failures
 - Download explicitly requested NuGet packages even when their apps are already installed
 - Include a concise failure summary in on-demand artifact deployment errors
+- Correct ForceSync safety, font-only imports, exported app discovery and async startup argument handling
