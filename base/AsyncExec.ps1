@@ -99,7 +99,7 @@ try {
     if ([string]::IsNullOrWhiteSpace($ScriptPath)) {
         throw 'ScriptPath is required when starting an execution'
     }
-    $ScriptPath = [System.IO.Path]::GetFullPath($ScriptPath)
+    $ScriptPath = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($ScriptPath)
     if (-not (Test-Path -LiteralPath $ScriptPath -PathType Leaf)) {
         throw "Script '$ScriptPath' does not exist"
     }
