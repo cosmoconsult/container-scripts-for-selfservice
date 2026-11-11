@@ -228,6 +228,7 @@ function Import-AppArtifact {
         catch {
             Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import App Artifact"
             Add-ArtifactsLog -kind App -message "Import App failed: $($_.Exception.Message)" -severity Error -success fail
+            if ($ErrorActionPreference -eq 'Stop') { throw }
             $PSCmdlet.WriteError($_)
         }
         finally {

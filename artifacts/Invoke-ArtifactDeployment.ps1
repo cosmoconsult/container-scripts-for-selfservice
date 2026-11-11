@@ -72,6 +72,7 @@ try {
     $downloadParameters = @{
         Destination = $workingDirectory
         AllArtifacts = $downloadArtifacts
+        ErrorAction = 'Stop'
         SkipServiceRestartCheck = $true
         ThrowOnError = $true
         ValidateArtifact = $true

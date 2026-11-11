@@ -49,3 +49,4 @@
 - Fix NuGet artifact version checks and conversions
 - Add support for prerelease NuGet packages
 - Fix false deployment and artifact import failures caused by PowerShell flow-control exceptions in BC29 while preserving genuine errors
+- Ensure NuGet deployments run during service restarts and propagate import and download failures
