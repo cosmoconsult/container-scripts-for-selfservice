@@ -188,24 +188,22 @@ while ($true) {
     }
 
     $monitorProcess.Refresh()
-    if ($monitorProcess.HasExited) {
+    if ($monitorProcess.HasExited -or [DateTime]::UtcNow -ge $startupDeadline) {
         if (Test-Path -LiteralPath $startupResultFile) {
             continue
         }
-        $monitorError = if (Test-Path -LiteralPath $monitorLogErr) {
-            (Get-Content -LiteralPath $monitorLogErr -Raw).Trim()
+        if ($monitorProcess.HasExited) {
+            $monitorError = if (Test-Path -LiteralPath $monitorLogErr) {
+                (Get-Content -LiteralPath $monitorLogErr -Raw).Trim()
+            }
+            else {
+                ''
+            }
+            [Console]::Error.WriteLine("Async monitor exited before confirming ownership for '$Id'. Worker status is unknown. $monitorError")
         }
         else {
-            ''
+            [Console]::Error.WriteLine("Timed out waiting for async monitor startup acknowledgment for '$Id'. Worker status is unknown.")
         }
-        [Console]::Error.WriteLine("Async monitor exited before confirming ownership for '$Id'. Worker status is unknown. $monitorError")
-        exit 1
-    }
-    if ([DateTime]::UtcNow -ge $startupDeadline) {
-        if (Test-Path -LiteralPath $startupResultFile) {
-            continue
-        }
-        [Console]::Error.WriteLine("Timed out waiting for async monitor startup acknowledgment for '$Id'. Worker status is unknown.")
         exit 1
     }
     Start-Sleep -Milliseconds 50

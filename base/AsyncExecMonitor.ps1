@@ -8,7 +8,6 @@ $ErrorActionPreference = 'Stop'
 $request = $null
 $worker = $null
 $workerStartAttempted = $false
-$startupAcknowledged = $false
 
 function Write-StartupResult {
     param (
@@ -77,7 +76,6 @@ try {
         state = 'Started'
         workerId = $worker.Id
     })
-    $startupAcknowledged = $true
 }
 catch {
     $failureMessage = $_.Exception.Message
@@ -122,13 +120,11 @@ try {
 catch {
     $message = "Async monitor failed while recording execution '$($request.Id)' status: $($_.Exception.Message)"
     [Console]::Error.WriteLine($message)
-    if ($startupAcknowledged) {
-        try {
-            Set-Content -LiteralPath $request.LockFile -Value 'CompletedWithError' -ErrorAction Stop
-        }
-        catch {
-            [Console]::Error.WriteLine("Could not update execution status file '$($request.LockFile)': $($_.Exception.Message)")
-        }
+    try {
+        Set-Content -LiteralPath $request.LockFile -Value 'CompletedWithError' -ErrorAction Stop
+    }
+    catch {
+        [Console]::Error.WriteLine("Could not update execution status file '$($request.LockFile)': $($_.Exception.Message)")
     }
     exit 1
 }
