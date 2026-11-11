@@ -42,7 +42,6 @@ function Exit-NotStarted {
     if ($RemoveLock -and (Test-Path -LiteralPath $lockFile)) {
         Remove-Item -LiteralPath $lockFile -Force -ErrorAction SilentlyContinue
     }
-    [Console]::Error.WriteLine($Message)
     Write-JsonLine ([PSCustomObject]@{
         id = $Id
         state = 'NotStarted'
