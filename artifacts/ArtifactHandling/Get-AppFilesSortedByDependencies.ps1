@@ -69,7 +69,7 @@ function Get-AppFilesSortedByDependencies {
         $ApplicationAppId = ""
         foreach ($AppFile in $AllAppFiles) {
             try {
-                $App = Get-NAVAppInfo -Path $AppFile.FullName
+                $App = Get-NAVAppInfo -Path $AppFile.FullName -ErrorAction Stop
                 $AppId = $App.AppId
                 if ($App.Name -eq "Application") {
                     $ApplicationAppId = $AppId
@@ -97,6 +97,9 @@ function Get-AppFilesSortedByDependencies {
                     }) | Out-Null # adding the returned index to PS-Return content
             }
             catch {
+                if ($ErrorActionPreference -eq 'Stop') {
+                    throw
+                }
                 Write-Warning "Got no AppInfo from $AppFile ... $_"
             }
         }

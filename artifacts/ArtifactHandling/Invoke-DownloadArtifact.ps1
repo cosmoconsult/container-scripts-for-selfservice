@@ -31,9 +31,13 @@ function Invoke-DownloadArtifact {
         [string]  $ServiceTierFolder,
         [int]     $FolderIdx         = 0,
         [int]     $Retries           = 3,
+        [PSCustomObject[]]$InstalledPackages = @(),
+        [switch]$ValidateArtifact,
 
         # Control Parameters
         [switch]$PassThru,
+        [switch]$SkipServiceRestartCheck,
+        [switch]$ThrowOnError,
         [System.Object]$TelemetryClient = $null
     )
 
@@ -96,6 +100,10 @@ function Invoke-DownloadArtifact {
             ServiceTierFolder = $ServiceTierFolder
             FolderIdx = $FolderIdx
             Retries = $Retries
+            InstalledPackages = $InstalledPackages
+            SkipServiceRestartCheck = $SkipServiceRestartCheck
+            ThrowOnError = $ThrowOnError
+            ValidateArtifact = $ValidateArtifact
         }
 
         if (! $PassThru) {

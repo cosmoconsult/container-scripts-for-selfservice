@@ -18,7 +18,7 @@ function Import-Artifacts {
         [ValidateSet("Add", "ForceSync")]
         [string]$SyncMode = "Add",
         [Parameter(Mandatory = $false)]
-        [ValidateSet("Global", "Tenant")]
+        [ValidateSet("Global", "Tenant", "Dev")]
         [string]$Scope = "Global",    
         [Parameter(Mandatory = $false)]
         [System.Object]$telemetryClient = $null,
@@ -28,8 +28,11 @@ function Import-Artifacts {
         [bool]$ExcludeApps = $true,
         [Parameter(Mandatory = $false)]
         [string]$AppExcludeExpr = $env:AppExcludeExpr,
-        [Parameter(Mandatory = $false)]
-        [bool]$throwErrors = $false
+        [string]$PublicDnsName = "",
+        [string]$ContainerId = "",
+        [string]$ContainerUser = "",
+        [string]$ContainerPassword = "",
+        [switch]$SkipServiceRestartCheck
     )
     
     begin {
@@ -42,6 +45,19 @@ function Import-Artifacts {
     
     process {
         $maxDepth = 4 # max recurse folder depth for searching Apps, FOBs, RIMs, ...
+
+        if (!$ExcludeApps) {
+            $AppExcludeExpr = ""
+        }
+        $appFiles = @()
+        if (Test-Path -LiteralPath $Path) {
+            Write-Host "Working on apps sorted by dependency"
+            $appFiles = @(Get-AppFilesSortedByDependencies -Path $Path -Depth $maxDepth -Filter '*.app' -ExcludeExpr $AppExcludeExpr -ErrorAction $ErrorActionPreference)
+        }
+        else {
+            Write-Error "Artifact path '$Path' does not exist"
+            return
+        }
         
         # Import FOBs
         $items = @()
@@ -54,16 +70,14 @@ function Import-Artifacts {
                 Write-Host "Import $($items.Length) FOBs..."
 
                 # Import all FOBs
-                $items | Import-FobArtifact -NavServiceName $NavServiceName -ServerInstance $ServerInstance -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                $items | Import-FobArtifact -NavServiceName $NavServiceName -ServerInstance $ServerInstance -Tenant $Tenant -DatabaseServer $DatabaseServer -telemetryClient $telemetryClient -SkipServiceRestartCheck:$SkipServiceRestartCheck -ErrorAction $ErrorActionPreference
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import FOBs" -started $started -telemetryClient $telemetryClient -properties $properties
             }
             catch {
                 Write-Host "Import FOBs Error: $($_.Exception.Message)" -f Red  | Out-String
-                if ($throwErrors) {
-                    throw $_
-                }
+                $PSCmdlet.WriteError($_)
             }
             finally {
                 Write-Host "Import FOBs done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
@@ -74,39 +88,26 @@ function Import-Artifacts {
         }
 
         # Publish apps
-        $items = @()
-        if (!$ExcludeApps) {
-            $AppExcludeExpr = ""
-        }
-        $params = @{
-            Depth       = $maxDepth
-            Filter      = "*.app"
-            ExcludeExpr = $AppExcludeExpr
-        }
-        if (Test-Path -LiteralPath "$Path") {
-            $params.Add("Path", "$Path")
-            Write-Host "Working on apps sorted by dependency"
-            $items = @() + (Get-AppFilesSortedByDependencies @params -ErrorAction SilentlyContinue)
-        }
+        $items = $appFiles
         if ($items) {
             try {
                 $started = Get-Date -Format "o"
                 Write-Host "Import $($items.Length) Apps..."
                 
-                Add-ArtifactsLog -message "Install Apps:$([System.Environment]::NewLine)$($items | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)" -data $app
+                Add-ArtifactsLog -message "Install Apps:$([System.Environment]::NewLine)$($items | Format-Table -AutoSize -Wrap:$false | Out-String -Width 1024)"
 
                 # Figure out whether we are also importing the Application app, as that might indicate that we are importing a modified base app. If yes, try to
                 # identify the modified base app by looking at the dependencies 
-                $applicationApp = Get-ChildItem -Path "C:\run\my\apps" -Recurse -Filter "4PS B.V._Application_*.app" | Select-Object -First 1
+                $modifiedBaseAppName = ""
+                $applicationApp = $items | Where-Object { $_.Publisher -eq "4PS B.V." -and $_.Name -eq "Application" } | Select-Object -First 1
                 if ($applicationApp) {
-                    Write-Host "Found Application app: $($applicationApp.FullName) - trying to identify modified base app..."
-                    $applicationAppInfo = Get-NAVAppInfo -Path $applicationApp.FullName
+                    Write-Host "Found Application app: $($applicationApp.Path) - trying to identify modified base app..."
+                    $applicationAppInfo = Get-NAVAppInfo -Path $applicationApp.Path -ErrorAction Stop
                     $modifiedBaseAppInfo = $applicationAppInfo.Dependencies | Where-Object { $_.Publisher -eq "4PS B.V." -and $_.Name.StartsWith("4PS Construct ") }
                     if ($modifiedBaseAppInfo -is [array]) {
-                        Write-Error "Multiple modified potential base apps found. Unable to choose, please adjust filter (startup scripts -> artifacts/ArtifactHandling/Import-Artifacts.ps1)"
-                        $modifiedBaseAppName = ""
+                        throw "Multiple potential modified base apps found. Unable to choose."
                     }
-                    else {
+                    elseif ($modifiedBaseAppInfo) {
                         Write-Host "Found modified base app: $($modifiedBaseAppInfo.Name)"
                         $modifiedBaseAppName = $modifiedBaseAppInfo.Name
                     }
@@ -117,7 +118,7 @@ function Import-Artifacts {
                     # Try to Find the App-Specific Import Scope stored during download in "artifact.json" (Global setup is used, when no app specific information are present in the parent folders)
                     $importScope = $Scope
                     $importSyncMode = $SyncMode
-                    if (Test-Path -Path $item.Path) {
+                    if (Test-Path -LiteralPath $item.Path) {
                         $artifactJson = Get-ArtifactJson -path $item.Path -ErrorAction SilentlyContinue
                         if ($artifactJson -and $artifactJson.appImportScope) {
                             $importScope = $artifactJson.appImportScope
@@ -129,7 +130,22 @@ function Import-Artifacts {
 
                     $IsModifiedBaseApp = $item.Publisher -eq "4PS B.V." -and $item.Name -eq $modifiedBaseAppName
                         
-                    @($item) | Import-AppArtifact -ServerInstance $ServerInstance -Tenant default -Scope $importScope -SyncMode $importSyncMode -telemetryClient $telemetryClient -ErrorAction SilentlyContinue -IsModifiedBaseApp:$IsModifiedBaseApp
+                    $importParameters = @{
+                        ServerInstance = $ServerInstance
+                        Tenant = $Tenant
+                        DatabaseServer = $DatabaseServer
+                        Scope = $importScope
+                        SyncMode = $importSyncMode
+                        telemetryClient = $telemetryClient
+                        ErrorAction = $ErrorActionPreference
+                        IsModifiedBaseApp = $IsModifiedBaseApp
+                        PublicDnsName = $PublicDnsName
+                        ContainerId = $ContainerId
+                        ContainerUser = $ContainerUser
+                        ContainerPassword = $ContainerPassword
+                        SkipServiceRestartCheck = $SkipServiceRestartCheck
+                    }
+                    @($item) | Import-AppArtifact @importParameters
                 }                
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
@@ -137,9 +153,7 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import Apps Error: $($_.Exception.Message)" -f Red
-                if ($throwErrors) {
-                    throw $_
-                }
+                $PSCmdlet.WriteError($_)
             }
             finally {
                 Write-Host "Import Apps done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
@@ -160,16 +174,14 @@ function Import-Artifacts {
                 Write-Host "Import $($items.Length) RapidStart packages..."
 
                 # Import all RIMs
-                $items | Import-RIMArtifact -ServerInstance $ServerInstance -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                $items | Import-RIMArtifact -ServerInstance $ServerInstance -Tenant $Tenant -telemetryClient $telemetryClient -SkipServiceRestartCheck:$SkipServiceRestartCheck -ErrorAction $ErrorActionPreference
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import RapidStart Packages" -started $started -telemetryClient $telemetryClient -properties $properties
             }
             catch {
                 Write-Host "Import RapidStart packages Error: $($_.Exception.Message)" -f Red
-                if ($throwErrors) {
-                    throw $_
-                }
+                $PSCmdlet.WriteError($_)
             }
             finally {
                 Write-Host "Import RapidStart packages done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"
@@ -181,24 +193,26 @@ function Import-Artifacts {
 
         # Import Fonts
         $items = @()
-        if ((-not $SkipFontImport) -and (Test-Path -LiteralPath "c:/fonts")) {
-            $items = @() + (Get-ChildItem -LiteralPath "c:/fonts" -Recurse -Depth $maxDepth -ErrorAction SilentlyContinue)
+        $fontPaths = @(@($Path, 'c:/fonts') | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -Unique)
+        if (-not $SkipFontImport) {
+            $items = @($fontPaths | ForEach-Object {
+                Get-ChildItem -LiteralPath $_ -Recurse -File -Depth $maxDepth -ErrorAction Stop |
+                    Where-Object { $_.Extension -in @('.fon', '.fnt', '.ttf', '.ttc', '.otf') }
+            })
         }
         if ($items) {
             try {
                 $started = Get-Date -Format "o"
                 Write-Host "Import $($items.Length) Fonts..."
                 # Import all Fonts
-                Import-Fonts -NavServiceName $NavServiceName -Tenant default -telemetryClient $telemetryClient -ErrorAction SilentlyContinue
+                Import-Fonts -Path $items.FullName -NavServiceName $NavServiceName -ServerInstance $ServerInstance -Tenant $Tenant -telemetryClient $telemetryClient -ErrorAction $ErrorActionPreference
 
                 $properties["files"] = ($items | ForEach-Object { $_.FullName } | ConvertTo-Json -ErrorAction SilentlyContinue)
                 Invoke-LogOperation -name "$OperationScope - Import Fonts" -started $started -telemetryClient $telemetryClient -properties $properties
             }
             catch {
                 Write-Host "Import Fonts Error: $($_.Exception.Message)" -f Red  | Out-String
-                if ($throwErrors) {
-                    throw $_
-                }
+                $PSCmdlet.WriteError($_)
             }
             finally {
                 Write-Host "Import Fonts done. (Duration: $(New-TimeSpan -start $started -end (Get-Date)))"

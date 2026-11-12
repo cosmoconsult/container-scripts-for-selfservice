@@ -1,3 +1,7 @@
+# Testing
+
+For now, do not add or run automated tests unless explicitly requested. Validate changes with focused non-test checks instead.
+
 # PowerShell ErrorVariable Handling
 
 After a command uses `-ErrorVariable err`, normalize the captured records before logging them or deriving success from `$err`:
