@@ -34,7 +34,6 @@ function Invoke-DownloadArtifactCore {
         [int]     $retries,
         [PSCustomObject[]]$installedPackages = @(),
         [switch]$ValidateArtifact,
-        [switch]$DownloadRequestedNuGet,
         [switch]$SkipServiceRestartCheck,
         [switch]$ThrowOnError
     )
@@ -298,15 +297,14 @@ function Invoke-DownloadArtifactCore {
 
                     if ($isNuGet) {
                         $nuGetParameters = @{
-                            Destination              = $folder
-                            Package                  = $name
-                            Version                  = $version
-                            InstalledAppsPath        = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
-                            InstalledPackages        = $installedPackages
-                            ServiceTierFolder        = $serviceTierFolder
-                            PredefinedPackages       = $predefinedNuGetPackages
-                            DownloadRequestedPackage = $DownloadRequestedNuGet
-                            Retries                  = $retries
+                            Destination        = $folder
+                            Package            = $name
+                            Version            = $version
+                            InstalledAppsPath  = $folder -replace "[\/\\]$folderSuffix`$" # Isolate general and dependent-on folders
+                            InstalledPackages  = $installedPackages
+                            ServiceTierFolder  = $serviceTierFolder
+                            PredefinedPackages = $predefinedNuGetPackages
+                            Retries            = $retries
                         }
                         Invoke-NuGetPackageDownload @nuGetParameters *>&1 |
                             Where-Object { $_ -ne $null } |

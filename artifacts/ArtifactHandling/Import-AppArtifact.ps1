@@ -160,9 +160,6 @@ function Import-AppArtifact {
             }
 
             $targetApp = Get-ImportTenantAppInfo -AppId $appId -Version $app.Version
-            if ($SyncMode -eq "ForceSync" -and $targetApp -and $targetApp.IsPublished) {
-                throw "App '$($app.Name)' version $($app.Version) is already published; ForceSync cannot verify the supplied package. Publish a new version instead."
-            }
             if (-not $targetApp -or -not $targetApp.IsPublished) {
                 Invoke-AppImportStep -Name "Publish App" -Action {
                     $optionalParameters = @{}
@@ -194,8 +191,8 @@ function Import-AppArtifact {
                     }
                 }
                 Invoke-AppImportStep -Name "Sync App" -Action {
-                    # Dependencies are synchronized in Add mode to avoid destructive schema changes.
-                    Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant $Tenant -SyncMode Add -ErrorAction $ErrorActionPreference
+                    # The sync of dependencies with mode Add as standard - Forcesync could damage the schema of dependencies - is this right Ole?
+                    Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant $Tenant -SyncMode Add
                     Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Mode $SyncMode -Force -ErrorAction Stop
                 }
                 $targetApp = Get-ImportTenantAppInfo -AppId $appId -Version $app.Version
@@ -231,7 +228,6 @@ function Import-AppArtifact {
         catch {
             Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import App Artifact"
             Add-ArtifactsLog -kind App -message "Import App failed: $($_.Exception.Message)" -severity Error -success fail
-            if ($ErrorActionPreference -eq 'Stop') { throw }
             $PSCmdlet.WriteError($_)
         }
         finally {

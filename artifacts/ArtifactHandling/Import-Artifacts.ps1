@@ -56,6 +56,7 @@ function Import-Artifacts {
         }
         else {
             Write-Error "Artifact path '$Path' does not exist"
+            return
         }
         
         # Import FOBs
@@ -76,7 +77,6 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import FOBs Error: $($_.Exception.Message)" -f Red  | Out-String
-                if ($ErrorActionPreference -eq 'Stop') { throw }
                 $PSCmdlet.WriteError($_)
             }
             finally {
@@ -153,7 +153,6 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import Apps Error: $($_.Exception.Message)" -f Red
-                if ($ErrorActionPreference -eq 'Stop') { throw }
                 $PSCmdlet.WriteError($_)
             }
             finally {
@@ -182,7 +181,6 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import RapidStart packages Error: $($_.Exception.Message)" -f Red
-                if ($ErrorActionPreference -eq 'Stop') { throw }
                 $PSCmdlet.WriteError($_)
             }
             finally {
@@ -214,7 +212,6 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import Fonts Error: $($_.Exception.Message)" -f Red  | Out-String
-                if ($ErrorActionPreference -eq 'Stop') { throw }
                 $PSCmdlet.WriteError($_)
             }
             finally {

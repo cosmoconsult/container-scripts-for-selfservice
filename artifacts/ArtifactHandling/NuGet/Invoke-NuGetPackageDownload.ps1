@@ -12,7 +12,6 @@ function Invoke-NuGetPackageDownload() {
         [PSCustomObject[]]$InstalledPackages = @(),
         [string]$ServiceTierFolder,
         [PSCustomObject[]]$PredefinedPackages = @(),
-        [switch]$DownloadRequestedPackage,
         [ValidateRange(0, [int]::MaxValue)]
         [int]$Retries = 0,
         [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
@@ -148,21 +147,6 @@ function Invoke-NuGetPackageDownload() {
 
             Write-Host "Use predefined package as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
             $downloadParameters.installedApps += $installedApp
-        }
-
-        if ($DownloadRequestedPackage) {
-            # BcContainerHelper otherwise treats an installed root as an already satisfied dependency.
-            $requestedPackage = Get-NuGetPackageNameInfo -Package $Package -AllowBareGuid
-            $isApplication = $Package -match '^([^\.]+\.)?Application(\.[^\.]+)?(\.symbols)?$'
-            $isPlatform = $Package -match '^Microsoft\.Platform(\.symbols)?$'
-            $downloadParameters.installedApps = @($downloadParameters.installedApps | Where-Object {
-                (-not $requestedPackage.Id -or [string]$_.Id -ne $requestedPackage.Id) -and
-                (-not $isApplication -or $_.Name -ne 'Application') -and
-                (-not $isPlatform -or $_.Name -ne 'Platform')
-            })
-            if ($isPlatform) {
-                $downloadParameters.Remove('installedPlatform') | Out-Null
-            }
         }
 
         New-Item -ItemType Directory -Path $Destination -ErrorAction SilentlyContinue -Force | Out-Null

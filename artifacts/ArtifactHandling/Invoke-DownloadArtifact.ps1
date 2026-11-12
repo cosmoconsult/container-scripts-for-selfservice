@@ -33,7 +33,6 @@ function Invoke-DownloadArtifact {
         [int]     $Retries           = 3,
         [PSCustomObject[]]$InstalledPackages = @(),
         [switch]$ValidateArtifact,
-        [switch]$DownloadRequestedNuGet,
 
         # Control Parameters
         [switch]$PassThru,
@@ -105,7 +104,6 @@ function Invoke-DownloadArtifact {
             SkipServiceRestartCheck = $SkipServiceRestartCheck
             ThrowOnError = $ThrowOnError
             ValidateArtifact = $ValidateArtifact
-            DownloadRequestedNuGet = $DownloadRequestedNuGet
         }
 
         if (! $PassThru) {
