@@ -151,8 +151,8 @@ function Import-AppArtifact {
                     ($needsUpgrade -or $hasNewerData -or $installedApp.SyncState -ne "Synced")) {
                     throw "Newer installed version $($installedApp.Version) of app '$($app.Name)' has an incomplete synchronization or data upgrade"
                 }
-                if (-not $needsUpgrade -and -not $hasNewerData -and $installedApp.SyncState -eq "Synced" -and
-                    ([Version]$installedApp.Version -gt [Version]$app.Version -or $SyncMode -ne "ForceSync")) {
+                # SyncMode only selects how a pending schema sync runs; it never re-imports an installed, synchronized app.
+                if (-not $needsUpgrade -and -not $hasNewerData -and $installedApp.SyncState -eq "Synced") {
                     Add-ArtifactsLog -kind App -message "Skipping App $($app.Name) $($app.Version): version $($installedApp.Version) is already installed." -data $app
                     $success = $true
                     return
@@ -184,14 +184,11 @@ function Import-AppArtifact {
                 throw "App '$($app.Name)' has an extension data version higher than the app version"
             }
 
-            if ($SyncMode -eq "ForceSync" -or $targetApp.SyncState -ne "Synced") {
-                if ($SyncMode -eq "ForceSync" -and $installedApp) {
-                    Invoke-AppImportStep -Name "Uninstall App for ForceSync" -Action {
-                        Uninstall-NAVApp -ServerInstance $ServerInstance -Name $installedApp.Name -Publisher $installedApp.Publisher -Version $installedApp.Version -Tenant $Tenant -Force -ErrorAction Stop
-                    }
-                }
-                Invoke-AppImportStep -Name "Sync App" -Action {
-                    # The sync of dependencies with mode Add as standard - Forcesync could damage the schema of dependencies - is this right Ole?
+            # Sync whenever the target version is not synchronized; SyncMode only chooses Add or ForceSync for that sync.
+            # The installed version stays installed: a newer version is synchronized next to it and then data-upgraded.
+            if ($targetApp.SyncState -ne "Synced") {
+                Invoke-AppImportStep -Name "Sync App ($SyncMode)" -Action {
+                    # Dependencies always use Add so ForceSync of this app cannot drop schema data of other apps.
                     Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant $Tenant -SyncMode Add
                     Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Mode $SyncMode -Force -ErrorAction Stop
                 }
