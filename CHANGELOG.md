@@ -51,3 +51,4 @@
 - Fix false deployment and artifact import failures caused by PowerShell flow-control exceptions in BC29 while preserving genuine errors
 - Deploy artifacts from a creation-style manifest (`artifacts`/`devopsArtifacts`) with NuGet-last grouping, reject manifests containing credentials, and keep each deployment in `C:\run\my\deployments\<timestamp>`
 - ForceSync only selects the sync mode for unsynchronized apps and no longer uninstalls or reinstalls already installed apps
+- Async scripts that fail to start report `CompletedWithError` with the start error instead of `NotStarted`
