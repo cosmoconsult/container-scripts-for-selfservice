@@ -5,11 +5,14 @@
     .DESCRIPTION
     The manifest uses the AzureDevOpsArtifacts shape passed to new containers:
         { "artifacts": [ <AlpacaArtifact> ], "devopsArtifacts": [ <DevOpsArtifact> ] }
+    It must not contain credentials: no "pat" values and no URLs with pat/sig query parameters or filebrowser
+    download tokens. Azure DevOps feeds are accessed with the container's AZURE_DEVOPS_EXT_PAT; protected files
+    are staged into the deployment folder (e.g. uploads\) and referenced by local path.
     Artifacts are grouped like navstartArtifacts.ps1 (NuGet last, grouped by dependsOn), downloaded with
     Invoke-DownloadArtifact, and imported with Import-Artifacts (apps sorted by dependencies).
 
     Every deployment is staged in its own folder (default C:\run\my\deployments\<timestamp>) and is kept for traceability:
-        manifest.json    deployment manifest (secrets redacted)
+        manifest.json    deployment manifest (credential-free)
         deployment.json  parameters, normalized artifacts, status, and timestamps
         deployment.log   transcript
         apps\            downloaded artifacts (general\ and dependent-on-<dependsOn>\)
@@ -69,12 +72,36 @@ if (-not $ArtifactsPath) {
 
 function Save-DeploymentInfo {
     try {
-        Get-SafeArtifactUri -Uri ($deployment | ConvertTo-Json -Depth 20) |
+        $deployment | ConvertTo-Json -Depth 20 |
             Set-Content -LiteralPath $deploymentInfoPath -Encoding UTF8
     }
     catch {
         Write-Warning "Could not write deployment info '$deploymentInfoPath': $($_.Exception.Message)"
     }
+}
+
+# The manifest must be credential-free. Check it before anything else runs so credentials are never retained.
+# Patterns match what Get-SafeArtifactUri redacts (PATs, SAS signatures, filebrowser download tokens).
+$manifestJson = Get-Content -LiteralPath $ArtifactsPath -Raw
+$credentialPatterns = @{
+    '("pat"\s*:\s*")[^"]+(")'                = '$1***REDACTED***$2'
+    '([?&](pat|sig)=)[^&#"]+'                = '$1***REDACTED***'
+    '(/filebrowser/api/public/dl/)[^/?#"]+' = '$1***REDACTED***'
+}
+$safeManifestJson = $manifestJson
+foreach ($pattern in $credentialPatterns.Keys) {
+    $safeManifestJson = $safeManifestJson -replace $pattern, $credentialPatterns[$pattern]
+}
+Set-Content -LiteralPath $manifestPath -Value $safeManifestJson -Encoding UTF8
+if ([System.IO.Path]::GetFullPath($ArtifactsPath) -ne $manifestPath) {
+    Remove-Item -LiteralPath $ArtifactsPath -Force
+}
+if ($safeManifestJson -ne $manifestJson) {
+    $deployment.Status = 'Failed'
+    $deployment.Error = 'Manifest contains credentials'
+    $deployment.FinishedAt = (Get-Date).ToString('o')
+    Save-DeploymentInfo
+    throw 'Manifest must not contain credentials (PAT, SAS signature, or tokenized download URL). DevOps feeds use the container''s AZURE_DEVOPS_EXT_PAT; stage other protected files as uploads.'
 }
 
 try {
@@ -90,14 +117,7 @@ try {
     C:\run\prompt.ps1 -silent
     Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force -ErrorAction Stop
 
-    $manifestJson = Get-Content -LiteralPath $ArtifactsPath -Raw
     $manifest = $manifestJson | ConvertFrom-Json
-    # Keep the manifest inside the deployment folder, without secrets
-    Get-SafeArtifactUri -Uri $manifestJson | Set-Content -LiteralPath $manifestPath -Encoding UTF8
-    if ([System.IO.Path]::GetFullPath($ArtifactsPath) -ne $manifestPath) {
-        Remove-Item -LiteralPath $ArtifactsPath -Force -ErrorAction SilentlyContinue
-    }
-
     $artifacts = @(@($manifest.artifacts) + @($manifest.devopsArtifacts) | Where-Object { $_ })
     $ignoreIn = if ($env:IsBuildContainer) { 'build' } else { 'dev' }
     $artifacts = @($artifacts | Where-Object { -not ($_.ignorein -contains $ignoreIn) })
