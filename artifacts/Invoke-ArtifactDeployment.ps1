@@ -106,7 +106,7 @@ try {
     if (-not $artifacts) {
         throw 'Manifest must contain at least one artifact in "artifacts" or "devopsArtifacts"'
     }
-    $unsupported = @($artifacts | Where-Object { $_.target -in @('bak', 'saasbak', 'demodata', 'ipartifact') -or $_.type -eq 'ipartifact' })
+    $unsupported = @($artifacts | Where-Object { $_.target -in @('demodata', 'ipartifact') -or $_.type -eq 'ipartifact' })
     if ($unsupported) {
         throw "Artifacts cannot be deployed into a running container: $($unsupported.name -join ', ')"
     }
