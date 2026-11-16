@@ -54,3 +54,4 @@
 - Async scripts that fail to start report `CompletedWithError` with the start error instead of `NotStarted`
 - Prevent credentials in deployment transcripts and redact unsafe or invalid manifests; keep add-in download indexes distinct across dependency groups
 - Remove deployment-specific rejection of backup artifact targets
+- Export the installed-app helper and keep only artifacts in deployment folders

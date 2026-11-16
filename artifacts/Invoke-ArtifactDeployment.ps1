@@ -5,15 +5,14 @@
     .DESCRIPTION
     DeploymentPath must contain manifest.json in the AzureDevOpsArtifacts shape passed to new containers:
         { "artifacts": [ <AlpacaArtifact> ], "devopsArtifacts": [ <DevOpsArtifact> ] }
+    The manifest is removed after reading; deployment status and output remain available through AsyncExec.
     The manifest must not contain credentials. Azure DevOps feeds use the container's AZURE_DEVOPS_EXT_PAT, NuGet
     packages are resolved from the container's configured NuGet feeds, and other files are staged in the deployment
     folder (e.g. uploads\) and referenced by local path.
-    Invalid manifests or manifests containing credentials are replaced with a redacted placeholder and rejected.
+    Invalid manifests or manifests containing credentials are rejected.
     Artifacts are processed like navstartArtifacts.ps1 (NuGet last, downloaded per dependsOn group) and imported with
     Import-Artifacts. The deployment folder is kept for traceability:
-        manifest.json    deployment manifest
-        deployment.json  parameters, artifacts, status, and timestamps
-        deployment.log   transcript
+        uploads\         uploaded artifacts
         apps\            downloaded artifacts (general\ and dependent-on-<dependsOn>\)
 #>
 [CmdletBinding()]
@@ -36,19 +35,6 @@ param (
 $ErrorActionPreference = 'Stop'
 $manifestPath = Join-Path $DeploymentPath 'manifest.json'
 $appsPath = Join-Path $DeploymentPath 'apps'
-$transcriptStarted = $false
-$deployment = [ordered]@{
-    Status                = 'Running'
-    StartedAt             = (Get-Date).ToString('o')
-    FinishedAt            = $null
-    Error                 = $null
-    DeployScope           = $DeployScope
-    SyncMode              = $SyncMode
-    NuGetSelectMode       = $NuGetSelectMode
-    ConsiderInstalledApps = [bool]$ConsiderInstalledApps
-    Artifacts             = @()
-}
-
 function Test-ManifestCredentials {
     param ($Value)
 
@@ -75,24 +61,15 @@ function Test-ManifestCredentials {
 
 try {
     $manifestJson = Get-Content -LiteralPath $manifestPath -Raw
+    Remove-Item -LiteralPath $manifestPath -Force -ErrorAction Stop
     try {
         $manifest = ConvertFrom-Json -InputObject $manifestJson -ErrorAction Stop
     }
     catch {
-        Set-Content -LiteralPath $manifestPath -Value '{"redacted":true}' -Encoding UTF8
-        throw 'Manifest is invalid JSON and was redacted'
+        throw 'Manifest is invalid JSON'
     }
     if (Test-ManifestCredentials $manifest) {
-        Set-Content -LiteralPath $manifestPath -Value '{"redacted":true}' -Encoding UTF8
         throw 'Manifest must not contain credentials or tokenized download URLs'
-    }
-
-    try {
-        Start-Transcript -LiteralPath (Join-Path $DeploymentPath 'deployment.log') -Append -UseMinimalHeader | Out-Null
-        $transcriptStarted = $true
-    }
-    catch {
-        Write-Warning "Could not start deployment transcript: $($_.Exception.Message)"
     }
 
     C:\run\prompt.ps1 -silent
@@ -142,8 +119,6 @@ try {
         }
     }
     $downloadParameters.AllArtifacts = $artifacts
-    $deployment.Artifacts = $artifacts
-
     # Add-ins and fonts share destinations across dependency groups and need a single index.
     $artifacts | Where-Object { $_.target -in @('dll', 'add-ins', 'font', 'fonts') } |
         Invoke-DownloadArtifact @downloadParameters
@@ -176,24 +151,9 @@ try {
         $importFonts = $false
     }
 
-    $deployment.Status = 'Succeeded'
     Write-Host 'Artifact import finished'
 }
 catch {
-    $deployment.Status = 'Failed'
-    $deployment.Error = $_.Exception.Message
     Write-Host "Artifact deployment failed: $($_.Exception.Message)"
     throw
-}
-finally {
-    $deployment.FinishedAt = (Get-Date).ToString('o')
-    try {
-        $deployment | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $DeploymentPath 'deployment.json') -Encoding UTF8
-    }
-    catch {
-        Write-Warning "Could not write deployment info: $($_.Exception.Message)"
-    }
-    if ($transcriptStarted) {
-        Stop-Transcript | Out-Null
-    }
 }
