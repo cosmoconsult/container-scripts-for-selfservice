@@ -1,7 +1,25 @@
+<#
+    .SYNOPSIS
+    Deploys artifacts into a running container from a manifest with the same shape as the container creation artifacts.
+
+    .DESCRIPTION
+    DeploymentPath must contain manifest.json in the AzureDevOpsArtifacts shape passed to new containers:
+        { "artifacts": [ <AlpacaArtifact> ], "devopsArtifacts": [ <DevOpsArtifact> ] }
+    The manifest must not contain credentials. Azure DevOps feeds use the container's AZURE_DEVOPS_EXT_PAT, NuGet
+    packages are resolved from the container's configured NuGet feeds, and other files are staged in the deployment
+    folder (e.g. uploads\) and referenced by local path.
+    Invalid manifests or manifests containing credentials are replaced with a redacted placeholder and rejected.
+    Artifacts are processed like navstartArtifacts.ps1 (NuGet last, downloaded per dependsOn group) and imported with
+    Import-Artifacts. The deployment folder is kept for traceability:
+        manifest.json    deployment manifest
+        deployment.json  parameters, artifacts, status, and timestamps
+        deployment.log   transcript
+        apps\            downloaded artifacts (general\ and dependent-on-<dependsOn>\)
+#>
 [CmdletBinding()]
 param (
     [Parameter(Mandatory = $true)]
-    [string]$ArtifactsPath,
+    [string]$DeploymentPath,
     [ValidateSet('Global', 'Tenant', 'Dev')]
     [string]$DeployScope = 'Tenant',
     [ValidateSet('Add', 'ForceSync')]
@@ -9,8 +27,6 @@ param (
     [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
     [string]$NuGetSelectMode = '',
     [switch]$ConsiderInstalledApps,
-    [switch]$KeepUploadedFiles,
-    [switch]$PreserveArtifactOrder,
     [string]$PublicDnsName = '',
     [string]$ContainerId = '',
     [string]$ContainerUser = '',
@@ -18,70 +34,101 @@ param (
 )
 
 $ErrorActionPreference = 'Stop'
-$artifacts = @()
-$workingDirectory = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
-$previousNuGetFeedSelectMode = $env:nuGetFeedSelectMode
+$manifestPath = Join-Path $DeploymentPath 'manifest.json'
+$appsPath = Join-Path $DeploymentPath 'apps'
+$transcriptStarted = $false
+$deployment = [ordered]@{
+    Status                = 'Running'
+    StartedAt             = (Get-Date).ToString('o')
+    FinishedAt            = $null
+    Error                 = $null
+    DeployScope           = $DeployScope
+    SyncMode              = $SyncMode
+    NuGetSelectMode       = $NuGetSelectMode
+    ConsiderInstalledApps = [bool]$ConsiderInstalledApps
+    Artifacts             = @()
+}
+
+function Test-ManifestCredentials {
+    param ($Value)
+
+    if ($Value -is [string]) {
+        $decoded = [Uri]::UnescapeDataString($Value)
+        return $decoded -match '(?i)([?&](pat|sig|token|access_token|api_key|apikey)=([^&#]+)|/(api/public/dl|share)/[^/?#]+|https?://[^/@\s]+@)'
+    }
+    if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [pscustomobject]) {
+        foreach ($item in $Value) {
+            if (Test-ManifestCredentials $item) { return $true }
+        }
+    }
+    elseif ($Value -is [pscustomobject]) {
+        foreach ($property in $Value.PSObject.Properties) {
+            if ($property.Name -match '^(pat|password|token|secret|accessToken|apiKey)$' -and
+                $null -ne $property.Value -and "$($property.Value)" -ne '') {
+                return $true
+            }
+            if (Test-ManifestCredentials $property.Value) { return $true }
+        }
+    }
+    return $false
+}
 
 try {
-    $artifacts = Get-Content -LiteralPath $ArtifactsPath -Raw | ConvertFrom-Json
-    $artifacts = @($artifacts)
-    if (-not $artifacts.Count) {
-        throw 'Artifacts must not be empty'
+    $manifestJson = Get-Content -LiteralPath $manifestPath -Raw
+    try {
+        $manifest = ConvertFrom-Json -InputObject $manifestJson -ErrorAction Stop
     }
-    C:\run\prompt.ps1 -silent
+    catch {
+        Set-Content -LiteralPath $manifestPath -Value '{"redacted":true}' -Encoding UTF8
+        throw 'Manifest is invalid JSON and was redacted'
+    }
+    if (Test-ManifestCredentials $manifest) {
+        Set-Content -LiteralPath $manifestPath -Value '{"redacted":true}' -Encoding UTF8
+        throw 'Manifest must not contain credentials or tokenized download URLs'
+    }
 
-    if ($NuGetSelectMode) {
-        $env:nuGetFeedSelectMode = $NuGetSelectMode
+    try {
+        Start-Transcript -LiteralPath (Join-Path $DeploymentPath 'deployment.log') -Append -UseMinimalHeader | Out-Null
+        $transcriptStarted = $true
     }
-    New-Item -Path $workingDirectory -ItemType Directory -Force | Out-Null
-    Write-Host "[Deploy] Preparing artifact deployment with scope '$DeployScope'"
+    catch {
+        Write-Warning "Could not start deployment transcript: $($_.Exception.Message)"
+    }
+
+    C:\run\prompt.ps1 -silent
     Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force -ErrorAction Stop
 
-    $artifactIndex = 0
-    $downloadArtifacts = @(foreach ($artifact in $artifacts) {
-        $artifactType = ([string]$artifact.Type).ToLowerInvariant()
-        if ($artifactType -notin @('nuget', 'source')) {
-            throw "Unsupported artifact type '$($artifact.Type)'"
-        }
-        $downloadArtifact = $artifact.PSObject.Copy()
-        if ($artifactType -eq 'nuget') {
-            if ([string]::IsNullOrWhiteSpace($artifact.Name)) {
-                throw 'Name is required for NuGet deployments'
-            }
-        }
-        else {
-            $sourceUrl = [string]$artifact.Source
-            if ([string]::IsNullOrWhiteSpace($sourceUrl)) {
-                throw 'Source is required for URL or local path deployments'
-            }
-            if ($sourceUrl -notmatch '^https?://') {
-                $sourceUrl = (Get-Item -LiteralPath $sourceUrl -ErrorAction Stop).FullName
-            }
-            $downloadArtifact | Add-Member -NotePropertyName Url -NotePropertyValue $sourceUrl -Force
-            if (-not $downloadArtifact.Name) {
-                $downloadArtifact | Add-Member -NotePropertyName Name -NotePropertyValue 'artifact' -Force
-            }
-        }
-        if ($PreserveArtifactOrder) {
-            $artifactIndex++
-            $downloadArtifact | Add-Member -NotePropertyName TargetFolder -NotePropertyValue ('{0:D3}' -f $artifactIndex) -Force
-        }
-        $downloadArtifact
-    })
-
-    $downloadParameters = @{
-        Destination = $workingDirectory
-        AllArtifacts = $downloadArtifacts
-        SkipServiceRestartCheck = $true
-        ThrowOnError = $true
-        ValidateArtifact = $true
+    $ignoreIn = if ($env:IsBuildContainer) { 'build' } else { 'dev' }
+    # Sort NuGet packages last while keeping the original order (same as navstartArtifacts.ps1)
+    $artifacts = @(@($manifest.artifacts) + @($manifest.devopsArtifacts) |
+        Where-Object { $_ -and -not ($_.ignorein -contains $ignoreIn) } |
+        Group-Object { [int]($_.type -eq 'nuget') } | Sort-Object { [int]$_.Name } | ForEach-Object { $_.Group })
+    if (-not $artifacts) {
+        throw 'Manifest must contain at least one artifact in "artifacts" or "devopsArtifacts"'
     }
-    if ($downloadArtifacts | Where-Object Type -eq 'nuget') {
-        . 'C:\run\my\ExtendedEnvironment.ps1'
+    $unsupported = @($artifacts | Where-Object { $_.target -in @('bak', 'saasbak', 'demodata', 'ipartifact') -or $_.type -eq 'ipartifact' })
+    if ($unsupported) {
+        throw "Artifacts cannot be deployed into a running container: $($unsupported.name -join ', ')"
+    }
+
+    $serviceTierFolder = Get-NAVServiceTierFolder
+    $downloadParameters = @{
+        Destination             = $appsPath
+        GroupByDependency       = $true
+        ServiceTierFolder       = $serviceTierFolder
+        SkipServiceRestartCheck = $true
+        ThrowOnError            = $true
+        ValidateArtifact        = $true
+    }
+    if ($artifacts | Where-Object { $_.type -eq 'nuget' }) {
+        if ($NuGetSelectMode) {
+            $env:nuGetFeedSelectMode = $NuGetSelectMode
+        }
+        . 'C:\run\my\ExtendedEnvironment.ps1' # NuGet feeds are configured in the extended environment
         Install-NuGetTools
         Initialize-NuGetFeeds
+        $artifacts = @(Resolve-NuGetArtifactsFromLocalAppFiles -Artifacts $artifacts -ServiceTierFolder $serviceTierFolder)
         if ($ConsiderInstalledApps) {
-            . (Join-Path $PSScriptRoot 'ArtifactHandling/Get-InstalledApps.ps1')
             $downloadParameters.InstalledPackages = @(Get-InstalledApps -IncludeMicrosoft |
                 ForEach-Object {
                     [PSCustomObject]@{
@@ -94,14 +141,24 @@ try {
                 })
         }
     }
-    $downloadArtifacts | Invoke-DownloadArtifact @downloadParameters
+    $downloadParameters.AllArtifacts = $artifacts
+    $deployment.Artifacts = $artifacts
 
-    Write-Host "[Deploy] Importing artifacts with scope '$DeployScope' and sync mode '$SyncMode'"
-    $importPaths = @($workingDirectory) # if not preserving artifact order, the working directory is the only path
-    if ($PreserveArtifactOrder) {
-        Write-Host '[Deploy] Using manual artifact order'
-        $importPaths = @($downloadArtifacts | ForEach-Object { Join-Path $workingDirectory $_.TargetFolder })
+    # Add-ins and fonts share destinations across dependency groups and need a single index.
+    $artifacts | Where-Object { $_.target -in @('dll', 'add-ins', 'font', 'fonts') } |
+        Invoke-DownloadArtifact @downloadParameters
+    $artifacts | Where-Object { $_.target -notin @('dll', 'add-ins', 'font', 'fonts') } |
+        Group-Object -Property dependsOn | ForEach-Object { $_.Group | Invoke-DownloadArtifact @downloadParameters }
+
+    New-Item -Path $appsPath -ItemType Directory -Force | Out-Null
+    $importPaths = @(Get-ChildItem -LiteralPath $appsPath -Directory |
+        Where-Object Name -Match '^(general|dependent-on-.+)$' |
+        Sort-Object { $_.Name -ne 'general' }, Name |
+        ForEach-Object FullName)
+    if (-not $importPaths) {
+        $importPaths = @($appsPath) # e.g. only fonts, which are downloaded to c:\fonts
     }
+    $importFonts = [bool]($artifacts | Where-Object { $_.target -in @('font', 'fonts') })
     foreach ($importPath in $importPaths) {
         Import-Artifacts `
             -Path $importPath `
@@ -109,34 +166,34 @@ try {
             -ServerInstance BC `
             -Scope $DeployScope `
             -SyncMode $SyncMode `
+            -SkipFontImport (-not $importFonts) `
             -ErrorAction Stop `
             -SkipServiceRestartCheck `
             -PublicDnsName $PublicDnsName `
             -ContainerId $ContainerId `
             -ContainerUser $ContainerUser `
             -ContainerPassword $ContainerPassword
+        $importFonts = $false
     }
 
+    $deployment.Status = 'Succeeded'
     Write-Host 'Artifact import finished'
 }
+catch {
+    $deployment.Status = 'Failed'
+    $deployment.Error = $_.Exception.Message
+    Write-Host "Artifact deployment failed: $($_.Exception.Message)"
+    throw
+}
 finally {
-    $env:nuGetFeedSelectMode = $previousNuGetFeedSelectMode
-    Write-Host '[Deploy] Cleaning up deployment files'
-    if (Test-Path -LiteralPath $workingDirectory) {
-        try {
-            Remove-Item -LiteralPath $workingDirectory -Recurse -Force -ErrorAction Stop
-        }
-        catch {
-            Write-Warning "Could not clean up deployment files in '$workingDirectory': $($_.Exception.Message)"
-        }
+    $deployment.FinishedAt = (Get-Date).ToString('o')
+    try {
+        $deployment | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $DeploymentPath 'deployment.json') -Encoding UTF8
     }
-    if (-not $KeepUploadedFiles) {
-        foreach ($artifact in $artifacts) {
-            if ($artifact.Type -eq 'source' -and $artifact.Source -and $artifact.Source -notmatch '^https?://' -and
-                (Test-Path -LiteralPath $artifact.Source -PathType Leaf)) {
-                Remove-Item -LiteralPath $artifact.Source -Force -ErrorAction SilentlyContinue
-            }
-        }
+    catch {
+        Write-Warning "Could not write deployment info: $($_.Exception.Message)"
     }
-    Remove-Item -LiteralPath $ArtifactsPath -Force -ErrorAction SilentlyContinue
+    if ($transcriptStarted) {
+        Stop-Transcript | Out-Null
+    }
 }
