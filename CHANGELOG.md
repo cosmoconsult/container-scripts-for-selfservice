@@ -53,3 +53,4 @@
 - ForceSync only selects the sync mode for unsynchronized apps and no longer uninstalls or reinstalls already installed apps
 - Async scripts that fail to start report `CompletedWithError` with the start error instead of `NotStarted`
 - Prevent credentials in deployment transcripts and redact unsafe or invalid manifests; keep add-in download indexes distinct across dependency groups
+- Ignore backup targets in deployment manifests while continuing to deploy other artifacts

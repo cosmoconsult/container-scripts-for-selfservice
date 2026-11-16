@@ -8,6 +8,7 @@
     The manifest must not contain credentials. Azure DevOps feeds use the container's AZURE_DEVOPS_EXT_PAT, NuGet
     packages are resolved from the container's configured NuGet feeds, and other files are staged in the deployment
     folder (e.g. uploads\) and referenced by local path.
+    Backup targets (Bak and SaaSBak) are ignored during deployment.
     Invalid manifests or manifests containing credentials are replaced with a redacted placeholder and rejected.
     Artifacts are processed like navstartArtifacts.ps1 (NuGet last, downloaded per dependsOn group) and imported with
     Import-Artifacts. The deployment folder is kept for traceability:
@@ -101,12 +102,12 @@ try {
     $ignoreIn = if ($env:IsBuildContainer) { 'build' } else { 'dev' }
     # Sort NuGet packages last while keeping the original order (same as navstartArtifacts.ps1)
     $artifacts = @(@($manifest.artifacts) + @($manifest.devopsArtifacts) |
-        Where-Object { $_ -and -not ($_.ignorein -contains $ignoreIn) } |
+        Where-Object { $_ -and $_.target -notin @('bak', 'saasbak') -and -not ($_.ignorein -contains $ignoreIn) } |
         Group-Object { [int]($_.type -eq 'nuget') } | Sort-Object { [int]$_.Name } | ForEach-Object { $_.Group })
     if (-not $artifacts) {
-        throw 'Manifest must contain at least one artifact in "artifacts" or "devopsArtifacts"'
+        throw 'Manifest must contain at least one deployable artifact in "artifacts" or "devopsArtifacts"'
     }
-    $unsupported = @($artifacts | Where-Object { $_.target -in @('bak', 'saasbak', 'demodata', 'ipartifact') -or $_.type -eq 'ipartifact' })
+    $unsupported = @($artifacts | Where-Object { $_.target -in @('demodata', 'ipartifact') -or $_.type -eq 'ipartifact' })
     if ($unsupported) {
         throw "Artifacts cannot be deployed into a running container: $($unsupported.name -join ', ')"
     }
