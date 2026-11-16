@@ -89,7 +89,11 @@ try {
 }
 catch {
     # keep a terminal status with the reason so status polling does not report NotStarted forever
-    Add-Content -Path $scriptLogErr -Value ($_ | Out-String) -ErrorAction SilentlyContinue
-    Set-Content -Path $lockFile -Value "CompletedWithError" -ErrorAction SilentlyContinue
+    try {
+        Add-Content -Path $scriptLogErr -Value ($_ | Out-String) -ErrorAction Stop
+    }
+    finally {
+        Set-Content -Path $lockFile -Value "CompletedWithError" -ErrorAction Stop
+    }
 }
 

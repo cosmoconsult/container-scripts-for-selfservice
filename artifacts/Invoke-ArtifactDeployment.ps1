@@ -8,6 +8,7 @@
     The manifest must not contain credentials. Azure DevOps feeds use the container's AZURE_DEVOPS_EXT_PAT, NuGet
     packages are resolved from the container's configured NuGet feeds, and other files are staged in the deployment
     folder (e.g. uploads\) and referenced by local path.
+    Invalid manifests or manifests containing credentials are replaced with a redacted placeholder and rejected.
     Artifacts are processed like navstartArtifacts.ps1 (NuGet last, downloaded per dependsOn group) and imported with
     Import-Artifacts. The deployment folder is kept for traceability:
         manifest.json    deployment manifest
@@ -48,20 +49,46 @@ $deployment = [ordered]@{
     Artifacts             = @()
 }
 
+function Test-ManifestCredentials {
+    param ($Value)
+
+    if ($Value -is [string]) {
+        $decoded = [Uri]::UnescapeDataString($Value)
+        return $decoded -match '(?i)([?&](pat|sig|token|access_token|api_key|apikey)=([^&#]+)|/(api/public/dl|share)/[^/?#]+|https?://[^/@\s]+@)'
+    }
+    if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [pscustomobject]) {
+        foreach ($item in $Value) {
+            if (Test-ManifestCredentials $item) { return $true }
+        }
+    }
+    elseif ($Value -is [pscustomobject]) {
+        foreach ($property in $Value.PSObject.Properties) {
+            if ($property.Name -match '^(pat|password|token|secret|accessToken|apiKey)$' -and
+                $null -ne $property.Value -and "$($property.Value)" -ne '') {
+                return $true
+            }
+            if (Test-ManifestCredentials $property.Value) { return $true }
+        }
+    }
+    return $false
+}
+
 try {
-    # Never keep credentials in the retained manifest: redact them first and refuse the deployment.
     $manifestJson = Get-Content -LiteralPath $manifestPath -Raw
-    $safeManifestJson = $manifestJson `
-        -replace '("pat"\s*:\s*")[^"]+(")', '$1***REDACTED***$2' `
-        -replace '([?&](pat|sig)=)[^&#"]+', '$1***REDACTED***' `
-        -replace '(/filebrowser/(api/public/dl|share)/)[^/?#"]+', '$1***REDACTED***'
-    if ($safeManifestJson -ne $manifestJson) {
-        Set-Content -LiteralPath $manifestPath -Value $safeManifestJson -Encoding UTF8
-        throw 'Manifest must not contain credentials (PAT, SAS signature, or tokenized download URL)'
+    try {
+        $manifest = ConvertFrom-Json -InputObject $manifestJson -ErrorAction Stop
+    }
+    catch {
+        Set-Content -LiteralPath $manifestPath -Value '{"redacted":true}' -Encoding UTF8
+        throw 'Manifest is invalid JSON and was redacted'
+    }
+    if (Test-ManifestCredentials $manifest) {
+        Set-Content -LiteralPath $manifestPath -Value '{"redacted":true}' -Encoding UTF8
+        throw 'Manifest must not contain credentials or tokenized download URLs'
     }
 
     try {
-        Start-Transcript -LiteralPath (Join-Path $DeploymentPath 'deployment.log') -Append | Out-Null
+        Start-Transcript -LiteralPath (Join-Path $DeploymentPath 'deployment.log') -Append -UseMinimalHeader | Out-Null
         $transcriptStarted = $true
     }
     catch {
@@ -71,7 +98,6 @@ try {
     C:\run\prompt.ps1 -silent
     Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force -ErrorAction Stop
 
-    $manifest = $manifestJson | ConvertFrom-Json
     $ignoreIn = if ($env:IsBuildContainer) { 'build' } else { 'dev' }
     # Sort NuGet packages last while keeping the original order (same as navstartArtifacts.ps1)
     $artifacts = @(@($manifest.artifacts) + @($manifest.devopsArtifacts) |
@@ -80,7 +106,7 @@ try {
     if (-not $artifacts) {
         throw 'Manifest must contain at least one artifact in "artifacts" or "devopsArtifacts"'
     }
-    $unsupported = @($artifacts | Where-Object { $_.target -in @('bak', 'saasbak', 'demodata') -or $_.type -eq 'ipartifact' })
+    $unsupported = @($artifacts | Where-Object { $_.target -in @('bak', 'saasbak', 'demodata', 'ipartifact') -or $_.type -eq 'ipartifact' })
     if ($unsupported) {
         throw "Artifacts cannot be deployed into a running container: $($unsupported.name -join ', ')"
     }
@@ -118,8 +144,11 @@ try {
     $downloadParameters.AllArtifacts = $artifacts
     $deployment.Artifacts = $artifacts
 
-    # Download per dependency for separated indexes (same as navstartArtifacts.ps1)
-    $artifacts | Group-Object -Property dependsOn | ForEach-Object { $_.Group | Invoke-DownloadArtifact @downloadParameters }
+    # Add-ins and fonts share destinations across dependency groups and need a single index.
+    $artifacts | Where-Object { $_.target -in @('dll', 'add-ins', 'font', 'fonts') } |
+        Invoke-DownloadArtifact @downloadParameters
+    $artifacts | Where-Object { $_.target -notin @('dll', 'add-ins', 'font', 'fonts') } |
+        Group-Object -Property dependsOn | ForEach-Object { $_.Group | Invoke-DownloadArtifact @downloadParameters }
 
     New-Item -Path $appsPath -ItemType Directory -Force | Out-Null
     $importPaths = @(Get-ChildItem -LiteralPath $appsPath -Directory |
