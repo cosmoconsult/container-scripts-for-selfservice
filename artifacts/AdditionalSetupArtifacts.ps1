@@ -179,16 +179,14 @@ if ($env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
 # Before BC29, SaaS backups for 4PS (modified base app) require removing all apps and reinstalling the System App first
 if ((![string]::IsNullOrEmpty($env:saasbakfile) -or $installModifiedBaseAppManually) -and $env:mode -eq "4ps" -and $env:cosmoServiceRestart -eq $false) {
     $sysAppInfoFS = Get-NAVAppInfo -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-    if ($sysAppInfoFS.Version.Major -lt 29) {
-        Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
-        Unpublish-AllNavAppsInServerInstance -KeepData (![string]::IsNullOrEmpty($env:saasbakfile))
-        Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
-        Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
-        Write-Host "  Sync the system application with ForceSync"
-        Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Mode ForceSync
-        Write-Host "  Install the system application"
-        Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
-    }
+    Write-Host "Identified SaaS Backup and 4PS mode, removing all apps to cleanly rebuild later"
+    Unpublish-AllNavAppsInServerInstance -KeepData (![string]::IsNullOrEmpty($env:saasbakfile))
+    Write-Host "  Publish the system application $($sysAppInfoFS.Version)"
+    Publish-NAVApp -ServerInstance BC -Path 'C:\Applications\system application\source\Microsoft_System Application.app'
+    Write-Host "  Sync the system application with ForceSync"
+    Sync-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version -Mode ForceSync
+    Write-Host "  Install the system application"
+    Install-NAVApp -ServerInstance BC -Name "System Application" -Publisher "Microsoft" -Version $sysAppInfoFS.Version
 }
 
 # Import Artifacts
