@@ -313,7 +313,10 @@ function Invoke-4PSArtifactHandling {
                     # found existing user with given name
                     # in 4PS mode, we assume .bak with modified base app, so we push the password again as the standard user setup script would ignore this
                     if ($env:Auth -eq "aad") {
-                        Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword -AuthenticationEMail $authenticationEMail
+                        if ([string]::IsNullOrWhiteSpace($authenticationEMail) -and $username.IndexOf("@") -gt 0) {
+                            $authenticationEMail = $username
+                        }
+                        Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securepassword -AuthenticationEMail $authenticationEMail
                     }
                     else {
                         Set-NavServerUser -ServerInstance BC @tenantParam -Username $username -Password $securePassword 
