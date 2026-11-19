@@ -11,7 +11,7 @@
     folder (e.g. uploads\) and referenced by local path.
     Invalid manifests or manifests containing credentials are rejected.
     Artifacts are processed like navstartArtifacts.ps1 (NuGet last, downloaded per dependsOn group) and imported with
-    Import-Artifacts. The deployment folder is kept for traceability:
+    Import-Artifacts without applying the startup app exclusion filter. The deployment folder is kept for traceability:
         uploads\         uploaded artifacts
         apps\            downloaded artifacts (general\ and dependent-on-<dependsOn>\)
 #>
@@ -141,6 +141,7 @@ try {
             -ServerInstance BC `
             -Scope $DeployScope `
             -SyncMode $SyncMode `
+            -ExcludeApps $false `
             -SkipFontImport (-not $importFonts) `
             -ErrorAction Stop `
             -SkipServiceRestartCheck `
