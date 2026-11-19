@@ -58,6 +58,7 @@ function Import-FobArtifact {
                     -Confirm:$false `
                     -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
 
+                $err = @($err | Remove-PowerShellFlowControlErrors)
                 $info | foreach { Add-ArtifactsLog -kind FOB -message "$_" -severity Info  -data $properties }
                 $warn | foreach { Add-ArtifactsLog -kind FOB -message "$_" -severity Warn  -data $properties }
                 $err  | foreach { Add-ArtifactsLog -kind FOB -message "$_" -severity Error -data $properties }

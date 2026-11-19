@@ -42,5 +42,11 @@
 - Add a check in SetupLicense.ps1 for a specific image failing for unclear reasons
 - Add support for managing all nuget feeds by backend (and keep it backward compatible)
 - Run tenant synchronization for BC29 and higher through the PowerShell Core management override
+- Add Invoke-DownloadAndDeployApps.ps1 as an artifact download-and-deploy entry point
 - Fix artifact download of single files (e.g. RapidStart packages) being wrongly treated as ZIP archives
-- Skip 4PS app removal and System App reinstallation for BC29 and newer Microsoft-based images
+- Add preservation of artifacts order for app files sorted by dependencies with the same process order
+- Fix dependency retrieval when multiple app versions match
+- Fix NuGet artifact version checks and conversions
+- Add support for prerelease NuGet packages
+- Fix false deployment and artifact import failures caused by PowerShell flow-control exceptions in BC29 while preserving genuine errors
+

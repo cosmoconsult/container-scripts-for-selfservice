@@ -74,6 +74,7 @@ function Import-RIMArtifact {
                         -CompanyName        "$($company.CompanyName)" `
                         -ErrorAction SilentlyContinue -ErrorVariable err -WarningVariable warn -InformationVariable info
 
+                    $err = @($err | Remove-PowerShellFlowControlErrors)
                     $info | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Info  -data $properties }
                     $warn | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Warn  -data $properties }
                     $err  | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Error -data $properties }
