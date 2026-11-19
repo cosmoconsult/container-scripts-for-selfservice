@@ -6,10 +6,10 @@
     DeploymentPath must contain manifest.json in the AzureDevOpsArtifacts shape passed to new containers:
         { "artifacts": [ <AlpacaArtifact> ], "devopsArtifacts": [ <DevOpsArtifact> ] }
     The manifest is removed after reading; deployment status and output remain available through AsyncExec.
-    The manifest must not contain credentials. Azure DevOps feeds use the container's AZURE_DEVOPS_EXT_PAT, NuGet
-    packages are resolved from the container's configured NuGet feeds, and other files are staged in the deployment
-    folder (e.g. uploads\) and referenced by local path.
-    Invalid manifests or manifests containing credentials are rejected.
+    Azure DevOps feeds use the container's AZURE_DEVOPS_EXT_PAT, NuGet packages are resolved from the container's
+    configured NuGet feeds, and other files are staged in the deployment folder (e.g. uploads\) and referenced by
+    local path.
+    Invalid manifests are rejected.
     Artifacts are processed like navstartArtifacts.ps1 (NuGet last, downloaded per dependsOn group) and imported with
     Import-Artifacts without applying the startup app exclusion filter. The deployment folder is kept for traceability:
         uploads\         uploaded artifacts
@@ -35,29 +35,6 @@ param (
 $ErrorActionPreference = 'Stop'
 $manifestPath = Join-Path $DeploymentPath 'manifest.json'
 $appsPath = Join-Path $DeploymentPath 'apps'
-function Test-ManifestCredentials {
-    param ($Value)
-
-    if ($Value -is [string]) {
-        $decoded = [Uri]::UnescapeDataString($Value)
-        return $decoded -match '(?i)([?&](pat|sig|token|access_token|api_key|apikey)=([^&#]+)|/(api/public/dl|share)/[^/?#]+|https?://[^/@\s]+@)'
-    }
-    if ($Value -is [System.Collections.IEnumerable] -and $Value -isnot [pscustomobject]) {
-        foreach ($item in $Value) {
-            if (Test-ManifestCredentials $item) { return $true }
-        }
-    }
-    elseif ($Value -is [pscustomobject]) {
-        foreach ($property in $Value.PSObject.Properties) {
-            if ($property.Name -match '^(pat|password|token|secret|accessToken|apiKey)$' -and
-                $null -ne $property.Value -and "$($property.Value)" -ne '') {
-                return $true
-            }
-            if (Test-ManifestCredentials $property.Value) { return $true }
-        }
-    }
-    return $false
-}
 
 try {
     $manifestJson = Get-Content -LiteralPath $manifestPath -Raw
@@ -68,10 +45,6 @@ try {
     catch {
         throw 'Manifest is invalid JSON'
     }
-    if (Test-ManifestCredentials $manifest) {
-        throw 'Manifest must not contain credentials or tokenized download URLs'
-    }
-
     C:\run\prompt.ps1 -silent
     Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force -ErrorAction Stop
 
