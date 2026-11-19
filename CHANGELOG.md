@@ -45,13 +45,7 @@
 - Fix artifact download of single files (e.g. RapidStart packages) being wrongly treated as ZIP archives
 - Add preservation of artifacts order for app files sorted by dependencies with the same process order
 - Fix dependency retrieval when multiple app versions match
-- Deploy staged .app files directly or extract ZIP artifacts and deploy their contained apps
 - Fix NuGet artifact version checks and conversions
 - Add support for prerelease NuGet packages
 - Fix false deployment and artifact import failures caused by PowerShell flow-control exceptions in BC29 while preserving genuine errors
-- Deploy artifacts from a creation-style manifest (`artifacts`/`devopsArtifacts`) with NuGet-last grouping, reject manifests containing credentials, and keep each deployment in `C:\run\my\deployments\<timestamp>`
-- ForceSync only selects the sync mode for unsynchronized apps and no longer uninstalls or reinstalls already installed apps
-- Async scripts that fail to start report `CompletedWithError` with the start error instead of `NotStarted`
-- Prevent credentials in deployment transcripts and redact unsafe or invalid manifests; keep add-in download indexes distinct across dependency groups
-- Remove deployment-specific rejection of backup artifact targets
-- Export the installed-app helper and keep only artifacts in deployment folders
+- Add manifest-driven deployment of staged, ZIP, NuGet, and Azure DevOps artifacts with dependency-grouped import, sync options, and installed-app metadata
