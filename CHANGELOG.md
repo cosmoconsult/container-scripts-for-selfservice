@@ -48,4 +48,4 @@
 - Fix NuGet artifact version checks and conversions
 - Add support for prerelease NuGet packages
 - Fix false deployment and artifact import failures caused by PowerShell flow-control exceptions in BC29 while preserving genuine errors
-
+- Add manifest-driven deployment of staged, ZIP, NuGet, and Azure DevOps artifacts with dependency-grouped import, sync options, and installed-app metadata

@@ -88,7 +88,12 @@ try {
     }
 }
 catch {
-    # remove lock file when something goes wrong
-    Remove-Item -Path $lockFile -Force -ErrorAction SilentlyContinue
+    # keep a terminal status with the reason so status polling does not report NotStarted forever
+    try {
+        Add-Content -Path $scriptLogErr -Value ($_ | Out-String) -ErrorAction Stop
+    }
+    finally {
+        Set-Content -Path $lockFile -Value "CompletedWithError" -ErrorAction Stop
+    }
 }
 
