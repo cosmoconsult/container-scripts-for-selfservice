@@ -193,12 +193,13 @@ function Import-Artifacts {
 
         # Import Fonts
         $items = @()
-        $fontPaths = @(@($Path, 'c:/fonts') | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -Unique)
         if (-not $SkipFontImport) {
-            $items = @($fontPaths | ForEach-Object {
-                Get-ChildItem -LiteralPath $_ -Recurse -File -Depth $maxDepth -ErrorAction Stop |
-                    Where-Object { $_.Extension -in @('.fon', '.fnt', '.ttf', '.ttc', '.otf') }
-            })
+            # I would keep this, since we can deploy also a zip file containing fonts alongside other artifacts, do you agree on this @OleWunschmann?
+            $fontPaths = @($Path, 'c:/fonts') | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -Unique
+            if ($fontPaths) {
+                $items = @(Get-ChildItem -LiteralPath $fontPaths -Recurse -File -Depth $maxDepth -ErrorAction Stop |
+                    Where-Object { $_.Extension -in @('.fon', '.fnt', '.ttf', '.ttc', '.otf') })
+            }
         }
         if ($items) {
             try {
