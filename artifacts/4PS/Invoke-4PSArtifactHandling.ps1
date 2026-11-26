@@ -339,7 +339,7 @@ function Invoke-4PSArtifactHandling {
                 
                 Write-Host "Moving all published apps to dev scope when possible"
                 if (-not $env:IsBuildContainer) {
-                    if ($null -ne (Get-NAVAppInfo -ServerInstance bc -Name '4PS Construct NL')) {
+                    if ($null -ne (Get-NAVAppInfo -ServerInstance bc -Name '4PS Base Application NL')) {
                         Invoke-4PSMoveExtensionToDevScope `
                             -databaseName $DatabaseName `
                             -databaseServer $DatabaseServer `
