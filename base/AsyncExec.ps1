@@ -31,18 +31,14 @@ if ($OnlyGetStatus -and (-not (Test-Path $lockFile))) {
 # create lock file if it doesn't exist, else return status
 if (-not (New-Item -Type File -Path $lockFile -Value "Started" -ErrorAction SilentlyContinue)) {
     # lock file exists, return status
+    $stdOut = ""
+    $stdErr = ""
     if (Test-Path $scriptLog) {
-        $stdOut = (Get-Content -Path $scriptLog -Raw).psobject.BaseObject
-        if ($stdOut.Length -le 1) {
-            $stdOut = ""
-        }
+        $stdOut = @(Get-Content -Path $scriptLog -Raw) -join [Environment]::NewLine
     }
 
     if (Test-Path $scriptLogErr) {
-        $stdErr = (Get-Content -Path $scriptLogErr -Raw).psobject.BaseObject
-        if ($stdErr.Length -le 1) {
-            $stdErr = ""
-        }
+        $stdErr = @(Get-Content -Path $scriptLogErr -Raw) -join [Environment]::NewLine
     }
 
     return [PSCustomObject]@{
