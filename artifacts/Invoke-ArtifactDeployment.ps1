@@ -26,10 +26,9 @@ param (
     [ValidateSet('Earliest', 'EarliestMatching', 'Latest', 'LatestMatching', 'Exact', 'Any')]
     [string]$NuGetSelectMode = '',
     [switch]$ConsiderInstalledApps,
-    [string]$PublicDnsName = '',
-    [string]$ContainerId = '',
-    [string]$ContainerUser = '',
-    [string]$ContainerPassword = ''
+    [string]$DevEndpointUrl = '',
+    [string]$DevEndpointUser = '',
+    [string]$DevEndpointPassword = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -48,17 +47,16 @@ try {
     C:\run\prompt.ps1 -silent
     Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force -ErrorAction Stop
 
-    $ignoreIn = if ($env:IsBuildContainer) { 'build' } else { 'dev' }
     # Sort NuGet packages last while keeping the original order (same as navstartArtifacts.ps1)
     $artifacts = @(@($manifest.artifacts) + @($manifest.devopsArtifacts) |
-        Where-Object { $_ -and -not ($_.ignorein -contains $ignoreIn) } |
+        Where-Object { $_ } |
         Group-Object { [int]($_.type -eq 'nuget') } | Sort-Object { [int]$_.Name } | ForEach-Object { $_.Group })
     if (-not $artifacts) {
         throw 'Manifest must contain at least one artifact in "artifacts" or "devopsArtifacts"'
     }
     $unsupported = @($artifacts | Where-Object { $_.target -in @('demodata', 'ipartifact') -or $_.type -eq 'ipartifact' })
     if ($unsupported) {
-        throw "Artifacts cannot be deployed into a running container: $($unsupported.name -join ', ')"
+        throw "Demo data and IP artifacts require container creation and cannot be deployed into a running container: $($unsupported.name -join ', ')"
     }
 
     $serviceTierFolder = Get-NAVServiceTierFolder
@@ -79,7 +77,8 @@ try {
         Initialize-NuGetFeeds
         $artifacts = @(Resolve-NuGetArtifactsFromLocalAppFiles -Artifacts $artifacts -ServiceTierFolder $serviceTierFolder)
         if ($ConsiderInstalledApps) {
-            $downloadParameters.InstalledPackages = @(Get-InstalledApps -IncludeMicrosoft |
+            $downloadParameters.InstalledPackages = @(Get-NAVAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties -ErrorAction Stop |
+                Where-Object { $_.IsInstalled } |
                 ForEach-Object {
                     [PSCustomObject]@{
                         Package   = '{0}.{1}.{2}' -f $_.Publisher, $_.Name, $_.AppId -replace ' '
@@ -115,13 +114,12 @@ try {
             -Scope $DeployScope `
             -SyncMode $SyncMode `
             -ExcludeApps $false `
-            -SkipFontImport (-not $importFonts) `
+            -SkipSharedFontImport:(-not $importFonts) `
             -ErrorAction Stop `
             -SkipServiceRestartCheck `
-            -PublicDnsName $PublicDnsName `
-            -ContainerId $ContainerId `
-            -ContainerUser $ContainerUser `
-            -ContainerPassword $ContainerPassword
+            -DevEndpointUrl $DevEndpointUrl `
+            -DevEndpointUser $DevEndpointUser `
+            -DevEndpointPassword $DevEndpointPassword
         $importFonts = $false
     }
 

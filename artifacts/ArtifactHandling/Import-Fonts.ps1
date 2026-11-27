@@ -66,9 +66,9 @@ namespace FontResource
             $hashFontFileTypes.Add(".otf", " (OpenType)")
             $fontRegistryPath = "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Fonts"
         
-            $fileDir = split-path $path
-            $fileName = split-path $path -leaf
-            $fileExt = (Get-Item $path).extension
+            $fileDir = split-path $Path
+            $fileName = split-path $Path -leaf
+            $fileExt = (Get-Item $Path).extension
             $fileBaseName = $fileName -replace ($fileExt , "")
             
             $shell = new-object -com shell.application
@@ -78,13 +78,13 @@ namespace FontResource
             
             if ($fontName -eq "") { $fontName = $fileBaseName }
             
-            $retVal = [FontResource.AddRemoveFonts]::AddFont($path)
+            $retVal = [FontResource.AddRemoveFonts]::AddFont($Path)
             
             if ($retVal -eq 0) {
-                throw "Font '$path' installation failed"
+                throw "Font '$Path' installation failed"
             }
             else {
-                Write-Host -ForegroundColor Green "Font `'$($path)`' installed successfully"
+                Write-Host -ForegroundColor Green "Font `'$($Path)`' installed successfully"
                 Set-ItemProperty -path "$($fontRegistryPath)" -name "$($fontName)$($hashFontFileTypes.item($fileExt))" -value "$($fileName)" -type STRING
             }
         }
@@ -102,7 +102,7 @@ namespace FontResource
         $ExistingFonts = @(Get-ChildItem -LiteralPath $fontsFolderPath | % { $_.Name })
         
         $fontFiles | % {
-            if (! $ExistingFonts.Contains($_.Name) -and $_.Extension -ne ".ini") {
+            if (! $ExistingFonts.Contains($_.Name)) {
                 
                 $properties = @{"path" = $Path; "Font" = $_.Name; "FontPath" = $_.FullName; }
 

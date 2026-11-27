@@ -28,14 +28,18 @@ function Import-Artifacts {
         [bool]$ExcludeApps = $true,
         [Parameter(Mandatory = $false)]
         [string]$AppExcludeExpr = $env:AppExcludeExpr,
-        [string]$PublicDnsName = "",
-        [string]$ContainerId = "",
-        [string]$ContainerUser = "",
-        [string]$ContainerPassword = "",
-        [switch]$SkipServiceRestartCheck
+        [string]$DevEndpointUrl = "",
+        [string]$DevEndpointUser = "",
+        [string]$DevEndpointPassword = "",
+        [switch]$SkipServiceRestartCheck,
+        [switch]$SkipSharedFontImport,
+        [bool]$ThrowErrors = $false
     )
     
     begin {
+        if ($ThrowErrors) {
+            $ErrorActionPreference = 'Stop'
+        }
         if (! $telemetryClient) {
             $telemetryClient = Get-TelemetryClient -ErrorAction SilentlyContinue
         }
@@ -55,8 +59,8 @@ function Import-Artifacts {
             $appFiles = @(Get-AppFilesSortedByDependencies -Path $Path -Depth $maxDepth -Filter '*.app' -ExcludeExpr $AppExcludeExpr -ErrorAction $ErrorActionPreference)
         }
         else {
+            if ($ThrowErrors) { throw "Artifact path '$Path' does not exist" }
             Write-Error "Artifact path '$Path' does not exist"
-            return
         }
         
         # Import FOBs
@@ -77,6 +81,7 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import FOBs Error: $($_.Exception.Message)" -f Red  | Out-String
+                if ($ThrowErrors) { throw }
                 $PSCmdlet.WriteError($_)
             }
             finally {
@@ -139,10 +144,9 @@ function Import-Artifacts {
                         telemetryClient = $telemetryClient
                         ErrorAction = $ErrorActionPreference
                         IsModifiedBaseApp = $IsModifiedBaseApp
-                        PublicDnsName = $PublicDnsName
-                        ContainerId = $ContainerId
-                        ContainerUser = $ContainerUser
-                        ContainerPassword = $ContainerPassword
+                        DevEndpointUrl = $DevEndpointUrl
+                        DevEndpointUser = $DevEndpointUser
+                        DevEndpointPassword = $DevEndpointPassword
                         SkipServiceRestartCheck = $SkipServiceRestartCheck
                     }
                     @($item) | Import-AppArtifact @importParameters
@@ -153,6 +157,7 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import Apps Error: $($_.Exception.Message)" -f Red
+                if ($ThrowErrors) { throw }
                 $PSCmdlet.WriteError($_)
             }
             finally {
@@ -181,6 +186,7 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import RapidStart packages Error: $($_.Exception.Message)" -f Red
+                if ($ThrowErrors) { throw }
                 $PSCmdlet.WriteError($_)
             }
             finally {
@@ -194,8 +200,10 @@ function Import-Artifacts {
         # Import Fonts
         $items = @()
         if (-not $SkipFontImport) {
-            # I would keep this, since we can deploy also a zip file containing fonts alongside other artifacts, do you agree on this @OleWunschmann?
-            $fontPaths = @($Path, 'c:/fonts') | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -Unique
+            # Mixed archives can contain fonts alongside other artifacts.
+            $fontPaths = @($Path)
+            if (-not $SkipSharedFontImport) { $fontPaths += 'c:/fonts' }
+            $fontPaths = @($fontPaths | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -Unique)
             if ($fontPaths) {
                 $items = @(Get-ChildItem -LiteralPath $fontPaths -Recurse -File -Depth $maxDepth -ErrorAction Stop |
                     Where-Object { $_.Extension -in @('.fon', '.fnt', '.ttf', '.ttc', '.otf') })
@@ -213,6 +221,7 @@ function Import-Artifacts {
             }
             catch {
                 Write-Host "Import Fonts Error: $($_.Exception.Message)" -f Red  | Out-String
+                if ($ThrowErrors) { throw }
                 $PSCmdlet.WriteError($_)
             }
             finally {

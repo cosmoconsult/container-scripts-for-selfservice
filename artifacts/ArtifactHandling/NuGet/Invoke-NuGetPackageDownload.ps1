@@ -108,8 +108,6 @@ function Invoke-NuGetPackageDownload() {
                 Write-Host "$($installedAppSources[$installedApp.Id]): $($installedApp.Package) (version: $($installedApp.Version))"
             }
         }
-        $downloadParameters.installedApps = @($installedAppsHash.Values)
-
         foreach ($predefinedPackage in $PredefinedPackages) {
             # Ignore predefined package if it matches the requested package
             if ($predefinedPackage.Package -eq $Package) {
@@ -124,7 +122,7 @@ function Invoke-NuGetPackageDownload() {
             }
 
             # Ignore predefined package if it matches an installed app
-            if ($downloadParameters.installedApps | Where-Object { $_.Id.ToString() -eq $packageNameInfo.Id }) {
+            if ($installedAppsHash.Values | Where-Object { $_.Id.ToString() -eq $packageNameInfo.Id }) {
                 continue
             }
 
@@ -145,9 +143,11 @@ function Invoke-NuGetPackageDownload() {
                 Version   = $packageVersion
             }
 
-            Write-Host "Use predefined package as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
-            $downloadParameters.installedApps += $installedApp
+            $installedAppsHash[$installedApp.Id] = $installedApp
+            $installedAppSources[$installedApp.Id] = 'Use predefined package as installed app'
+            Write-Host "$($installedAppSources[$installedApp.Id]): $($installedApp.Package) (version: $($installedApp.Version))"
         }
+        $downloadParameters.installedApps = @($installedAppsHash.Values)
 
         New-Item -ItemType Directory -Path $Destination -ErrorAction SilentlyContinue -Force | Out-Null
         foreach ($attempt in 1..$maxAttempts) {

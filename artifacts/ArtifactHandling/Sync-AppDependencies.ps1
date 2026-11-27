@@ -49,7 +49,10 @@ function Sync-AppDependencies {
                         -ErrorAction Stop
                 }
                 catch {
-                    Write-Host "Failed to sync dependency '$($dependencyApp.Name)' ($($dependencyApp.Publisher) $($dependencyApp.Version)) for app '$($App.Name)' ($($App.Publisher) $($App.Version)) on server '$ServerInstance', tenant '$Tenant': $($_.Exception.Message)"
+                    if ($_ | Remove-PowerShellFlowControlErrors) {
+                        Write-Host "Failed to sync dependency '$($dependencyApp.Name)' ($($dependencyApp.Publisher) $($dependencyApp.Version)) for app '$($App.Name)' ($($App.Publisher) $($App.Version)) on server '$ServerInstance', tenant '$Tenant': $($_.Exception.Message)"
+                        if ($ErrorActionPreference -eq 'Stop') { throw }
+                    }
                 }
             }
         }

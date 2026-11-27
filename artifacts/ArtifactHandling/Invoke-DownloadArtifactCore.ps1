@@ -415,6 +415,7 @@ function Invoke-DownloadArtifactCore {
         }
         else {
             New-ArtifactsLogEntry -Message "Artifact $name skipped - no Url found." -Severity Warn -Success Skip
+            if ($ThrowOnError) { throw "Artifact '$name' has no source URL or path" }
         }
     }
 }

@@ -14,10 +14,9 @@ function Import-AppArtifact {
         [ValidateSet("Global", "Tenant", "Dev")]
         [string]$Scope = "Global",
         [System.Object]$telemetryClient = $null,
-        [string]$PublicDnsName = "",
-        [string]$ContainerId = "",
-        [string]$ContainerUser = "",
-        [string]$ContainerPassword = "",
+        [string]$DevEndpointUrl = "",
+        [string]$DevEndpointUser = "",
+        [string]$DevEndpointPassword = "",
         [switch]$SkipServiceRestartCheck
     )
 
@@ -31,11 +30,10 @@ function Import-AppArtifact {
         function Get-ImportTenantAppInfo {
             param ([Guid]$AppId, [Version]$Version)
 
-            $apps = @(Get-NAVAppInfo -ServerInstance $ServerInstance -Id $AppId -Tenant $Tenant -TenantSpecificProperties -ErrorAction Stop)
             if ($Version) {
-                return $apps | Where-Object { [Version]$_.Version -eq $Version } | Select-Object -First 1
+                return Get-NAVAppInfo -ServerInstance $ServerInstance -Id $AppId -Tenant $Tenant -TenantSpecificProperties -Version $Version -ErrorAction Stop | Select-Object -First 1
             }
-            return $apps
+            return @(Get-NAVAppInfo -ServerInstance $ServerInstance -Id $AppId -Tenant $Tenant -TenantSpecificProperties -ErrorAction Stop)
         }
 
         function Invoke-AppImportStep {
@@ -46,7 +44,14 @@ function Import-AppArtifact {
             try {
                 Add-ArtifactsLog -kind App -message "$Name $($app.Name) $($app.Publisher) $($app.Version)..." -data $app
                 try {
-                    & $Action | Out-Null
+                    & $Action 3>&1 6>&1 | ForEach-Object {
+                        if ($_ -is [System.Management.Automation.WarningRecord]) {
+                            Add-ArtifactsLog -kind App -message "$_" -severity Warn -data $app
+                        }
+                        elseif ($_ -is [System.Management.Automation.InformationRecord]) {
+                            Add-ArtifactsLog -kind App -message "$_" -severity Info -data $app
+                        }
+                    }
                 }
                 catch {
                     if ($_ | Remove-PowerShellFlowControlErrors) {
@@ -58,6 +63,60 @@ function Import-AppArtifact {
             }
             finally {
                 Invoke-LogOperation -name $Name -started $stepStarted -properties $properties -success $stepSuccess -telemetryClient $telemetryClient
+            }
+        }
+
+        function Unpublish-OldAppVersion {
+            param ([object]$OldApp, [Guid]$AppId, [Version]$NewVersion)
+
+            if (-not $OldApp -or -not $OldApp.IsPublished -or [Version]$OldApp.Version -ge $NewVersion) {
+                return
+            }
+
+            $stepStarted = Get-Date -Format "o"
+            $stepSuccess = $false
+            try {
+                $unpublishParameters = @{
+                    ServerInstance = $ServerInstance
+                    Name = $OldApp.Name
+                    Publisher = $OldApp.Publisher
+                    Version = $OldApp.Version
+                    ErrorAction = "Stop"
+                }
+                if ($OldApp.Scope -eq "Tenant") {
+                    if (-not (Get-Command Unpublish-NAVApp -ErrorAction Stop).Parameters.ContainsKey("Tenant")) {
+                        Add-ArtifactsLog -kind App -message "Cannot unpublish tenant-scoped old App $($OldApp.Name) $($OldApp.Version): Unpublish-NAVApp does not support Tenant" -severity Warn -success skip -data $OldApp
+                        $stepSuccess = $true
+                        return
+                    }
+                    $unpublishParameters.Tenant = $Tenant
+                }
+                elseif ($OldApp.Scope -eq "Global") {
+                    $installedTenants = @(Get-NAVAppTenant -ServerInstance $ServerInstance -Id $AppId -Version $OldApp.Version -ErrorAction Stop |
+                        Select-Object -ExpandProperty Id)
+                    if ($installedTenants) {
+                        Add-ArtifactsLog -kind App -message "Keeping globally published old App $($OldApp.Name) $($OldApp.Version): it is still installed in tenant(s) '$($installedTenants -join ', ')'" -severity Warn -success skip -data $OldApp
+                        $stepSuccess = $true
+                        return
+                    }
+                }
+                else {
+                    Add-ArtifactsLog -kind App -message "Cannot safely unpublish old App $($OldApp.Name) $($OldApp.Version): unknown publishing scope '$($OldApp.Scope)'" -severity Warn -success skip -data $OldApp
+                    $stepSuccess = $true
+                    return
+                }
+
+                Add-ArtifactsLog -kind App -message "Unpublish old App $($OldApp.Name) $($OldApp.Publisher) $($OldApp.Version)..." -data $OldApp
+                Unpublish-NAVApp @unpublishParameters
+                Add-ArtifactsLog -kind App -message "Unpublish old App successful" -data $OldApp -success success
+                $stepSuccess = $true
+            }
+            catch {
+                Add-ArtifactsLog -kind App -message "Unpublish old App $($OldApp.Name) $($OldApp.Publisher) $($OldApp.Version) failed: $($_.Exception.Message)" -data $OldApp -severity Error -success fail
+                Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Unpublish Old App"
+            }
+            finally {
+                Invoke-LogOperation -name "Unpublish Old App" -started $stepStarted -properties $properties -success $stepSuccess -telemetryClient $telemetryClient
             }
         }
     }
@@ -96,15 +155,17 @@ function Import-AppArtifact {
             }
             if ($Scope -eq "Dev") {
                 Invoke-AppImportStep -Name "Publish App to development endpoint" -Action {
-                    if ([string]::IsNullOrWhiteSpace($PublicDnsName) -or [string]::IsNullOrWhiteSpace($ContainerId) -or
-                        [string]::IsNullOrWhiteSpace($ContainerUser) -or [string]::IsNullOrWhiteSpace($ContainerPassword)) {
-                        throw "Dev deployment requires PublicDnsName, ContainerId, ContainerUser, and ContainerPassword"
+                    if ([string]::IsNullOrWhiteSpace($DevEndpointUrl) -or
+                        [string]::IsNullOrWhiteSpace($DevEndpointUser) -or [string]::IsNullOrWhiteSpace($DevEndpointPassword)) {
+                        throw "Dev deployment requires DevEndpointUrl, DevEndpointUser, and DevEndpointPassword"
                     }
-                    if ([Uri]::CheckHostName($PublicDnsName) -eq [UriHostNameType]::Unknown) {
-                        throw "PublicDnsName must be a hostname without a scheme or path"
+                    $parsedEndpoint = $null
+                    if (-not [Uri]::TryCreate($DevEndpointUrl, [UriKind]::Absolute, [ref]$parsedEndpoint) -or
+                        $parsedEndpoint.Scheme -notin @("http", "https") -or $parsedEndpoint.Query -or $parsedEndpoint.Fragment) {
+                        throw "DevEndpointUrl must be an absolute HTTP(S) URL without a query or fragment"
                     }
                     $schemaUpdateMode = if ($SyncMode -eq "ForceSync") { "forcesync" } else { "synchronize" }
-                    $endpoint = "https://$PublicDnsName/$([Uri]::EscapeDataString($ContainerId))dev/dev/apps?SchemaUpdateMode=$schemaUpdateMode&tenant=$([Uri]::EscapeDataString($Tenant))"
+                    $endpoint = "$($DevEndpointUrl.TrimEnd('/'))?SchemaUpdateMode=$schemaUpdateMode&tenant=$([Uri]::EscapeDataString($Tenant))"
                     Add-Type -AssemblyName System.Net.Http -ErrorAction Stop
                     $handler = [System.Net.Http.HttpClientHandler]::new()
                     $client = $null
@@ -115,7 +176,7 @@ function Import-AppArtifact {
                         $client = [System.Net.Http.HttpClient]::new($handler)
                         $client.Timeout = [System.Threading.Timeout]::InfiniteTimeSpan
                         $client.DefaultRequestHeaders.ExpectContinue = $false
-                        $credentials = [System.Text.Encoding]::UTF8.GetBytes("${ContainerUser}:$ContainerPassword")
+                        $credentials = [System.Text.Encoding]::UTF8.GetBytes("${DevEndpointUser}:$DevEndpointPassword")
                         $client.DefaultRequestHeaders.Authorization = [System.Net.Http.Headers.AuthenticationHeaderValue]::new("Basic", [Convert]::ToBase64String($credentials))
                         $fileStream = [System.IO.File]::OpenRead($Path)
                         $content = [System.Net.Http.MultipartFormDataContent]::new()
@@ -184,12 +245,15 @@ function Import-AppArtifact {
                 throw "App '$($app.Name)' has an extension data version higher than the app version"
             }
 
-            # Sync whenever the target version is not synchronized; SyncMode only chooses Add or ForceSync for that sync.
-            # The installed version stays installed: a newer version is synchronized next to it and then data-upgraded.
             if ($targetApp.SyncState -ne "Synced") {
+                # Dependencies always use Add so ForceSync cannot drop their schema data.
+                Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant $Tenant -SyncMode Add -ErrorAction Stop
+                if ($SyncMode -eq "ForceSync" -and $installedApp -and [Version]$installedApp.Version -lt [Version]$app.Version) {
+                    Invoke-AppImportStep -Name "Uninstall old App" -Action {
+                        Uninstall-NAVApp -ServerInstance $ServerInstance -Name $installedApp.Name -Publisher $installedApp.Publisher -Version $installedApp.Version -Tenant $Tenant -Force -ErrorAction Stop
+                    }
+                }
                 Invoke-AppImportStep -Name "Sync App ($SyncMode)" -Action {
-                    # Dependencies always use Add so ForceSync of this app cannot drop schema data of other apps.
-                    Sync-AppDependencies -App $app -ServerInstance $ServerInstance -Tenant $Tenant -SyncMode Add
                     Sync-NAVApp -ServerInstance $ServerInstance -Name $app.Name -Publisher $app.Publisher -Version $app.Version -Tenant $Tenant -Mode $SyncMode -Force -ErrorAction Stop
                 }
                 $targetApp = Get-ImportTenantAppInfo -AppId $appId -Version $app.Version
@@ -220,6 +284,7 @@ function Import-AppArtifact {
                 $properties[$property] = $result.$property
             }
             Add-ArtifactsLog -kind App -message "App $($app.Name) $($app.Version) is installed and synchronized." -data $result
+            Unpublish-OldAppVersion -OldApp $installedApp -AppId $appId -NewVersion ([Version]$app.Version)
             $success = $true
         }
         catch {
