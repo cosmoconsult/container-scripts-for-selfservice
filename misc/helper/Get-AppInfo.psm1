@@ -19,7 +19,7 @@ function Get-AppInfo {
     $appInfoFilename = ("appInfo" + [DateTime]::Now.ToString("yyyy-MM-ddHH.mm.ss") + ".json")
     $appInfoPath = Join-Path $appInfoFolder $appInfoFilename
   
-    Get-NavAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties | Select-Object @{Name = 'Id'; Expression = { $_.AppId.ToString() } }, Name, Publisher, @{Name = 'Version'; Expression = { $_.Version.ToString() } } | ConvertTo-Json -Compress | Set-Content -Path $appInfoPath -Force
+    Get-NavAppInfo -ServerInstance BC -Tenant default -TenantSpecificProperties | Select-Object @{Name = 'Id'; Expression = { $_.AppId.ToString() } }, Name, Publisher, @{Name = 'Version'; Expression = { $_.Version.ToString() } }, IsInstalled | ConvertTo-Json -Compress | Set-Content -Path $appInfoPath -Force
 
     Write-Host "got appinfo" #Do not change string or remove this line, it is used by container exec service to check if the script ran successfully
     Write-Host ("Apps:" + $appInfoFilename)

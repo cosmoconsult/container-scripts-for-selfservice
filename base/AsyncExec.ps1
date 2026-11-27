@@ -31,18 +31,14 @@ if ($OnlyGetStatus -and (-not (Test-Path $lockFile))) {
 # create lock file if it doesn't exist, else return status
 if (-not (New-Item -Type File -Path $lockFile -Value "Started" -ErrorAction SilentlyContinue)) {
     # lock file exists, return status
+    $stdOut = ""
+    $stdErr = ""
     if (Test-Path $scriptLog) {
-        $stdOut = (Get-Content -Path $scriptLog -Raw).psobject.BaseObject
-        if ($stdOut.Length -le 1) {
-            $stdOut = ""
-        }
+        $stdOut = @(Get-Content -Path $scriptLog -Raw) -join [Environment]::NewLine
     }
 
     if (Test-Path $scriptLogErr) {
-        $stdErr = (Get-Content -Path $scriptLogErr -Raw).psobject.BaseObject
-        if ($stdErr.Length -le 1) {
-            $stdErr = ""
-        }
+        $stdErr = @(Get-Content -Path $scriptLogErr -Raw) -join [Environment]::NewLine
     }
 
     return [PSCustomObject]@{
@@ -88,7 +84,12 @@ try {
     }
 }
 catch {
-    # remove lock file when something goes wrong
-    Remove-Item -Path $lockFile -Force -ErrorAction SilentlyContinue
+    # keep a terminal status with the reason so status polling does not report NotStarted forever
+    try {
+        Add-Content -Path $scriptLogErr -Value ($_ | Out-String) -ErrorAction Stop
+    }
+    finally {
+        Set-Content -Path $lockFile -Value "CompletedWithError" -ErrorAction Stop
+    }
 }
 

@@ -9,6 +9,7 @@ function Invoke-NuGetPackageDownload() {
         [string]$Package,
         [string]$Version,
         [string]$InstalledAppsPath,
+        [PSCustomObject[]]$InstalledPackages = @(),
         [string]$ServiceTierFolder,
         [PSCustomObject[]]$PredefinedPackages = @(),
         [ValidateRange(0, [int]::MaxValue)]
@@ -73,31 +74,40 @@ function Invoke-NuGetPackageDownload() {
             Write-Host "Use NuGet version constraint '$($downloadParameters.version)' for select mode '$Select'"
         }
 
+        $installedAppSources = @{}
+        if ($InstalledPackages) {
+            Write-Host "Collecting installed packages (only highest version per app id)"
+            foreach ($installedPackage in $InstalledPackages) {
+                if ($installedAppsHash.ContainsKey($installedPackage.Id) -and
+                    [Version]$installedPackage.Version -le [Version]$installedAppsHash[$installedPackage.Id].Version) {
+                    continue
+                }
+                $installedAppsHash[$installedPackage.Id] = $installedPackage
+                $installedAppSources[$installedPackage.Id] = 'Installed app'
+            }
+        }
+
         if ($InstalledAppsPath -and (Test-Path -Path $InstalledAppsPath)) {
             Write-Host "Collecting app files from '$InstalledAppsPath'"
-            $installedAppInfos = @(Get-NuGetAppInfos -AppFilesPath $InstalledAppsPath -ServiceTierFolder $ServiceTierFolder)
+            $installedAppFilesInfos = @(Get-NuGetAppInfos -AppFilesPath $InstalledAppsPath -ServiceTierFolder $ServiceTierFolder)
 
-            if ($installedAppInfos) {
+            if ($installedAppFilesInfos) {
                 Write-Host "Collecting apps infos from app files (only highest version per app id)"
-                foreach ($appInfo in $installedAppInfos) {
-                    if ($installedAppsHash.ContainsKey($appInfo.Id)) {
-                        if ([Version]$appInfo.Version -gt [Version]$installedAppsHash[$appInfo.Id].Version) {
-                            $installedAppsHash[$appInfo.Id] = $appInfo
-                        }
+                foreach ($appInfo in $installedAppFilesInfos) {
+                    if ($installedAppsHash.ContainsKey($appInfo.Id) -and
+                        [Version]$appInfo.Version -le [Version]$installedAppsHash[$appInfo.Id].Version) {
+                        continue
                     }
-                    else {
-                        $installedAppsHash[$appInfo.Id] = $appInfo
-                    }
-                }
-                $installedApps = $installedAppsHash.Values
-
-                foreach ($installedApp in $installedApps) {
-                    Write-Host "Use app file as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
+                    $installedAppsHash[$appInfo.Id] = $appInfo
+                    $installedAppSources[$appInfo.Id] = 'Use app file as installed app'
                 }
             }
         }
-        $downloadParameters.installedApps = @($installedAppsHash.Values)
-
+        foreach ($installedApp in ($installedAppsHash.Values | Sort-Object Package)) {
+            if ($installedAppSources.ContainsKey($installedApp.Id)) {
+                Write-Host "$($installedAppSources[$installedApp.Id]): $($installedApp.Package) (version: $($installedApp.Version))"
+            }
+        }
         foreach ($predefinedPackage in $PredefinedPackages) {
             # Ignore predefined package if it matches the requested package
             if ($predefinedPackage.Package -eq $Package) {
@@ -112,7 +122,7 @@ function Invoke-NuGetPackageDownload() {
             }
 
             # Ignore predefined package if it matches an installed app
-            if ($downloadParameters.installedApps | Where-Object { $_.Id.ToString() -eq $packageNameInfo.Id }) {
+            if ($installedAppsHash.Values | Where-Object { $_.Id.ToString() -eq $packageNameInfo.Id }) {
                 continue
             }
 
@@ -133,9 +143,11 @@ function Invoke-NuGetPackageDownload() {
                 Version   = $packageVersion
             }
 
-            Write-Host "Use predefined package as installed app: $($installedApp.Package) (version: $($installedApp.Version))"
-            $downloadParameters.installedApps += $installedApp
+            $installedAppsHash[$installedApp.Id] = $installedApp
+            $installedAppSources[$installedApp.Id] = 'Use predefined package as installed app'
+            Write-Host "$($installedAppSources[$installedApp.Id]): $($installedApp.Package) (version: $($installedApp.Version))"
         }
+        $downloadParameters.installedApps = @($installedAppsHash.Values)
 
         New-Item -ItemType Directory -Path $Destination -ErrorAction SilentlyContinue -Force | Out-Null
         foreach ($attempt in 1..$maxAttempts) {

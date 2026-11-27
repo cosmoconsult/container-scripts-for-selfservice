@@ -11,7 +11,8 @@ function Import-RIMArtifact {
         [Parameter(Mandatory = $false)]
         [string]$Filter = "*.rapidstart",
         [Parameter(Mandatory = $false)]
-        [System.Object]$telemetryClient = $null
+        [System.Object]$telemetryClient = $null,
+        [switch]$SkipServiceRestartCheck
     )
     
     begin {
@@ -25,7 +26,7 @@ function Import-RIMArtifact {
     
     process {
         # check restart
-        if ($env:cosmoServiceRestart -eq $true) {
+        if (-not $SkipServiceRestartCheck -and $env:cosmoServiceRestart -eq $true) {
             Add-ArtifactsLog -message "Skipping RapidStart artifact import because this seems to be a service restart"
             return
         }
@@ -50,6 +51,7 @@ function Import-RIMArtifact {
         
             if ($companies.count -eq 0) {
                 Add-ArtifactsLog -kind RIM -message "Import RapidStart FAILED:$([System.Environment]::NewLine)  No company found" -data $properties -severity Error -success fail
+                Write-Error 'No company available for RapidStart import'
                 return
             }
             else {
@@ -79,12 +81,14 @@ function Import-RIMArtifact {
                     $warn | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Warn  -data $properties }
                     $err  | foreach { Add-ArtifactsLog -kind RIM -message "$_" -severity Error -data $properties }
                     $success = ! $err
+                    if ($err) { throw $err[0] }
                     if ($success) { Add-ArtifactsLog -kind RIM "Import and apply package $Path in company '$($company.CompanyName)' ... successful" -data $properties -success success }
                     Invoke-LogOperation -name "Import and apply RapidStart Artifact" -started $started -properties $properties -telemetryClient $telemetryClient -success $success
                 }
                 catch {
                     Add-ArtifactsLog -kind RIM -message "Import and apply package $Path in company '$($company.CompanyName)' FAILED:$([System.Environment]::NewLine)  $($_.Exception.Message)" -data $properties -severity Error -success fail
                     Invoke-LogError -exception $_.Exception -telemetryClient $telemetryClient -properties $properties -operation "Import RapidStart Artifact"
+                    $PSCmdlet.WriteError($_)
                 }            
                 Add-ArtifactsLog -message " "
             }
