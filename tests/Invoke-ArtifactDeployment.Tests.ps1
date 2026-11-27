@@ -71,6 +71,7 @@ BeforeAll {
             [string]$Scope,
             [string]$SyncMode,
             [bool]$ExcludeApps,
+            [bool]$ThrowErrors,
             [switch]$SkipSharedFontImport,
             [switch]$SkipServiceRestartCheck,
             [string]$DevEndpointUrl,
@@ -78,6 +79,11 @@ BeforeAll {
             [string]$DevEndpointPassword
         )
         $global:artifactDeploymentImportCalls++
+        $global:artifactDeploymentThrowErrors = $ThrowErrors
+        $global:artifactDeploymentErrorAction = $ErrorActionPreference
+        if ($global:artifactDeploymentImportError) {
+            Write-Error $global:artifactDeploymentImportError
+        }
     }
 
     function Invoke-TestArtifactDeployment {
@@ -86,6 +92,7 @@ BeforeAll {
         $deploymentRoot = Join-Path $TestDrive ([guid]::NewGuid().ToString())
         New-Item -ItemType Directory -Path $deploymentRoot | Out-Null
         $Manifest | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath (Join-Path $deploymentRoot 'manifest.json')
+        $ErrorActionPreference = 'Continue'
         & ([scriptblock]::Create($script:deploymentScript)) -DeploymentPath $deploymentRoot
     }
 }
@@ -95,6 +102,9 @@ Describe 'Invoke-ArtifactDeployment' {
         $global:artifactDeploymentEnvironmentCalls = 0
         $global:artifactDeploymentDownloadCalls = 0
         $global:artifactDeploymentImportCalls = 0
+        $global:artifactDeploymentThrowErrors = $false
+        $global:artifactDeploymentErrorAction = $null
+        $global:artifactDeploymentImportError = $null
         $global:artifactDeploymentDownloadItems = @()
         $global:artifactDeploymentDownloadOptions = $null
         $global:artifactDeploymentResolvedNames = @()
@@ -127,5 +137,20 @@ Describe 'Invoke-ArtifactDeployment' {
             'first-app', 'font', 'devops-addin', 'first-nuget', 'second-nuget'
         )
         $global:artifactDeploymentImportCalls | Should -Be 1
+    }
+
+    It 'uses ErrorAction Stop alone to fail deployment on import errors' {
+        $global:artifactDeploymentImportError = 'App import failed'
+        $manifest = @{
+            artifacts = @(
+                @{ name = 'first-app'; type = 'url'; target = 'app'; url = 'https://example.test/first.app' }
+            )
+            devopsArtifacts = @()
+        }
+
+        { Invoke-TestArtifactDeployment -Manifest $manifest } | Should -Throw '*App import failed*'
+        $global:artifactDeploymentImportCalls | Should -Be 1
+        $global:artifactDeploymentThrowErrors | Should -BeFalse
+        $global:artifactDeploymentErrorAction | Should -Be ([System.Management.Automation.ActionPreference]::Stop)
     }
 }
