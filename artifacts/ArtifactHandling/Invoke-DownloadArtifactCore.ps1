@@ -127,7 +127,10 @@ function Invoke-DownloadArtifactCore {
 
         $isNuGet = $type.ToLower() -eq "nuget"
         $isDownload = "$sourceUri" -match '^https?://'
-        $isArchive = "$sourceUri".EndsWith(".zip", [System.StringComparison]::OrdinalIgnoreCase) -or $type -ieq 'zip'
+        $isArchive = $false
+        if (-not $isDownload -and -not $isNuGet -and $sourceUri -like '*.zip') {
+            $isArchive = $true
+        }
         if ($sourceUri -or $isNuGet) {
             $safeUri = Get-SafeArtifactUri -Uri $sourceUri
             if ($isNuGet) {
@@ -190,9 +193,6 @@ function Invoke-DownloadArtifactCore {
                         }
                         if ("$contentDisposition" -match 'filename\*?="?([^";]+)') {
                             $fileExtension = [System.IO.Path]::GetExtension($Matches[1].Trim()).ToLower()
-                        }
-                        if (-not $fileExtension) {
-                            $fileExtension = [System.IO.Path]::GetExtension(([uri]$sourceUri).AbsolutePath).ToLowerInvariant()
                         }
                         switch ($true) {
                             { $fileExtension -eq ".zip" } {
