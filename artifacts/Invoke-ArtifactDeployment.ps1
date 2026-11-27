@@ -10,10 +10,10 @@
     configured NuGet feeds, and other files are staged in the deployment folder (e.g. uploads\) and referenced by
     local path.
     Invalid manifests are rejected.
-    Artifacts are processed like navstartArtifacts.ps1 (NuGet last, downloaded per dependsOn group) and imported with
-    Import-Artifacts without applying the startup app exclusion filter. The deployment folder is kept for traceability:
+    Artifacts are processed in manifest order with NuGet packages last and imported with Import-Artifacts without
+    applying the startup app exclusion filter. The deployment folder is kept for traceability:
         uploads\         uploaded artifacts
-        apps\            downloaded artifacts (general\ and dependent-on-<dependsOn>\)
+        apps\            downloaded artifacts (general\)
 #>
 [CmdletBinding()]
 param (
@@ -44,12 +44,13 @@ try {
     catch {
         throw 'Manifest is invalid JSON'
     }
+    $manifestArtifacts = @(@($manifest.artifacts) + @($manifest.devopsArtifacts) | Where-Object { $_ })
+
     C:\run\prompt.ps1 -silent
     Import-Module 'C:\run\PPIArtifactUtils.psd1' -Force -ErrorAction Stop
 
     # Sort NuGet packages last while keeping the original order (same as navstartArtifacts.ps1)
-    $artifacts = @(@($manifest.artifacts) + @($manifest.devopsArtifacts) |
-        Where-Object { $_ } |
+    $artifacts = @($manifestArtifacts |
         Group-Object { [int]($_.type -eq 'nuget') } | Sort-Object { [int]$_.Name } | ForEach-Object { $_.Group })
     if (-not $artifacts) {
         throw 'Manifest must contain at least one artifact in "artifacts" or "devopsArtifacts"'
@@ -91,11 +92,7 @@ try {
         }
     }
     $downloadParameters.AllArtifacts = $artifacts
-    # Add-ins and fonts share destinations across dependency groups and need a single index.
-    $artifacts | Where-Object { $_.target -in @('dll', 'add-ins', 'font', 'fonts') } |
-        Invoke-DownloadArtifact @downloadParameters
-    $artifacts | Where-Object { $_.target -notin @('dll', 'add-ins', 'font', 'fonts') } |
-        Group-Object -Property dependsOn | ForEach-Object { $_.Group | Invoke-DownloadArtifact @downloadParameters }
+    $artifacts | Invoke-DownloadArtifact @downloadParameters
 
     New-Item -Path $appsPath -ItemType Directory -Force | Out-Null
     $importPaths = @(Get-ChildItem -LiteralPath $appsPath -Directory |
