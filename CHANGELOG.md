@@ -48,4 +48,5 @@
 - Fix NuGet artifact version checks and conversions
 - Add support for prerelease NuGet packages
 - Fix false deployment and artifact import failures caused by PowerShell flow-control exceptions in BC29 while preserving genuine errors
+- Fix Premium plan assignment for existing enabled owners and use the selected tenant consistently for Premium setup
 

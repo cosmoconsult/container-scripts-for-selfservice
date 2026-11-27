@@ -4,19 +4,18 @@ if ([string]::IsNullOrEmpty($env:enablePremium) -or $($env:enablePremium).ToLowe
 
 Import-Module "C:\run\my\AssignPremiumPlanToUser.psm1"
 
-Get-NavServerUser -serverInstance $ServerInstance -tenant default | Where-Object LicenseType -eq "FullUser" | ForEach-Object {
+if (!$tenantId) { $tenantId = "default" }
+
+Get-NavServerUser -serverInstance $ServerInstance -tenant $tenantId | Where-Object LicenseType -eq "FullUser" | ForEach-Object {
     Invoke-AssignPremiumPlanToUser -Tenant $tenantId -BcUser $_
 }
 
 if ($env:IsBcSandbox -eq "Y") {
     try {
-        if (! $Tenant) {
-            $Tenant = "default"
-        }
-        $companies = [System.Collections.ArrayList]@() + ((Get-NAVCompany $ServerInstance -Tenant $Tenant -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" })
+        $companies = [System.Collections.ArrayList]@() + ((Get-NAVCompany $ServerInstance -Tenant $tenantId -ErrorAction SilentlyContinue) | Where-Object { $_.CompanyName -ne "My Company" })
 
         $me = whoami
-        $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant | Where-Object username -eq $me
+        $userexist = Get-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId | Where-Object username -eq $me
         $companyParam = @{}
         if ($companyName -and $version.Major -gt 9) {
             $companyParam += @{
@@ -26,12 +25,12 @@ if ($env:IsBcSandbox -eq "Y") {
             }
         }
         if (!($userexist)) {
-            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me @companyParam
-            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -PermissionSetId SUPER
+            New-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -WindowsAccount $me @companyParam
+            New-NAVServerUserPermissionSet -ServerInstance $ServerInstance -Tenant $tenantId -WindowsAccount $me -PermissionSetId SUPER
             Start-Sleep -Seconds 1
         }
         elseif ($userexist.state -eq "Disabled") {
-            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenant -WindowsAccount $me -state Enabled @companyParam
+            Set-NAVServerUser -ServerInstance $ServerInstance -Tenant $tenantId -WindowsAccount $me -state Enabled @companyParam
         }
 
         foreach ($company in $companies) {
@@ -39,7 +38,7 @@ if ($env:IsBcSandbox -eq "Y") {
             Invoke-NAVCodeunit `
                 -CodeunitId         9178 `
                 -ServerInstance     $ServerInstance `
-                -Tenant             $Tenant `
+                -Tenant             $tenantId `
                 -MethodName         'SaveExperienceTierCurrentCompany' `
                 -Argument           "Premium" `
                 -CompanyName        "$($company.CompanyName)"
